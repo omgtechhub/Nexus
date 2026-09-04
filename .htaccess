@@ -1,0 +1,19 @@
+DirectoryIndex dist/index.html index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /nexus/
+
+  # Serve images directly from dist/images if requested at images/...
+  RewriteRule ^images/(.*)$ dist/images/$1 [L,NC]
+
+  # If request is for an existing file/dir in dist/, serve it from dist/
+  RewriteCond %{DOCUMENT_ROOT}/nexus/dist/$1 -f [OR]
+  RewriteCond %{DOCUMENT_ROOT}/nexus/dist/$1 -d
+  RewriteRule ^(.*)$ dist/$1 [L]
+
+  # Fallback for SPA routes to dist/index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ dist/index.html [L]
+</IfModule>

@@ -1,0 +1,167 @@
+import { useState } from 'react';
+import { Search, Mail, Phone, MapPin, ShoppingBag, DollarSign, UserPlus } from 'lucide-react';
+import { mockCustomers } from '../../data/mockData';
+import { Customer } from '../../types';
+import { Button } from '../ui/Button';
+
+const formatCurrency = (v: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
+export function Customers() {
+  const [search, setSearch] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  const filtered = mockCustomers.filter(c =>
+    !search ||
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.email.toLowerCase().includes(search.toLowerCase()) ||
+    (c.location || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase();
+
+  const avatarColors = [
+    'from-[#FF5F56] to-[#EF4444]',
+    'from-[#FFBD2E] to-[#F59E0B]',
+    'from-[#27C93F] to-[#10B981]',
+    'from-cyan-500 to-blue-600',
+    'from-purple-500 to-indigo-600',
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <p className="text-white/40 text-sm">{mockCustomers.length} customers</p>
+        <Button variant="primary" size="sm" icon={<UserPlus size={14} />}>Add customer</Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search customers..."
+          className="form-input pl-9 h-9 text-sm"
+        />
+      </div>
+
+      {/* Customer cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map((customer, index) => (
+          <button
+            key={customer.id}
+            onClick={() => setSelectedCustomer(customer)}
+            className="stat-card p-5 text-left hover:border-[#FFBD2E]/30 transition-all"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColors[index % avatarColors.length]} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md`}>
+                {getInitials(customer.name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-white truncate">{customer.name}</h3>
+                <p className="text-xs text-white/40 truncate">{customer.email}</p>
+                {customer.location && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-white/30">
+                    <MapPin size={10} />
+                    {customer.location}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                <div className="flex items-center justify-center gap-1 text-[#FFBD2E] mb-1">
+                  <ShoppingBag size={12} />
+                </div>
+                <div className="text-sm font-bold text-white">{customer.totalOrders}</div>
+                <div className="text-[10px] text-white/30">Orders</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                <div className="flex items-center justify-center gap-1 text-[#27C93F] mb-1">
+                  <DollarSign size={12} />
+                </div>
+                <div className="text-sm font-bold text-white">{formatCurrency(customer.totalSpent)}</div>
+                <div className="text-[10px] text-white/30">Spent</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+              <span className="text-[10px] text-white/25">
+                Customer since {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </span>
+              {customer.totalSpent > 1000 && (
+                <span className="text-[10px] bg-[#FFBD2E]/20 text-[#FFBD2E] px-1.5 py-0.5 rounded-full font-medium">VIP</span>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Customer detail modal */}
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedCustomer(null)} />
+          <div className="relative glass border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Customer Profile</h2>
+              <button onClick={() => setSelectedCustomer(null)} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">✕</button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] flex items-center justify-center text-white font-bold text-lg shadow-md">
+                  {getInitials(selectedCustomer.name)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">{selectedCustomer.name}</h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    {selectedCustomer.totalSpent > 1000 && (
+                      <span className="text-xs bg-[#FFBD2E]/20 text-[#FFBD2E] px-2 py-0.5 rounded-full font-medium">VIP Customer</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm text-white/60">
+                  <Mail size={14} className="text-white/30 flex-shrink-0" />
+                  {selectedCustomer.email}
+                </div>
+                {selectedCustomer.phone && (
+                  <div className="flex items-center gap-3 text-sm text-white/60">
+                    <Phone size={14} className="text-white/30 flex-shrink-0" />
+                    {selectedCustomer.phone}
+                  </div>
+                )}
+                {selectedCustomer.location && (
+                  <div className="flex items-center gap-3 text-sm text-white/60">
+                    <MapPin size={14} className="text-white/30 flex-shrink-0" />
+                    {selectedCustomer.location}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="glass rounded-xl p-4 text-center border border-white/5">
+                  <div className="text-xl font-bold text-white">{selectedCustomer.totalOrders}</div>
+                  <div className="text-xs text-white/40 mt-0.5">Total Orders</div>
+                </div>
+                <div className="glass rounded-xl p-4 text-center border border-white/5">
+                  <div className="text-xl font-bold text-[#27C93F]">{formatCurrency(selectedCustomer.totalSpent)}</div>
+                  <div className="text-xs text-white/40 mt-0.5">Total Spent</div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="primary" size="sm" fullWidth icon={<Mail size={14} />}>Send email</Button>
+                <Button variant="ghost" size="sm" icon={<ShoppingBag size={14} />}>View orders</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
