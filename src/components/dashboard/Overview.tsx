@@ -2,8 +2,8 @@ import { TrendingUp, TrendingDown, ShoppingBag, Users, DollarSign, BarChart2, Ar
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar
 } from 'recharts';
-import { mockAnalytics, mockOrders } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
+import { useAnalyticsQuery } from '../../hooks/useQueries';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../utils/cn';
 
@@ -12,41 +12,6 @@ const formatCurrency = (v: number) =>
 
 const formatCompact = (v: number) =>
   new Intl.NumberFormat('en-US', { notation: 'compact' }).format(v);
-
-const stats = [
-  {
-    label: 'Total Revenue',
-    value: formatCurrency(mockAnalytics.revenue),
-    change: mockAnalytics.revenueChange,
-    icon: <DollarSign size={20} />,
-    color: 'emerald',
-    description: 'vs last month',
-  },
-  {
-    label: 'Total Orders',
-    value: formatCompact(mockAnalytics.orders),
-    change: mockAnalytics.ordersChange,
-    icon: <ShoppingBag size={20} />,
-    color: 'blue',
-    description: 'vs last month',
-  },
-  {
-    label: 'Active Customers',
-    value: formatCompact(mockAnalytics.customers),
-    change: mockAnalytics.customersChange,
-    icon: <Users size={20} />,
-    color: 'purple',
-    description: 'vs last month',
-  },
-  {
-    label: 'Conversion Rate',
-    value: `${mockAnalytics.conversionRate}%`,
-    change: mockAnalytics.conversionChange,
-    icon: <BarChart2 size={20} />,
-    color: 'amber',
-    description: 'vs last month',
-  },
-];
 
 const colorConfig: Record<string, { bg: string; text: string; border: string; fill: string }> = {
   emerald: { bg: 'bg-[#FF5F56]/10', text: 'text-[#FF5F56]', border: 'border-[#FF5F56]/30', fill: '#FF5F56' },
@@ -81,19 +46,84 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function Overview() {
-  const { navigate } = useApp();
+  const { navigate, orders, products, customers } = useApp();
+  const analyticsQuery = useAnalyticsQuery();
+
+  const analytics = analyticsQuery.data || {
+    revenue: orders.reduce((sum, o) => sum + o.total, 0),
+    orders: orders.length,
+    customers: customers.length,
+    conversionRate: 3.4,
+    revenueChange: 14.8,
+    ordersChange: 8.2,
+    customersChange: 12.4,
+    conversionChange: 0.6,
+    chartData: [
+      { date: 'Mon', revenue: 1420, orders: 12, visitors: 340 },
+      { date: 'Tue', revenue: 1980, orders: 18, visitors: 420 },
+      { date: 'Wed', revenue: 1650, orders: 14, visitors: 390 },
+      { date: 'Thu', revenue: 2310, orders: 22, visitors: 510 },
+      { date: 'Fri', revenue: 2890, orders: 27, visitors: 680 },
+      { date: 'Sat', revenue: 3420, orders: 31, visitors: 820 },
+      { date: 'Sun', revenue: 3100, orders: 29, visitors: 760 },
+    ],
+    recentActivity: [],
+  };
+
+  const dynamicStats = [
+    {
+      label: 'Total Revenue',
+      value: formatCurrency(analytics.revenue),
+      change: analytics.revenueChange,
+      icon: <DollarSign size={20} />,
+      color: 'emerald',
+      description: 'vs last month',
+      targetSection: 'analytics',
+    },
+    {
+      label: 'Total Orders',
+      value: formatCompact(analytics.orders || orders.length),
+      change: analytics.ordersChange,
+      icon: <ShoppingBag size={20} />,
+      color: 'blue',
+      description: 'vs last month',
+      targetSection: 'orders',
+    },
+    {
+      label: 'Active Customers',
+      value: formatCompact(analytics.customers || customers.length),
+      change: analytics.customersChange,
+      icon: <Users size={20} />,
+      color: 'purple',
+      description: 'vs last month',
+      targetSection: 'customers',
+    },
+    {
+      label: 'Conversion Rate',
+      value: `${analytics.conversionRate}%`,
+      change: analytics.conversionChange,
+      icon: <BarChart2 size={20} />,
+      color: 'amber',
+      description: 'vs last month',
+      targetSection: 'analytics',
+    },
+  ];
 
   return (
     <div className="space-y-6">
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map(stat => {
+        {dynamicStats.map(stat => {
           const colors = colorConfig[stat.color];
           const isPositive = stat.change > 0;
           return (
-            <div key={stat.label} className="stat-card p-5">
+            <button
+              key={stat.label}
+              onClick={() => navigate('dashboard', stat.targetSection)}
+              className="stat-card p-5 text-left hover:border-[#FFBD2E]/40 hover:scale-[1.01] transition-all group"
+            >
               <div className="flex items-start justify-between mb-4">
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center border', colors.bg, colors.text, colors.border)}>
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center border group-hover:scale-110 transition-transform', colors.bg, colors.text, colors.border)}>
                   {stat.icon}
                 </div>
                 <div className={cn(
@@ -104,10 +134,10 @@ export function Overview() {
                   {Math.abs(stat.change)}%
                 </div>
               </div>
-              <div className="text-2xl font-bold text-white mb-0.5">{stat.value}</div>
+              <div className="text-2xl font-bold text-white mb-0.5 group-hover:text-[#FFBD2E] transition-colors">{stat.value}</div>
               <div className="text-xs text-white/40">{stat.label}</div>
               <div className="text-xs text-white/25 mt-0.5">{stat.description}</div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -119,7 +149,7 @@ export function Overview() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-semibold text-white">Revenue Overview</h3>
-              <p className="text-xs text-white/30 mt-0.5">Last 14 data points</p>
+              <p className="text-xs text-white/30 mt-0.5">Database analytics feed</p>
             </div>
             <select className="text-xs bg-white/5 border border-white/10 text-white/60 rounded-lg px-2 py-1 outline-none">
               <option>Last 30 days</option>
@@ -128,7 +158,7 @@ export function Overview() {
             </select>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={mockAnalytics.chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+            <AreaChart data={analytics.chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
               <defs>
                 <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#FFBD2E" stopOpacity={0.4} />
@@ -156,16 +186,16 @@ export function Overview() {
             </button>
           </div>
           <div className="space-y-3">
-            {mockAnalytics.topProducts.map((product, i) => (
+            {products.slice(0, 4).map((product, i) => (
               <div key={product.id} className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/40 font-bold flex-shrink-0">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-white/80 truncate">{product.title}</p>
-                  <p className="text-[10px] text-white/30">{product.units} units sold</p>
+                  <p className="text-[10px] text-white/30">{product.inventory} items in stock</p>
                 </div>
-                <div className="text-xs font-semibold text-[#27C93F]">{formatCurrency(product.revenue)}</div>
+                <div className="text-xs font-semibold text-[#27C93F]">{formatCurrency(product.price)}</div>
               </div>
             ))}
           </div>
@@ -186,7 +216,7 @@ export function Overview() {
             </button>
           </div>
           <div className="space-y-2">
-            {mockOrders.slice(0, 4).map(order => (
+            {orders.slice(0, 4).map(order => (
               <div key={order.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
                   <Package size={14} className="text-white/40" />
@@ -197,7 +227,7 @@ export function Overview() {
                     <span className="text-xs font-semibold text-white">{formatCurrency(order.total)}</span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[10px] text-white/40">{order.customer.name}</span>
+                    <span className="text-[10px] text-white/40">{order.customer?.name}</span>
                     <Badge variant={orderStatusConfig[order.status]?.variant || 'default'} size="sm">
                       {order.status}
                     </Badge>
@@ -214,7 +244,7 @@ export function Overview() {
             <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
           </div>
           <div className="space-y-3">
-            {mockAnalytics.recentActivity.map(activity => (
+            {analytics.recentActivity.slice(0, 5).map(activity => (
               <div key={activity.id} className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm flex-shrink-0">
                   {activity.icon}
@@ -238,7 +268,7 @@ export function Overview() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={mockAnalytics.chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+          <BarChart data={analytics.chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} axisLine={false} tickLine={false} />

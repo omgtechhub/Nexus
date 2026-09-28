@@ -1,10 +1,13 @@
+import { useRef, useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 import {
   Store, CreditCard, BarChart3, Globe, Smartphone, ShieldCheck,
   Package, Zap, Users, Headphones, Palette, GitBranch
 } from 'lucide-react';
+import gsap from 'gsap';
 import { cn } from '../../utils/cn';
 import { useApp } from '../../context/AppContext';
+import { getAssetUrl } from '../../utils/assetPath';
 
 const mainFeatures = [
   {
@@ -77,18 +80,42 @@ const colorMap: Record<string, string> = {
 
 function FeatureCard({ feature, index }: { feature: typeof mainFeatures[0]; index: number }) {
   const { navigate } = useApp();
-  const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { ref: inViewRef, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
   const colors = colorMap[feature.color];
+
+  // GSAP entrance on scroll view
+  useEffect(() => {
+    if (inView && cardRef.current) {
+      gsap.fromTo(cardRef.current,
+        { opacity: 0, y: 35, scale: 0.94 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.7, delay: index * 0.08, ease: 'back.out(1.4)' }
+      );
+    }
+  }, [inView, index]);
+
+  const handleMouseEnter = () => {
+    if (cardRef.current) {
+      gsap.to(cardRef.current, { scale: 1.03, y: -6, duration: 0.3, ease: 'power2.out' });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (cardRef.current) {
+      gsap.to(cardRef.current, { scale: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+    }
+  };
 
   return (
     <div
-      ref={ref}
+      ref={(el) => {
+        cardRef.current = el;
+        inViewRef(el);
+      }}
       onClick={() => navigate(feature.target)}
-      className={cn(
-        'glass rounded-2xl p-6 card-hover border border-white/5 transition-all duration-700 cursor-pointer group',
-        inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8',
-      )}
-      style={{ transitionDelay: `${index * 80}ms` }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="glass rounded-2xl p-6 border border-white/5 cursor-pointer group transition-colors hover:border-[#FFBD2E]/40"
     >
       <div className={cn(
         'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 border',
@@ -138,7 +165,7 @@ export function Features() {
             onClick={() => navigate('ai-assistant')}
             className="relative rounded-2xl overflow-hidden border border-white/10 group cursor-pointer"
           >
-            <img src="images/feature-analytics.jpg" alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img src={getAssetUrl('/images/feature-analytics.jpg')} alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5F56]/20 border border-[#FF5F56]/30 text-[#FF5F56] text-xs font-medium mb-2">
@@ -153,7 +180,7 @@ export function Features() {
             onClick={() => navigate('online-store')}
             className="relative rounded-2xl overflow-hidden border border-white/10 group cursor-pointer"
           >
-            <img src="images/feature-commerce.jpg" alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img src={getAssetUrl('/images/feature-commerce.jpg')} alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#27C93F]/20 border border-[#27C93F]/30 text-[#27C93F] text-xs font-medium mb-2">
@@ -165,7 +192,7 @@ export function Features() {
           </div>
         </div>
 
-        {/* Main feature grid */}
+        {/* Main feature grid with GSAP card animations */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
           {mainFeatures.map((feature, index) => (
             <FeatureCard key={feature.title} feature={feature} index={index} />

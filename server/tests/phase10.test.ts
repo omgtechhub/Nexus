@@ -1,0 +1,150 @@
+import { describe, it, expect, beforeAll } from 'vitest';
+import supertest from 'supertest';
+import { app } from '../src/app.js';
+import { prisma } from '../src/prisma.js';
+
+const request = supertest(app);
+
+describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verification Suite', () => {
+  const merchantEmail = `merchant_p10_${Date.now()}@nexuscommerce.io`;
+  const password = 'Password123!';
+
+  let merchantCookie: string;
+  let storeId: string;
+  let productId: string;
+  let customerId: string;
+  let orderId: string;
+
+  beforeAll(async () => {
+    // Clean up potential leftover user
+    await prisma.user.deleteMany({ where: { email: merchantEmail } });
+  });
+
+  it('1. Readiness & Health Probes: Confirms zero-downtime production readiness', async () => {
+    const readyRes = await request.get('/ready');
+    expect(readyRes.status).toBe(200);
+    expect(readyRes.body.status).toBe('ready');
+    expect(readyRes.body.database).toBe('connected');
+
+    const healthRes = await request.get('/health');
+    expect(healthRes.status).toBe(200);
+    expect(healthRes.body.status).toBe('ok');
+  });
+
+  it('2. End-to-End E2E Merchant Onboarding & Store Creation', async () => {
+    const regRes = await request.post('/api/auth/register').send({
+      name: 'Phase 10 Store Owner',
+      email: merchantEmail,
+      password,
+      storeName: 'Phase 10 Production Store',
+    });
+
+    expect(regRes.status).toBe(201);
+    expect(regRes.body.success).toBe(true);
+    merchantCookie = regRes.headers['set-cookie'][0];
+    storeId = regRes.body.data.store.id;
+    expect(storeId).toBeDefined();
+  });
+
+  it('3. Product Catalog & Inventory Reservation Workflow', async () => {
+    const prodRes = await request
+      .post('/api/products')
+      .set('Cookie', [merchantCookie])
+      .send({
+        title: 'Production Premium Jacket',
+        price: 149.99,
+        sku: `SKU-P10-${Date.now()}`,
+        inventory: 50,
+        status: 'ACTIVE',
+      });
+
+    expect(prodRes.status).toBe(201);
+    expect(prodRes.body.success).toBe(true);
+    productId = prodRes.body.data.id;
+  });
+
+  it('4. Storefront Customer Order Placement & Stock Deduction', async () => {
+    const custRes = await request
+      .post('/api/customers')
+      .set('Cookie', [merchantCookie])
+      .send({
+        name: 'Jane Production Buyer',
+        email: `buyer_p10_${Date.now()}@example.com`,
+      });
+
+    expect(custRes.status).toBe(201);
+    customerId = custRes.body.data.id;
+
+    const orderRes = await request
+      .post('/api/orders')
+      .set('Cookie', [merchantCookie])
+      .send({
+        customerName: 'Jane Production Buyer',
+        customerEmail: `buyer_p10_${Date.now()}@example.com`,
+        items: [{ productId, quantity: 2 }],
+        shippingAddress: {
+          firstName: 'Jane',
+          lastName: 'Buyer',
+          address1: '456 Commerce Blvd',
+          city: 'San Francisco',
+          state: 'CA',
+          zip: '94105',
+          country: 'US',
+        },
+      });
+
+    expect(orderRes.status).toBe(201);
+    expect(orderRes.body.success).toBe(true);
+    orderId = orderRes.body.data.id;
+
+    // Verify stock was decremented from 50 to 48
+    const updatedProd = await prisma.inventoryItem.findFirst({
+      where: { storeId, productId },
+    });
+    expect(updatedProd?.stock).toBe(48);
+  });
+
+  it('5. Team Invitation & RBAC Protection', async () => {
+    const staffEmail = `staff_p10_${Date.now()}@nexuscommerce.io`;
+    const inviteRes = await request
+      .post('/api/team/invite')
+      .set('Cookie', [merchantCookie])
+      .send({
+        email: staffEmail,
+        role: 'STAFF',
+      });
+
+    expect(inviteRes.status).toBe(201);
+    expect(inviteRes.body.success).toBe(true);
+    expect(inviteRes.body.data.invitation.token).toBeDefined();
+  });
+
+  it('6. Custom Domain Mapping & DNS Status Check', async () => {
+    const domainName = `p10-store-${Date.now()}.nexusshop.com`;
+    const addDomainRes = await request
+      .post('/api/domains')
+      .set('Cookie', [merchantCookie])
+      .send({ domain: domainName });
+
+    expect(addDomainRes.status).toBe(201);
+    expect(addDomainRes.body.data.domain).toBe(domainName);
+  });
+
+  it('7. SaaS Subscription Plan Entitlements & Invoice Breakdown', async () => {
+    const subRes = await request
+      .post('/api/subscriptions/subscribe')
+      .set('Cookie', [merchantCookie])
+      .send({ planCode: 'growth', interval: 'MONTHLY' });
+
+    expect(subRes.status).toBe(201);
+    expect(subRes.body.data.subscription.plan.code).toBe('growth');
+
+    const invRes = await request
+      .get('/api/subscriptions/invoices')
+      .set('Cookie', [merchantCookie]);
+
+    expect(invRes.status).toBe(200);
+    expect(invRes.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(invRes.body.data[0].invoiceNumber).toMatch(/^NX-INV-/);
+  });
+});

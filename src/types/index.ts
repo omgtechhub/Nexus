@@ -173,5 +173,27 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface DiscountCode {
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed' | 'shipping';
+  value: string;
+  redemptions: number;
+  maxRedemptions: number;
+  status: 'active' | 'scheduled' | 'expired';
+  createdAt: string;
+}
+
+export interface StoreSettings {
+  storeName: string;
+  storeUrl: string;
+  currency: string;
+  industry: string;
+  announcementText: string;
+  activeTheme: string;
+  primaryColor: string;
+  customDomain: string;
+}
+
 export type Theme = 'dark' | 'light';
 export type View = 'marketing' | 'auth' | 'dashboard' | 'admin' | 'online-store' | 'pos' | 'payments' | 'ai-assistant' | 'startups' | 'enterprises' | 'd2c' | 'b2b' | 'pricing' | 'resources' | 'capital' | 'shipping' | 'markets' | 'shop-pay' | 'small-business' | 'marketplaces' | 'retail' | 'international' | 'docs' | 'blog' | 'help-center' | 'partners' | 'app-store' | 'changelog' | 'status-page' | 'community' | 'privacy' | 'terms' | 'cookies' | 'sitemap' | 'about' | 'careers' | 'press' | 'investors' | 'contact';

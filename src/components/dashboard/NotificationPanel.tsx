@@ -20,7 +20,7 @@ export function NotificationPanel() {
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={() => setNotificationPanelOpen(false)} />
-      <div className="fixed top-16 right-4 w-80 glass border border-white/10 rounded-2xl shadow-2xl z-40 overflow-hidden">
+      <div className="fixed top-16 right-4 w-80 bg-[#0D0F1F] border border-white/20 rounded-2xl shadow-2xl z-40 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">

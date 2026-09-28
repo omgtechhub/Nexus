@@ -7,28 +7,25 @@ import { Products } from './Products';
 import { Customers } from './Customers';
 import { Analytics } from './Analytics';
 import { Settings } from './Settings';
+import { StorefrontSection } from './StorefrontSection';
+import { PaymentsSection } from './PaymentsSection';
+import { DiscountsSection } from './DiscountsSection';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
-import { Bell, Store, CreditCard, Tag } from 'lucide-react';
-
-function PlaceholderSection({ title, icon, description }: { title: string; icon: React.ReactNode; description: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-64 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30 mb-4">
-        {icon}
-      </div>
-      <h2 className="text-lg font-semibold text-white mb-2">{title}</h2>
-      <p className="text-sm text-white/40 max-w-xs">{description}</p>
-    </div>
-  );
-}
+import { Bell } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 
 export function DashboardLayout() {
   const { dashboardSection, sidebarOpen } = useApp();
+  const { section: urlSection } = useParams<{ section?: string }>();
+
+  const currentSection = (urlSection && urlSection !== 'dashboard') ? urlSection : dashboardSection;
+  const activeSection = currentSection || 'overview';
 
   const renderSection = () => {
-    switch (dashboardSection) {
+    switch (activeSection) {
       case 'overview':
+      case 'dashboard':
         return <Overview />;
       case 'analytics':
         return <Analytics />;
@@ -41,11 +38,11 @@ export function DashboardLayout() {
       case 'settings':
         return <Settings />;
       case 'storefront':
-        return <PlaceholderSection title="Storefront Builder" icon={<Store size={28} />} description="Customize your store design, themes, and layout." />;
+        return <StorefrontSection />;
       case 'payments':
-        return <PlaceholderSection title="Payments" icon={<CreditCard size={28} />} description="Manage payment methods, gateways, and transaction history." />;
+        return <PaymentsSection />;
       case 'discounts':
-        return <PlaceholderSection title="Discounts & Coupons" icon={<Tag size={28} />} description="Create and manage promotional codes and discount campaigns." />;
+        return <DiscountsSection />;
       case 'notifications':
         return (
           <div className="space-y-3">

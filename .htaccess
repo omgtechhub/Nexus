@@ -4,8 +4,9 @@ DirectoryIndex dist/index.html index.html
   RewriteEngine On
   RewriteBase /nexus/
 
-  # Serve images directly from dist/images if requested at images/...
+  # Serve images and videos directly from dist/
   RewriteRule ^images/(.*)$ dist/images/$1 [L,NC]
+  RewriteRule ^videos/(.*)$ dist/videos/$1 [L,NC]
 
   # If request is for an existing file/dir in dist/, serve it from dist/
   RewriteCond %{DOCUMENT_ROOT}/nexus/dist/$1 -f [OR]

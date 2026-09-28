@@ -2,6 +2,7 @@ import { Navbar } from '../components/marketing/Navbar';
 import { Hero } from '../components/marketing/Hero';
 import { Stats } from '../components/marketing/Stats';
 import { Features } from '../components/marketing/Features';
+import { GsapMorphShowcase } from '../components/marketing/GsapMorphShowcase';
 import { Testimonials } from '../components/marketing/Testimonials';
 import { Pricing } from '../components/marketing/Pricing';
 import { FAQ } from '../components/marketing/FAQ';
@@ -15,6 +16,7 @@ export function MarketingPage() {
       <Hero />
       <Stats />
       <Features />
+      <GsapMorphShowcase />
       <Testimonials />
       <Pricing />
       <FAQ />

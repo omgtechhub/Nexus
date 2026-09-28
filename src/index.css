@@ -276,6 +276,12 @@
   outline: none;
 }
 
+select, select option, .form-input option {
+  background-color: #0D0F1F !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
 .form-input:focus {
   border-color: #FFBD2E;
   box-shadow: 0 0 0 3px rgba(255, 189, 46, 0.15);

@@ -32,3 +32,12 @@ pnpm-debug.log*
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Secrets — never commit credential exports or screenshots
+*Client Secret*
+*client_secret*
+*.pem
+*.key
+
+# Server upload storage
+server/uploads/

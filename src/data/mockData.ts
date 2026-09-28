@@ -1,11 +1,12 @@
 import { User, Order, Product, Customer, AnalyticsData, PricingPlan, Notification, Store } from '../types';
+import { getAssetUrl } from '../utils/assetPath';
 
 // Mock authenticated user
 export const mockUser: User = {
   id: 'usr_01J8NEXUS2024',
   name: 'Sarah Mitchell',
   email: 'sarah@nexusstore.com',
-  avatar: 'images/avatar-1.jpg',
+  avatar: getAssetUrl('/images/avatar-1.jpg'),
   role: 'owner',
   plan: 'pro',
   createdAt: new Date('2023-06-15'),
@@ -390,7 +391,7 @@ export const testimonials = [
     author: "Sarah Mitchell",
     title: "Founder & CEO",
     company: "Mitchell Collective",
-    avatar: "images/avatar-1.jpg",
+    avatar: getAssetUrl("/images/avatar-1.jpg"),
     stars: 5,
     revenue: "$2.4M annual revenue",
   },
@@ -400,7 +401,7 @@ export const testimonials = [
     author: "James Watanabe",
     title: "Director of E-commerce",
     company: "Pacific Goods Co.",
-    avatar: "images/avatar-2.jpg",
+    avatar: getAssetUrl("/images/avatar-2.jpg"),
     stars: 5,
     revenue: "50% higher conversions",
   },
@@ -410,7 +411,7 @@ export const testimonials = [
     author: "Isabella Torres",
     title: "Operations Lead",
     company: "Bloom Botanicals",
-    avatar: "images/avatar-3.jpg",
+    avatar: getAssetUrl("/images/avatar-3.jpg"),
     stars: 5,
     revenue: "12 countries, 1 platform",
   },

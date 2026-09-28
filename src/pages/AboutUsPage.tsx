@@ -6,15 +6,16 @@ import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../context/AppContext';
+import { getAssetUrl } from '../utils/assetPath';
 
 export function AboutUsPage() {
   const { navigate } = useApp();
 
   const leadership = [
-    { name: 'Elena Rostova', title: 'Co-Founder & CEO', bio: 'Former VP of Commerce at Stripe. 15+ years scaling global merchant payment rails.', image: 'images/avatar-1.jpg' },
-    { name: 'Marcus Vance', title: 'Co-Founder & Chief Architect', bio: 'Distributed systems engineer. Led edge infrastructure at Cloudflare.', image: 'images/avatar-2.jpg' },
-    { name: 'Dr. Aris Thorne', title: 'Head of NexusIQ AI', bio: 'Ph.D. in Machine Learning from Stanford. Former AI Research Director at DeepMind.', image: 'images/avatar-3.jpg' },
-    { name: 'Sarah Lin', title: 'VP of Merchant Success', bio: 'Built customer support operations serving 500k+ global Shopify & BigCommerce merchants.', image: 'images/avatar-1.jpg' },
+    { name: 'Elena Rostova', title: 'Co-Founder & CEO', bio: 'Former VP of Commerce at Stripe. 15+ years scaling global merchant payment rails.', image: getAssetUrl('/images/avatar-1.jpg') },
+    { name: 'Marcus Vance', title: 'Co-Founder & Chief Architect', bio: 'Distributed systems engineer. Led edge infrastructure at Cloudflare.', image: getAssetUrl('/images/avatar-2.jpg') },
+    { name: 'Dr. Aris Thorne', title: 'Head of NexusIQ AI', bio: 'Ph.D. in Machine Learning from Stanford. Former AI Research Director at DeepMind.', image: getAssetUrl('/images/avatar-3.jpg') },
+    { name: 'Sarah Lin', title: 'VP of Merchant Success', bio: 'Built customer support operations serving 500k+ global Shopify & BigCommerce merchants.', image: getAssetUrl('/images/avatar-1.jpg') },
   ];
 
   const milestones = [

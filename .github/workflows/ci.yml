@@ -1,0 +1,82 @@
+name: Nexus Commerce CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, release/* ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-test:
+    name: Backend Lint, Typecheck & Vitest Integration Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nexus_user
+          POSTGRES_PASSWORD: nexus_password
+          POSTGRES_DB: nexus_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Server Dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Prisma Client Generation & Migration Verification
+        run: |
+          cd server
+          npx prisma db push --accept-data-loss
+          npx prisma generate
+
+      - name: TypeScript Check
+        run: |
+          cd server
+          npx tsc --noEmit
+
+      - name: Run Backend Integration Tests
+        env:
+          DATABASE_URL: "postgresql://nexus_user:nexus_password@localhost:5432/nexus_db?schema=public"
+          SESSION_SECRET: "ci_pipeline_super_secret_session_key_32_chars"
+          NODE_ENV: "test"
+        run: |
+          cd server
+          npm run test
+
+  frontend-build:
+    name: Frontend Build & Type Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Build Production Frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || vars.VITE_API_URL }}
+        run: npm run build

@@ -3,6 +3,7 @@ import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { testimonials } from '../../data/mockData';
 import { cn } from '../../utils/cn';
+import { getAssetUrl } from '../../utils/assetPath';
 
 export function Testimonials() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -14,7 +15,7 @@ export function Testimonials() {
   return (
     <section id="testimonials" className="py-24 relative overflow-hidden" ref={ref}>
       <div className="absolute inset-0">
-        <img src="images/testimonial-bg.jpg" alt="" className="w-full h-full object-cover opacity-5" />
+        <img src={getAssetUrl('/images/testimonial-bg.jpg')} alt="" className="w-full h-full object-cover opacity-5" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]" />
       </div>
 

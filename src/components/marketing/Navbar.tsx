@@ -170,7 +170,7 @@ export function Navbar() {
 
                   {/* Dropdown */}
                   {item.children && activeDropdown === item.label && (
-                    <div className="absolute top-full left-0 mt-2 w-64 glass rounded-xl shadow-2xl border border-white/10 overflow-hidden py-2 z-50">
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-[#0D0F1F] rounded-xl shadow-2xl border border-white/20 overflow-hidden py-2 z-50">
                       {item.children.map(child => (
                         <button
                           key={child.label}
@@ -189,16 +189,43 @@ export function Navbar() {
 
             {/* Actions */}
             <div className="hidden lg:flex items-center gap-3">
+              <button
+                onClick={() => navigate('customer-portal')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#27C93F] bg-[#27C93F]/10 border border-[#27C93F]/30 hover:bg-[#27C93F]/20 transition-colors"
+              >
+                Track Order
+              </button>
+
               {isAuthenticated ? (
                 <>
+                  {(user as any)?.platformRole === 'PLATFORM_OWNER' || (user as any)?.platformRole === 'PLATFORM_ADMIN' ? (
+                    <button
+                      onClick={() => navigate('/admin/dashboard')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-400 bg-amber-400/10 border border-amber-400/30 hover:bg-amber-400/20 transition-colors"
+                    >
+                      Admin Portal
+                    </button>
+                  ) : user?.plan === 'customer' ? (
+                    <button
+                      onClick={() => navigate('/account/dashboard')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#27C93F] bg-[#27C93F]/10 border border-[#27C93F]/30 hover:bg-[#27C93F]/20 transition-colors"
+                    >
+                      Customer Account
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/seller/dashboard')}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      Merchant Dashboard
+                    </button>
+                  )}
                   <button
-                    onClick={() => navigate('dashboard')}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={() => navigate('dashboard')}
+                    onClick={() => {
+                      if ((user as any)?.platformRole === 'PLATFORM_OWNER' || (user as any)?.platformRole === 'PLATFORM_ADMIN') navigate('/admin/dashboard');
+                      else if (user?.plan === 'customer') navigate('/account/dashboard');
+                      else navigate('/seller/dashboard');
+                    }}
                     className="flex items-center gap-2 rounded-full border border-white/10 hover:border-emerald-500/50 p-0.5 transition-colors"
                   >
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-xs font-bold text-white overflow-hidden">
@@ -214,14 +241,14 @@ export function Navbar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate('login')}
+                    onClick={() => navigate('/seller/login')}
                   >
                     Log in
                   </Button>
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => navigate('signup')}
+                    onClick={() => navigate('/seller/register')}
                   >
                     Start free trial
                   </Button>
@@ -299,15 +326,20 @@ export function Navbar() {
             {/* Account & Quick Action Buttons */}
             <div className="pt-4 space-y-3">
               {isAuthenticated ? (
-                <Button variant="primary" size="md" fullWidth onClick={() => { navigate('dashboard'); setMobileOpen(false); }}>
-                  Go to Merchant Dashboard
+                <Button variant="primary" size="md" fullWidth onClick={() => {
+                  if ((user as any)?.platformRole === 'PLATFORM_OWNER' || (user as any)?.platformRole === 'PLATFORM_ADMIN') navigate('/admin/dashboard');
+                  else if (user?.plan === 'customer') navigate('/account/dashboard');
+                  else navigate('/seller/dashboard');
+                  setMobileOpen(false);
+                }}>
+                  {user?.plan === 'customer' ? 'Customer Account' : 'Merchant Dashboard'}
                 </Button>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="secondary" size="md" fullWidth onClick={() => { navigate('login'); setMobileOpen(false); }}>
+                  <Button variant="secondary" size="md" fullWidth onClick={() => { navigate('/seller/login'); setMobileOpen(false); }}>
                     Log in
                   </Button>
-                  <Button variant="primary" size="md" fullWidth onClick={() => { navigate('signup'); setMobileOpen(false); }}>
+                  <Button variant="primary" size="md" fullWidth onClick={() => { navigate('/seller/register'); setMobileOpen(false); }}>
                     Free Trial
                   </Button>
                 </div>

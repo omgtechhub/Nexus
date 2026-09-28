@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,10 +9,11 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
+import { getAssetUrl } from '../../utils/assetPath';
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  email: z.string().min(1, 'Please enter your email or username'),
+  password: z.string().min(1, 'Please enter your password'),
 });
 
 const signupSchema = z.object({
@@ -31,6 +33,8 @@ type SignupForm = z.infer<typeof signupSchema>;
 
 interface AuthPageProps {
   mode: 'login' | 'signup';
+  /** Which portal this form signs into. Controls copy and post-login routing. */
+  portal?: 'seller' | 'customer' | 'admin';
 }
 
 const passwordStrength = (password: string): { score: number; label: string; color: string } => {
@@ -47,9 +51,30 @@ const passwordStrength = (password: string): { score: number; label: string; col
   return { score, label: 'Strong', color: 'bg-[#27C93F]' };
 };
 
-export function AuthPage({ mode }: AuthPageProps) {
-  const { navigate, login, signup, loginWithOAuth, isLoading } = useApp();
+export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
+  const routerNavigate = useNavigate();
+  const { navigate, login, signup, loginWithOAuth, isLoading, isAuthenticated, user } = useApp();
+
+  const [oauthPending, setOauthPending] = useState(false);
+
+  if (isAuthenticated && user?.email && !user.email.includes('@nexus.io')) {
+    const target = portal === 'customer' ? '/account/dashboard' : (portal === 'admin' ? '/admin/dashboard' : '/seller/dashboard');
+    return <Navigate to={target} replace />;
+  }
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSubmitted, setResetSubmitted] = useState(false);
+
+  /**
+   * Password reset is not implemented server-side yet (Phase 1). Say so rather
+   * than claiming an email was sent — the previous version told users to check
+   * an inbox that would never receive anything.
+   */
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.error('Password reset is not available yet. Contact support@nexuscommerce.io to regain access.');
+  };
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [watchedPassword, setWatchedPassword] = useState('');
 
@@ -66,28 +91,117 @@ export function AuthPage({ mode }: AuthPageProps) {
   });
 
   const handleLogin = async (data: LoginForm) => {
-    const success = await login(data.email, data.password);
-    if (success) {
-      toast.success('Welcome back!', { icon: '👋' });
-    } else {
-      toast.error('Invalid credentials. Please try again.');
+    try {
+      const result = await login(data.email, data.password, portal);
+      if (result.success) {
+        toast.success('Welcome back!', { icon: '👋' });
+        const targetPath = portal === 'customer' ? '/account/dashboard' : (portal === 'admin' ? '/admin/dashboard' : '/seller/dashboard');
+        routerNavigate(targetPath);
+      } else {
+        toast.error(result.error || 'Invalid credentials. Please try again.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Login failed. Please try again.');
     }
   };
 
   const handleSignup = async (data: SignupForm) => {
-    const success = await signup(data.name, data.email, data.password);
-    if (success) {
-      toast.success('Account created! Welcome to Nexus Commerce 🎉');
+    const result = await signup(data.name, data.email, data.password, undefined, portal === 'customer' ? 'CUSTOMER' : 'SELLER', portal);
+    if (result.success) {
+      toast.success('Account created & stored in database! Welcome to Nexus 🎉');
     } else {
-      toast.error('Failed to create account. Please try again.');
+      toast.error(result.error || 'Failed to create account. Please try again.');
     }
   };
 
-  const handleOAuth = async (provider: 'google' | 'github') => {
-    const success = await loginWithOAuth(provider);
-    if (success) {
-      toast.success(`Signed in with ${provider}!`);
+  /**
+   * Google Identity Services popup.
+   *
+   * The access token it returns is the only acceptable proof of identity — it
+   * is forwarded to the server, which verifies it with Google. There is no
+   * "type your email instead" fallback: that would let anyone sign in as
+   * anyone, which is exactly the hole this replaced.
+   */
+  const startGoogleSignIn = () => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!googleClientId) {
+      toast.error('Google sign-in is not configured. Use your email and password.');
+      return;
     }
+
+    const requestToken = () => {
+      const gsi = (window as any).google?.accounts?.oauth2;
+      if (!gsi) return false;
+
+      try {
+        const tokenClient = gsi.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (!tokenResponse?.access_token) {
+              setOauthPending(false);
+              toast.error('Google sign-in was cancelled.');
+              return;
+            }
+
+            const result = await loginWithOAuth(
+              'google',
+              { accessToken: tokenResponse.access_token },
+              portal
+            );
+            setOauthPending(false);
+
+            if (result.success) {
+              toast.success('Signed in with Google.', { icon: '🎉' });
+            } else {
+              toast.error(result.error || 'Google sign-in failed.');
+            }
+          },
+          error_callback: () => {
+            setOauthPending(false);
+            toast.error('Google sign-in was cancelled.');
+          },
+        });
+
+        setOauthPending(true);
+        tokenClient.requestAccessToken();
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (requestToken()) return;
+
+    // Load the GSI client once, then retry.
+    const scriptId = 'google-gsi-client-script';
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    const onReady = () => {
+      if (!requestToken()) {
+        toast.error('Could not open Google sign-in. Use your email and password.');
+      }
+    };
+
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.onload = onReady;
+      script.onerror = () => toast.error('Could not load Google sign-in.');
+      document.body.appendChild(script);
+    } else {
+      onReady();
+    }
+  };
+
+  const handleOAuthClick = (provider: 'google' | 'github') => {
+    if (provider === 'google') {
+      startGoogleSignIn();
+      return;
+    }
+    // GitHub needs a server-side redirect flow; it is not wired up yet.
+    toast.error('GitHub sign-in is not available yet. Use Google or your email and password.');
   };
 
   const strength = passwordStrength(watchedPassword);
@@ -131,8 +245,10 @@ export function AuthPage({ mode }: AuthPageProps) {
             {/* OAuth buttons */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <button
-                onClick={() => handleOAuth('google')}
-                disabled={isLoading}
+                type="button"
+                onClick={() => handleOAuthClick('google')}
+                disabled={isLoading || oauthPending}
+                aria-busy={oauthPending}
                 className="flex items-center justify-center gap-2.5 h-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-sm font-medium text-white disabled:opacity-50"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -141,10 +257,11 @@ export function AuthPage({ mode }: AuthPageProps) {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                Google
+                {oauthPending ? 'Connecting…' : 'Google'}
               </button>
               <button
-                onClick={() => handleOAuth('github')}
+                type="button"
+                onClick={() => handleOAuthClick('github')}
                 disabled={isLoading}
                 className="flex items-center justify-center gap-2.5 h-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-sm font-medium text-white disabled:opacity-50"
               >
@@ -169,9 +286,9 @@ export function AuthPage({ mode }: AuthPageProps) {
             {isLogin ? (
               <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                 <Input
-                  label="Email address"
-                  type="email"
-                  placeholder="you@company.com"
+                  label="Email address or Username"
+                  type="text"
+                  placeholder="you@company.com or username"
                   icon={<Mail size={16} />}
                   error={loginForm.formState.errors.email?.message}
                   {...loginForm.register('email')}
@@ -195,7 +312,11 @@ export function AuthPage({ mode }: AuthPageProps) {
                     {...loginForm.register('password')}
                   />
                   <div className="flex justify-end mt-1.5">
-                    <button type="button" className="text-xs text-[#FFBD2E] hover:text-[#27C93F] transition-colors">
+                    <button 
+                      type="button" 
+                      onClick={() => { setResetSubmitted(false); setShowForgotModal(true); }}
+                      className="text-xs text-[#FFBD2E] hover:text-[#27C93F] transition-colors"
+                    >
                       Forgot password?
                     </button>
                   </div>
@@ -294,9 +415,9 @@ export function AuthPage({ mode }: AuthPageProps) {
 
                 <p className="text-xs text-white/30 leading-relaxed">
                   By creating an account, you agree to our{' '}
-                  <button type="button" className="text-[#FFBD2E] hover:underline">Terms of Service</button>
+                  <button type="button" onClick={() => navigate('terms')} className="text-[#FFBD2E] hover:underline">Terms of Service</button>
                   {' '}and{' '}
-                  <button type="button" className="text-[#FFBD2E] hover:underline">Privacy Policy</button>.
+                  <button type="button" onClick={() => navigate('privacy')} className="text-[#FFBD2E] hover:underline">Privacy Policy</button>.
                 </p>
 
                 <Button
@@ -367,7 +488,7 @@ export function AuthPage({ mode }: AuthPageProps) {
               "Nexus Commerce tripled our revenue in 6 months. The AI tools alone were worth every penny."
             </p>
             <div className="flex items-center gap-3">
-              <img src="images/avatar-1.jpg" alt="" className="w-9 h-9 rounded-full object-cover border border-white/20" />
+              <img src={getAssetUrl('/images/avatar-1.jpg')} alt="" className="w-9 h-9 rounded-full object-cover border border-white/20" />
               <div>
                 <div className="text-sm font-medium text-white">Sarah M.</div>
                 <div className="text-xs text-white/40">Mitchell Collective · $2.4M ARR</div>
@@ -376,6 +497,49 @@ export function AuthPage({ mode }: AuthPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowForgotModal(false)} />
+          <div className="relative z-10 w-full max-w-md bg-[#121528] border border-white/20 p-6 rounded-2xl space-y-4 shadow-2xl">
+            <h3 className="text-xl font-bold text-white">Reset Your Password</h3>
+            <p className="text-xs text-white/50 leading-relaxed">
+              Enter the email address associated with your store account, and we'll send you a password reset link.
+            </p>
+
+            {resetSubmitted ? (
+              <div className="p-4 rounded-xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[#27C93F] text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 size={16} /> Reset link sent! Please check your email inbox.
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs text-white/60 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="merchant@yourstore.com"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="primary" size="sm" type="submit">
+                    Send Reset Link
+                  </Button>
+                  <Button variant="ghost" size="sm" type="button" onClick={() => setShowForgotModal(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* OAuth Email Selection Modal */}
     </div>
   );
 }
