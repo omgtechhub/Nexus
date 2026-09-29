@@ -5,6 +5,7 @@ import { ContactPage } from '../../pages/ContactPage';
 import { PrivacyPolicyPage } from '../../pages/PrivacyPolicyPage';
 import { TermsOfServicePage } from '../../pages/TermsOfServicePage';
 import { CookiePolicyPage } from '../../pages/CookiePolicyPage';
+import { TrackOrderPage } from '../../pages/TrackOrderPage';
 import { StorefrontView } from '../../components/storefront/StorefrontView';
 import { ForgotPasswordPage } from '../../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../../pages/ResetPasswordPage';
@@ -25,6 +26,10 @@ export function AppRouter() {
       <Route path="/" element={<MarketingPage />} />
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/contact" element={<ContactPage />} />
+
+      {/* Order tracking is deliberately public: a guest checkout has no account,
+          and the order number plus its email is what proves entitlement. */}
+      <Route path="/track" element={<TrackOrderPage />} />
 
       {/* LEGAL */}
       <Route path="/privacy" element={<PrivacyPolicyPage />} />

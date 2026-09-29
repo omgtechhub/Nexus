@@ -846,10 +846,12 @@ export async function getStorefrontOrderByNumber(req: Request, res: Response, ne
  */
 export async function trackPublicOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    const orderNumber = String(req.query.orderNumber ?? req.query.query ?? '').trim().replace(/^#/, '');
+    // Order numbers are stored with their leading '#', but nobody types it, so
+    // both spellings have to match or this endpoint can never find an order.
+    const bareNumber = String(req.query.orderNumber ?? req.query.query ?? '').trim().replace(/^#/, '');
     const email = String(req.query.email ?? '').trim().toLowerCase();
 
-    if (!orderNumber || !email) {
+    if (!bareNumber || !email) {
       res.status(400).json({
         success: false,
         error: 'Both an order number and the email address used on the order are required.',
@@ -859,10 +861,19 @@ export async function trackPublicOrder(req: Request, res: Response, next: NextFu
 
     const order = await prisma.order.findFirst({
       where: {
-        orderNumber: { equals: orderNumber, mode: 'insensitive' },
-        OR: [
-          { customerEmail: { equals: email, mode: 'insensitive' } },
-          { customer: { email: { equals: email, mode: 'insensitive' } } },
+        AND: [
+          {
+            OR: [
+              { orderNumber: { equals: bareNumber, mode: 'insensitive' } },
+              { orderNumber: { equals: `#${bareNumber}`, mode: 'insensitive' } },
+            ],
+          },
+          {
+            OR: [
+              { customerEmail: { equals: email, mode: 'insensitive' } },
+              { customer: { email: { equals: email, mode: 'insensitive' } } },
+            ],
+          },
         ],
       },
       include: {

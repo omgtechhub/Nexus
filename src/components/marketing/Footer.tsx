@@ -20,6 +20,7 @@ const FOOTER_SECTIONS: { heading: string; links: { label: string; to: string }[]
       { label: 'Merchant log in', to: '/seller/login' },
       { label: 'Start free trial', to: '/seller/register' },
       { label: 'Customer account', to: '/account/dashboard' },
+      { label: 'Track an order', to: '/track' },
     ],
   },
   {

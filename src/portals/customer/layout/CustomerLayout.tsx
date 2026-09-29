@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Package, MapPin, Settings, LogOut, Store } from 'lucide-react';
+import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { ShoppingBag, User, Package, MapPin, LogOut, Store, Menu, X, Truck } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { cn } from '../../../utils/cn';
+
+const NAV_ITEMS = [
+  { label: 'Dashboard', path: '/account/dashboard', icon: ShoppingBag },
+  { label: 'Orders', path: '/account/orders', icon: Package },
+  { label: 'Addresses', path: '/account/addresses', icon: MapPin },
+  { label: 'Profile', path: '/account/profile', icon: User },
+];
+
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F] ' +
+  'focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0D1B]';
 
 export function CustomerLayout({ children }: { children?: React.ReactNode }) {
   const { user, logout } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
-
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -17,102 +28,187 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
-    { label: 'Dashboard', path: '/account/dashboard', icon: ShoppingBag },
-    { label: 'My Orders', path: '/account/orders', icon: Package },
-    { label: 'Profile', path: '/account/profile', icon: User },
-    { label: 'Addresses', path: '/account/addresses', icon: MapPin },
-    { label: 'Settings', path: '/account/settings', icon: Settings },
-  ];
+  // Navigating within the portal should dismiss the drawer.
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onEscape = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    const onResize = () => setMenuOpen(false);
+    window.addEventListener('keydown', onEscape);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('keydown', onEscape);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [menuOpen]);
 
   const handleLogout = () => {
     logout();
     navigate('/account/login');
   };
 
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+      focusRing,
+      isActive ? 'bg-white/10 font-semibold text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
+    );
+
   return (
-    <div className="min-h-screen bg-[#0B0D1B] text-white flex flex-col justify-between">
-      {/* Dedicated Customer Portal Navigation Header */}
+    <div className="flex min-h-screen flex-col justify-between bg-[#0B0D1B] text-white">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[#27C93F] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-950"
+      >
+        Skip to content
+      </a>
+
       <header
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          scrolled
-            ? 'bg-[#0B0D1B]/95 backdrop-blur-xl border-b border-[#222642] shadow-2xl'
-            : 'bg-[#0B0D1B]/60 backdrop-blur-md border-b border-white/10'
+          'fixed inset-x-0 top-0 z-50 transition-all duration-300',
+          scrolled || menuOpen
+            ? 'border-b border-[#222642] bg-[#0B0D1B]/95 backdrop-blur-xl'
+            : 'border-b border-white/10 bg-[#0B0D1B]/60 backdrop-blur-md'
         )}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link to="/account/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] flex items-center justify-center font-bold text-black text-sm shadow-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-6">
+            <Link to="/account/dashboard" className={cn('flex flex-shrink-0 items-center gap-2 rounded', focusRing)}>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-sm font-bold text-black">
                 N
-              </div>
-              <span className="font-bold text-lg text-white">Nexus <span className="text-xs font-normal text-white/50 bg-white/10 px-2 py-0.5 rounded-full ml-1">Customer Portal</span></span>
+              </span>
+              <span className="text-lg font-bold text-white">
+                Nexus
+                <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-normal text-white/50">
+                  Account
+                </span>
+              </span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname.startsWith(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-white/10 text-white font-semibold'
-                        : 'text-white/60 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon size={16} />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav aria-label="Account" className="hidden items-center gap-1 md:flex">
+              {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
+                <NavLink key={path} to={path} end={path === '/account/orders'} className={navClass}>
+                  <Icon size={16} aria-hidden="true" />
+                  {label}
+                </NavLink>
+              ))}
             </nav>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               to="/storefront"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-medium border border-white/10 transition-colors"
+              className={cn(
+                'hidden items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white sm:flex',
+                focusRing
+              )}
             >
-              <Store size={14} />
-              Browse Storefront
+              <Store size={14} aria-hidden="true" />
+              Browse storefront
             </Link>
 
             {user && (
-              <div className="flex items-center gap-3 pl-3 border-l border-white/10">
-                <div className="text-right hidden sm:block">
+              <div className="hidden items-center gap-3 border-l border-white/10 pl-3 md:flex">
+                <div className="text-right">
                   <div className="text-sm font-medium text-white">{user.name}</div>
                   <div className="text-xs text-white/40">{user.email}</div>
                 </div>
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-[#FF5F56]/20 text-white/60 hover:text-[#FF5F56] border border-white/10 transition-colors"
-                  title="Sign out of Customer Portal"
+                  aria-label="Sign out"
+                  className={cn(
+                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 transition-colors hover:bg-[#FF5F56]/20 hover:text-[#FF5F56]',
+                    focusRing
+                  )}
                 >
-                  <LogOut size={16} />
+                  <LogOut size={16} aria-hidden="true" />
                 </button>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen(open => !open)}
+              aria-expanded={menuOpen}
+              aria-controls="account-mobile-nav"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              className={cn(
+                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/5 hover:text-white md:hidden',
+                focusRing
+              )}
+            >
+              {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+            </button>
           </div>
         </div>
+
+        {menuOpen && (
+          <div id="account-mobile-nav" className="border-t border-[#222642] bg-[#0B0D1B] md:hidden">
+            <nav aria-label="Account" className="space-y-1 px-4 py-4 sm:px-6">
+              {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  end={path === '/account/orders'}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors',
+                      focusRing,
+                      isActive ? 'bg-white/5 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    )
+                  }
+                >
+                  <Icon size={18} aria-hidden="true" />
+                  {label}
+                </NavLink>
+              ))}
+
+              <Link
+                to="/track"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white',
+                  focusRing
+                )}
+              >
+                <Truck size={18} aria-hidden="true" />
+                Track an order
+              </Link>
+
+              <div className="space-y-2 border-t border-white/10 pt-4">
+                {user && (
+                  <p className="px-3 text-xs text-white/40">
+                    Signed in as <span className="text-white/70">{user.email}</span>
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={cn(
+                    'w-full rounded-lg border border-white/15 px-3 py-3 text-center text-base font-medium text-white',
+                    focusRing
+                  )}
+                >
+                  Sign out
+                </button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-16 py-8">
+      <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6">
         {children || <Outlet />}
       </main>
 
-      {/* Customer Footer */}
-      <footer className="border-t border-white/10 py-6 bg-[#0B0D1B]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
-          <div>© {new Date().getFullYear()} Nexus Commerce Inc. All rights reserved.</div>
+      <footer className="border-t border-white/10 bg-[#0B0D1B] py-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-xs text-white/40 sm:flex-row sm:px-6">
+          <p>© {new Date().getFullYear()} Nexus Commerce, Inc. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <Link to="/storefront" className="hover:text-white transition-colors">Storefront</Link>
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/track" className={cn('rounded transition-colors hover:text-white', focusRing)}>Track an order</Link>
+            <Link to="/privacy" className={cn('rounded transition-colors hover:text-white', focusRing)}>Privacy</Link>
+            <Link to="/terms" className={cn('rounded transition-colors hover:text-white', focusRing)}>Terms</Link>
           </div>
         </div>
       </footer>
