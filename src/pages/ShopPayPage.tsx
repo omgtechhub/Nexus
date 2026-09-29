@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Zap, ShoppingBag, ShieldCheck, CheckCircle2, ArrowRight, 
-  Sparkles, Lock, CreditCard, Heart, Gift
+  Zap, ShoppingBag, CheckCircle2, ArrowRight, 
+  Lock
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

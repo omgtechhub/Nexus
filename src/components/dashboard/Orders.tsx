@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Search, Filter, Download, Eye, Package, CheckCircle, Truck, XCircle, Clock, Printer, Ban, Plus, Trash2, ShoppingBag, AlertTriangle, RotateCw } from 'lucide-react';
+import { Search, Filter, Download, Eye, Package, CheckCircle, Truck, XCircle, Clock, Ban, Plus, Trash2, ShoppingBag, AlertTriangle, RotateCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useCancelOrderMutation, useOrdersQuery } from '../../hooks/useQueries';
 import { useRefundOrderMutation } from '../../hooks/usePayments';
 import { useFulfillOrderMutation } from '../../hooks/useShipping';
-import { Order } from '../../types';
+import { Order, OrderStatus } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
@@ -13,17 +13,18 @@ import toast from 'react-hot-toast';
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
-const statusConfig: Record<string, { variant: 'success' | 'info' | 'warning' | 'error' | 'default'; icon: React.ReactNode; label: string }> = {
-  pending: { variant: 'default', icon: <Clock size={12} />, label: 'Pending' },
-  confirmed: { variant: 'info', icon: <CheckCircle size={12} />, label: 'Confirmed' },
-  processing: { variant: 'warning', icon: <Package size={12} />, label: 'Processing' },
-  shipped: { variant: 'success', icon: <Truck size={12} />, label: 'Shipped' },
-  delivered: { variant: 'success', icon: <CheckCircle size={12} />, label: 'Delivered' },
-  cancelled: { variant: 'error', icon: <XCircle size={12} />, label: 'Cancelled' },
-  refunded: { variant: 'error', icon: <XCircle size={12} />, label: 'Refunded' },
+const statusConfig: Record<OrderStatus, { variant: 'success' | 'info' | 'warning' | 'error' | 'default'; icon: React.ReactNode; label: string }> = {
+  PENDING: { variant: 'default', icon: <Clock size={12} />, label: 'Pending' },
+  CONFIRMED: { variant: 'info', icon: <CheckCircle size={12} />, label: 'Confirmed' },
+  PROCESSING: { variant: 'warning', icon: <Truck size={12} />, label: 'Processing' },
+  FULFILLED: { variant: 'success', icon: <Package size={12} />, label: 'Fulfilled' },
+  CANCELLED: { variant: 'error', icon: <XCircle size={12} />, label: 'Cancelled' },
+  REFUNDED: { variant: 'error', icon: <XCircle size={12} />, label: 'Refunded' },
 };
 
-const filters = ['All', 'Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+const filters: Array<'All' | OrderStatus> = [
+  'All', 'PENDING', 'CONFIRMED', 'PROCESSING', 'FULFILLED', 'CANCELLED', 'REFUNDED',
+];
 
 export function Orders() {
   const { orders: ordersList, products, customers: customersList, addOrder, updateOrder, addActivity } = useApp();
@@ -32,7 +33,7 @@ export function Orders() {
   const refundMut = useRefundOrderMutation();
   const fulfillOrderMut = useFulfillOrderMutation();
   const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState<'All' | OrderStatus>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Create Manual Order Modal State
@@ -175,9 +176,9 @@ export function Orders() {
         tax: 0,
         shipping: 0,
         discount: 0,
-        paymentStatus: 'paid',
-        fulfillmentStatus: 'unfulfilled',
-        status: 'confirmed',
+        paymentStatus: 'PAID',
+        fulfillmentStatus: 'UNFULFILLED',
+        status: 'CONFIRMED',
         shippingAddress: {
           firstName: shipFirstName.trim(),
           lastName: shipLastName.trim(),
@@ -206,9 +207,8 @@ export function Orders() {
   const filtered = ordersList.filter(order => {
     const matchSearch = !search ||
       order.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      (order.customer?.name || '').toLowerCase().includes(search.toLowerCase());
-    const matchFilter = activeFilter === 'All' ||
-      order.status.toLowerCase() === activeFilter.toLowerCase();
+      order.customerName.toLowerCase().includes(search.toLowerCase());
+    const matchFilter = activeFilter === 'All' || order.status === activeFilter;
     return matchSearch && matchFilter;
   });
 
@@ -216,8 +216,8 @@ export function Orders() {
     const headers = ['Order Number', 'Customer', 'Email', 'Items', 'Status', 'Total', 'Payment Status', 'Date'];
     const rows = filtered.map(o => [
       o.orderNumber,
-      `"${o.customer?.name || ''}"`,
-      o.customer?.email || '',
+      `"${o.customerName}"`,
+      o.customerEmail,
       o.items.length,
       o.status,
       o.total,
@@ -237,18 +237,12 @@ export function Orders() {
 
   const handleBatchFulfill = () => {
     ordersList.forEach(o => {
-      if (o.status === 'processing' || o.status === 'pending' || o.status === 'confirmed') {
-        updateOrder(o.id, { status: 'shipped' });
+      if (o.status === 'PENDING' || o.status === 'CONFIRMED') {
+        updateOrder(o.id, { status: 'PROCESSING' });
       }
     });
-    addActivity('Batch fulfilled all active orders to shipped', 'order', '📦');
-    toast.success('All active orders marked as shipped!', { icon: '📦' });
-  };
-
-  const handleMarkFulfilled = (orderId: string) => {
-    updateOrder(orderId, { status: 'delivered' });
-    setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: 'delivered' } : prev);
-    toast.success('Order marked as fulfilled & delivered!', { icon: '✅' });
+    addActivity('Moved all new orders into processing', 'order', '📦');
+    toast.success('All new orders moved to processing!', { icon: '📦' });
   };
 
   const handleCancelOrder = (orderId: string) => {
@@ -261,10 +255,6 @@ export function Orders() {
         toast.error(err.message || 'Failed to cancel order');
       }
     });
-  };
-
-  const handlePrintLabel = (orderNumber: string) => {
-    toast.success(`Printing shipping label for ${orderNumber}...`, { icon: '🖨️' });
   };
 
   return (
@@ -304,7 +294,7 @@ export function Orders() {
                   : 'bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-white/20'
               )}
             >
-              {filter}
+              {filter === 'All' ? 'All' : statusConfig[filter].label}
             </button>
           ))}
         </div>
@@ -348,7 +338,7 @@ export function Orders() {
               </thead>
               <tbody>
                 {filtered.map(order => {
-                  const status = statusConfig[order.status] || statusConfig.pending;
+                  const status = statusConfig[order.status] || statusConfig.PENDING;
                   return (
                     <tr
                       key={order.id}
@@ -359,8 +349,8 @@ export function Orders() {
                       </td>
                       <td className="p-4">
                         <div>
-                          <p className="text-sm font-medium text-white">{order.customer?.name}</p>
-                          <p className="text-xs text-white/30">{order.customer?.email}</p>
+                          <p className="text-sm font-medium text-white">{order.customerName}</p>
+                          <p className="text-xs text-white/30">{order.customerEmail}</p>
                         </div>
                       </td>
                       <td className="p-4 hidden md:table-cell">
@@ -376,10 +366,11 @@ export function Orders() {
                           <p className="text-sm font-semibold text-white">{formatCurrency(order.total)}</p>
                           <p className={cn(
                             'text-xs capitalize',
-                            order.paymentStatus === 'paid' ? 'text-[#27C93F]' : 
-                            order.paymentStatus === 'refunded' ? 'text-[#FF5F56]' : 'text-[#FFBD2E]'
+                            order.paymentStatus === 'PAID' || order.paymentStatus === 'SUCCESS' ? 'text-[#27C93F]' :
+                            order.paymentStatus === 'REFUNDED' || order.paymentStatus === 'PARTIALLY_REFUNDED' ? 'text-[#FF5F56]' :
+                            order.paymentStatus === 'FAILED' ? 'text-[#FF5F56]' : 'text-[#FFBD2E]'
                           )}>
-                            {order.paymentStatus}
+                            {order.paymentStatus.replace(/_/g, ' ').toLowerCase()}
                           </p>
                         </div>
                       </td>
@@ -470,7 +461,7 @@ export function Orders() {
                     variant="primary"
                     size="sm"
                     fullWidth
-                    disabled={selectedOrder.fulfillmentStatus === 'FULFILLED' || selectedOrder.status === 'cancelled'}
+                    disabled={selectedOrder.fulfillmentStatus === 'FULFILLED' || selectedOrder.status === 'CANCELLED'}
                     onClick={() => {
                       const carrier = prompt('Enter Carrier Name (e.g. DHL, FedEx, UPS):', 'DHL Express');
                       if (!carrier) return;
@@ -497,7 +488,7 @@ export function Orders() {
                     variant="danger"
                     size="sm"
                     fullWidth
-                    disabled={selectedOrder.paymentStatus !== 'paid' && selectedOrder.paymentStatus !== 'PAID'}
+                    disabled={selectedOrder.paymentStatus !== 'PAID' && selectedOrder.paymentStatus !== 'SUCCESS'}
                     onClick={() => {
                       const reason = prompt('Enter Refund Reason:', 'Customer request');
                       if (!reason) return;
@@ -519,7 +510,7 @@ export function Orders() {
                     Issue Refund
                   </Button>
                 </div>
-                {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'refunded' && (
+                {selectedOrder.status !== 'CANCELLED' && selectedOrder.status !== 'REFUNDED' && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -645,7 +636,7 @@ export function Orders() {
                             min="1"
                             placeholder="Qty"
                             value={item.quantity}
-                            onChange={e => handleUpdateLineItem(idx, parseInt(e.target.value, 10) || 1)}
+                            onChange={e => handleUpdateLineItem(idx, 'quantity', parseInt(e.target.value, 10) || 1)}
                             className="form-input bg-[#121528] text-white"
                           />
                         </div>

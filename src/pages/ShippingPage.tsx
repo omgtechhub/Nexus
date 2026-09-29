@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  Truck, Package, CheckCircle2, ArrowRight, ShieldCheck, 
-  MapPin, RefreshCw, BarChart2, Globe, Clock, Box
+  Truck, Package, ArrowRight
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

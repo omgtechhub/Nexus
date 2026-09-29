@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { 
-  Grid, Search, Star, Download, Sparkles, CheckCircle2, ArrowRight, ShieldCheck, Tag
+  Grid, Search, Star
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
-import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function AppStorePage() {
-  const { navigate } = useApp();
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<'all' | 'marketing' | 'fulfillment' | 'reviews'>('all');
+  const category: 'all' | 'marketing' | 'fulfillment' | 'reviews' = 'all';
 
   const apps = [
     { name: 'Klaviyo Email & SMS', desc: 'Automated email flows, abandoned cart recovery & SMS marketing.', category: 'marketing', rating: 4.9, reviews: 1420, installed: true },

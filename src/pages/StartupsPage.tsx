@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  Rocket, Zap, Sparkles, CheckCircle2, ArrowRight, ShieldCheck, 
-  Gift, Globe, Layers, Eye, RefreshCw, Check, Store, Package, ShoppingBag
+  Rocket, CheckCircle2, ArrowRight, Globe, Store
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  Briefcase, FileText, CheckCircle2, ArrowRight, ShieldCheck, 
-  Download, Layers, Sliders, DollarSign, Building, RefreshCcw, Package, Truck, Layers3
+  Briefcase, ArrowRight, Download, Building, Package
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

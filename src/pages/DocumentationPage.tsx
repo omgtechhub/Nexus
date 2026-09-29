@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  FileText, Code, Terminal, Search, BookOpen, Layers, Zap, 
-  ArrowRight, ShieldCheck, CheckCircle2, ChevronRight, Copy, Check
+  Code, ArrowRight, ChevronRight, Copy, Check
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

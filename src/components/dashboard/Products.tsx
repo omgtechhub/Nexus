@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, Package, AlertTriangle, UploadCloud, RotateCw, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Package, AlertTriangle, UploadCloud, RotateCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useUploadImageMutation, useProductsQuery } from '../../hooks/useQueries';
 import { Product } from '../../types';

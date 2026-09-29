@@ -1,6 +1,6 @@
 import { 
-  Building2, Users, Globe, Award, Sparkles, ShieldCheck, 
-  TrendingUp, Zap, Heart, ArrowRight, CheckCircle2
+  Building2, Sparkles, ShieldCheck, 
+  Heart, ArrowRight
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

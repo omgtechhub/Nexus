@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Globe, Users, Layers, CheckCircle2, ArrowRight, 
-  Sparkles, DollarSign, RefreshCw, ShieldCheck, ShoppingBag
+  Globe, ArrowRight, 
+  DollarSign
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

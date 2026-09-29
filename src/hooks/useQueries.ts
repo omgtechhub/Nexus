@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMeApi } from '../api/auth';
 import { getProductsApi, createProductApi, updateProductApi, deleteProductApi } from '../api/products';
 import { getCustomersApi, createCustomerApi, updateCustomerApi, deleteCustomerApi } from '../api/customers';
 import { getOrdersApi, createOrderApi, updateOrderApi, cancelOrderApi } from '../api/orders';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { faqs } from '../../data/mockData';
+import { faqs } from '../../data/marketingContent';
 import { cn } from '../../utils/cn';
 
 export function FAQ() {

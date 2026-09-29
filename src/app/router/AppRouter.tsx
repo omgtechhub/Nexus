@@ -93,7 +93,7 @@ export function AppRouter() {
       <Route path="/contact" element={<ContactPage />} />
 
       {/* PUBLIC STOREFRONT ROUTE */}
-      <Route path="/storefront" element={<StorefrontView storeSlug={store?.slug || store?.id || 'str_aura_apparel'} />} />
+      <Route path="/storefront" element={<StorefrontView storeSlug={store?.id} />} />
       <Route path="/storefront/:storeSlug" element={<StorefrontView />} />
 
       {/* PORTAL SPECIFIC ROUTES */}

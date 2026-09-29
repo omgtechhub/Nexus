@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
-import { Button } from '../components/ui/Button';
 import { useApp } from '../context/AppContext';
 
 export function TermsOfServicePage() {

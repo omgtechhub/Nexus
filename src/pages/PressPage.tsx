@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { 
-  FileText, Download, Globe, Sparkles, Image, 
-  ExternalLink, Mail, CheckCircle2, Newspaper
+  Download, ExternalLink, Mail, CheckCircle2, Newspaper
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function PressPage() {
-  const { navigate } = useApp();
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const mediaCoverage = [
@@ -25,7 +22,7 @@ export function PressPage() {
     { title: 'Nexus Payments Reaches $200B Annual Processed Commerce Volume Milestone', date: 'February 28, 2026' },
   ];
 
-  const handleDownloadAsset = (assetName: string) => {
+  const handleDownloadAsset = (_assetName: string) => {
     setDownloadSuccess(true);
     setTimeout(() => setDownloadSuccess(false), 3000);
   };

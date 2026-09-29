@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { 
-  Briefcase, Globe, Laptop, Heart, DollarSign, Sparkles, 
-  MapPin, Clock, ArrowRight, CheckCircle2, Search, Send
+  Briefcase, Sparkles, 
+  MapPin, CheckCircle2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function CareersPage() {
-  const { navigate } = useApp();
   const [selectedDept, setSelectedDept] = useState('all');
   const [appliedRole, setAppliedRole] = useState<string | null>(null);
   const [applicantName, setApplicantName] = useState('');

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, Notification, Product, Order, Customer, DiscountCode, 
@@ -26,10 +26,14 @@ import {
   useMarkAllNotificationsReadMutation,
   useStoreSettingsQuery,
   useUpdateStoreSettingsMutation,
-  useAnalyticsQuery,
 } from '../hooks/useQueries';
 
-type AppView = 'marketing' | 'login' | 'signup' | 'dashboard' | 'admin' | 'admin-login' | 'customer-portal' | 'storefront' | 'online-store' | 'pos' | 'payments' | 'ai-assistant' | 'startups' | 'enterprises' | 'd2c' | 'b2b' | 'pricing' | 'resources' | 'capital' | 'shipping' | 'markets' | 'shop-pay' | 'small-business' | 'marketplaces' | 'retail' | 'international' | 'docs' | 'blog' | 'help-center' | 'partners' | 'app-store' | 'changelog' | 'status-page' | 'community' | 'privacy' | 'terms' | 'cookies' | 'sitemap' | 'about' | 'careers' | 'press' | 'investors' | 'contact';
+/**
+ * Portal destinations the app sends a user to after authentication. Every other
+ * value `navigate()` accepts is an ordinary path or page slug — React Router owns
+ * routing, and this context no longer keeps a parallel view state beside it.
+ */
+type PortalView = 'marketing' | 'dashboard' | 'admin' | 'customer-portal';
 
 interface AppContextType {
   // Auth
@@ -48,10 +52,9 @@ interface AppContextType {
   updateUser: (fields: Partial<User>) => void;
   
   // Navigation
-  currentView: AppView;
+  /** Active portal section, derived from the URL. Navigate to change it. */
   dashboardSection: string;
-  setDashboardSection: (section: string) => void;
-  navigate: (view: AppView, section?: string) => void;
+  navigate: (view: PortalView | string, section?: string) => void;
   
   // Notifications
   notifications: Notification[];
@@ -111,61 +114,20 @@ const defaultStoreSettings: StoreSettings = {
   customDomain: 'auraapparel.com',
 };
 
-function getSubpathPrefix(): string {
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/nexus')) {
-    return '/nexus';
-  }
-  return '';
+const PORTAL_PREFIXES = ['seller', 'account', 'admin'];
+
+/**
+ * The active section is whatever the router already put in the URL — there is no
+ * second source of truth to keep in sync.
+ */
+function getSectionFromPath(pathname: string): string {
+  const [prefix, section] = pathname.replace(/^\//, '').split('/');
+  if (!PORTAL_PREFIXES.includes(prefix)) return 'overview';
+  if (!section || section === 'dashboard') return 'overview';
+  return section;
 }
 
-function getViewFromUrl(): { view: AppView; section?: string } {
-  if (typeof window === 'undefined') return { view: 'marketing' };
-  let pathname = window.location.pathname;
-  while (pathname.startsWith('/nexus')) {
-    pathname = pathname.slice(6);
-  }
-  pathname = pathname.replace(/^\//, '');
-  const hash = (window.location.hash || '').replace(/^#\/?/, '');
-  const clean = (pathname || hash).split('?')[0];
-
-  if (!clean) return { view: 'marketing' };
-
-  const parts = clean.split('/');
-  const first = parts[0];
-  const second = parts[1];
-
-  if (first === 'account') {
-    if (second === 'login') return { view: 'login' };
-    if (second === 'register') return { view: 'signup' };
-    return { view: 'customer-portal', section: second || 'dashboard' };
-  }
-  if (first === 'seller') {
-    if (second === 'login') return { view: 'login' };
-    if (second === 'register') return { view: 'signup' };
-    return { view: 'dashboard', section: second || 'overview' };
-  }
-  if (first === 'admin') {
-    if (second === 'login') return { view: 'admin-login' };
-    return { view: 'admin', section: second || 'dashboard' };
-  }
-
-  const validViews: AppView[] = [
-    'marketing', 'login', 'signup', 'dashboard', 'admin', 'admin-login', 
-    'customer-portal', 'storefront', 'online-store', 'pos', 'payments', 
-    'ai-assistant', 'startups', 'enterprises', 'd2c', 'b2b', 'pricing', 
-    'resources', 'capital', 'shipping', 'markets', 'shop-pay', 'small-business', 
-    'marketplaces', 'retail', 'international', 'docs', 'blog', 'help-center', 
-    'partners', 'app-store', 'changelog', 'status-page', 'community', 'privacy', 
-    'terms', 'cookies', 'sitemap', 'about', 'careers', 'press', 'investors', 'contact'
-  ];
-
-  if (validViews.includes(first as AppView)) {
-    return { view: first as AppView, section: second };
-  }
-  return { view: 'marketing' };
-}
-
-function getUrlForView(view: AppView | string, section?: string): string {
+function getUrlForView(view: string, section?: string): string {
   let relPath = '/';
   if (view === 'marketing' || view === '/') relPath = '/';
   else if (view === 'dashboard') relPath = section ? `/seller/${section}` : '/seller/dashboard';
@@ -174,7 +136,7 @@ function getUrlForView(view: AppView | string, section?: string): string {
   else if (view === 'customer-portal') relPath = section ? `/account/${section}` : '/account/dashboard';
   else if (view === 'login') relPath = '/seller/login';
   else if (view === 'signup') relPath = '/seller/register';
-  else relPath = (view as string).startsWith('/') ? (view as string) : `/${view}`;
+  else relPath = view.startsWith('/') ? view : `/${view}`;
 
   return relPath;
 }
@@ -183,7 +145,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const routerNavigate = useNavigate();
   const location = useLocation();
 
-  const initialRoute = getViewFromUrl();
   const [user, setUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('nexus_user');
@@ -236,22 +197,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [accountType]);
 
-  const [currentView, setCurrentView] = useState<AppView>(initialRoute.view);
-  const [dashboardSection, setDashboardSection] = useState(initialRoute.section || 'overview');
+  const dashboardSection = useMemo(() => getSectionFromPath(location.pathname), [location.pathname]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Sync AppContext view state whenever React Router location changes
-  useEffect(() => {
-    const route = getViewFromUrl();
-    setCurrentView(route.view);
-    if (route.section) {
-      setDashboardSection(route.section);
-    }
-  }, [location.pathname]);
-
 
   // 1. Session verification on boot
   const meQuery = useCurrentUserQuery();
@@ -284,7 +234,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const discountsQuery = useDiscountsQuery(isServerAuthenticated);
   const notificationsQuery = useNotificationsQuery(isServerAuthenticated);
   const settingsQuery = useStoreSettingsQuery(isServerAuthenticated);
-  const analyticsQuery = useAnalyticsQuery(isServerAuthenticated);
 
   // Mutations
   const createProductMut = useCreateProductMutation();
@@ -318,8 +267,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ? notificationsData.unreadCount
     : notifications.filter(n => !n.read).length;
 
-  const addActivity = useCallback((message: string, type: 'order' | 'customer' | 'product' | 'payment' = 'order', icon = '⚡') => {
-    // Activities derived from server analytics
+  const addActivity = useCallback((_message: string, _type: 'order' | 'customer' | 'product' | 'payment' = 'order', _icon = '⚡') => {
+    // No-op: the activity feed is derived from server analytics.
   }, []);
 
   const addProduct = useCallback((p: Partial<Product>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
@@ -344,8 +293,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addOrder = useCallback((o: Partial<Order>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
     const orderNumber = o.orderNumber || `#NX-${Math.floor(4000 + Math.random() * 5000)}`;
-    const customerName = o.customer?.name || 'Walk-in Customer';
-    const customerEmail = o.customer?.email || 'customer@nexus.io';
+    const customerName = o.customerName || o.customer?.name || 'Walk-in Customer';
+    const customerEmail = o.customerEmail || o.customer?.email || 'customer@nexus.io';
     const total = o.total || 0;
     const subtotal = o.subtotal || total;
     const tax = o.tax || 0;
@@ -403,7 +352,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     meQuery.refetch();
 
     // Honour the portal the user asked for only when their account allows it.
-    const targetView: AppView =
+    const targetView: PortalView =
       resolved === 'ADMIN' ? 'admin'
       : resolved === 'SELLER' ? 'dashboard'
       : 'customer-portal';
@@ -416,7 +365,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast(`Signed in to your ${resolved.toLowerCase()} account.`);
     }
 
-    setCurrentView(targetView);
     routerNavigate(getUrlForView(targetView));
   }, [meQuery, routerNavigate]);
 
@@ -493,8 +441,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setStore(null);
     setAccountType(null);
-    setCurrentView('marketing');
-    setDashboardSection('overview');
     routerNavigate(getUrlForView('marketing'));
   }, [routerNavigate]);
 
@@ -502,9 +448,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(prev => prev ? { ...prev, ...fields } : null);
   }, []);
 
-  const navigate = useCallback((view: AppView | string, section?: string) => {
+  const navigate = useCallback((view: PortalView | string, section?: string) => {
     const targetUrl = getUrlForView(view, section);
-    if (section) setDashboardSection(section);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     routerNavigate(targetUrl);
@@ -534,9 +479,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signup,
       logout,
       updateUser,
-      currentView,
       dashboardSection,
-      setDashboardSection,
       navigate,
       notifications,
       unreadCount,

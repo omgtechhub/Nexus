@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { 
-  BookOpen, Search, Video, FileText, Download, Sparkles, 
-  ArrowRight, ExternalLink, Calculator, Terminal, Play, CheckCircle2, Star, Clock, Filter,
-  TrendingUp, ShoppingBag, Truck, Tag, DollarSign, Percent, ShieldCheck
+  BookOpen, Search, Sparkles, 
+  ArrowRight, ExternalLink, Calculator, Clock
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { useAnalyticsQuery } from '../../hooks/useQueries';

@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { 
-  Users, MessageSquare, Heart, ArrowRight, Sparkles, Globe, MapPin, Award
+  Users, MessageSquare, ArrowRight, MapPin, Award
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

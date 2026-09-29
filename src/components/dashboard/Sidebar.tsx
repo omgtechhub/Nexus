@@ -37,14 +37,13 @@ const navSections = [
 ];
 
 export function Sidebar() {
-  const { dashboardSection, setDashboardSection, user, logout, sidebarOpen, setSidebarOpen, unreadCount } = useApp();
+  const { dashboardSection, user, logout, sidebarOpen, setSidebarOpen, unreadCount } = useApp();
 
-  const handleNavClick = (id: string) => {
+  // The <Link> performs the navigation; this only collapses the mobile drawer.
+  const handleNavClick = () => {
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
     }
-    const target = id === 'overview' ? 'dashboard' : id;
-    setDashboardSection(target);
   };
 
   return (
@@ -66,7 +65,7 @@ export function Sidebar() {
       {/* Logo */}
       <Link 
         to="/seller/dashboard"
-        onClick={() => handleNavClick('overview')}
+        onClick={handleNavClick}
         className="w-full flex items-center gap-3 px-4 h-16 border-b border-white/5 text-left hover:bg-white/5 transition-colors cursor-pointer relative z-10"
       >
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] flex items-center justify-center flex-shrink-0 shadow-lg shadow-red-900/40">
@@ -92,7 +91,7 @@ export function Sidebar() {
               </div>
             )}
             {section.items.map(item => {
-              const isActive = dashboardSection === item.id || (item.id === 'overview' && (dashboardSection === 'dashboard' || !dashboardSection));
+              const isActive = dashboardSection === item.id;
               const badgeCount = item.id === 'notifications' ? unreadCount : parseInt(item.badge || '0');
               const targetPath = item.id === 'overview' ? '/seller/dashboard' : `/seller/${item.id}`;
 
@@ -100,7 +99,7 @@ export function Sidebar() {
                 <Link
                   key={item.id}
                   to={targetPath}
-                  onClick={() => handleNavClick(item.id)}
+                  onClick={handleNavClick}
                   title={!sidebarOpen ? item.label : undefined}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all relative group cursor-pointer pointer-events-auto',
@@ -147,7 +146,7 @@ export function Sidebar() {
         {/* User profile */}
         <Link
           to="/seller/settings"
-          onClick={() => handleNavClick('settings')}
+          onClick={handleNavClick}
           className={cn(
             'w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer',
             !sidebarOpen && 'justify-center'
@@ -173,7 +172,7 @@ export function Sidebar() {
         <div className={cn('flex gap-1', !sidebarOpen && 'flex-col items-center')}>
           <Link
             to="/seller/settings"
-            onClick={() => handleNavClick('settings')}
+            onClick={handleNavClick}
             className="flex-1 flex items-center justify-center gap-1 p-2 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors cursor-pointer"
             title="Help"
           >

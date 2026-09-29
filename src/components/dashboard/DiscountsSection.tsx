@@ -5,6 +5,7 @@ import {
 import { Button } from '../ui/Button';
 import toast from 'react-hot-toast';
 import { useDiscountsQuery, useCreateDiscountMutation, useDeleteDiscountMutation } from '../../hooks/useQueries';
+import { DiscountType } from '../../types';
 
 export function DiscountsSection() {
   const { data: discounts = [], isLoading, error, isError, refetch } = useDiscountsQuery();
@@ -13,7 +14,7 @@ export function DiscountsSection() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCode, setNewCode] = useState('');
-  const [discountType, setDiscountType] = useState<'percentage' | 'fixed' | 'shipping'>('percentage');
+  const [discountType, setDiscountType] = useState<DiscountType>('PERCENTAGE');
   const [discountValue, setDiscountValue] = useState('15');
   const [maxUsage, setMaxUsage] = useState('250');
   const [minOrder, setMinOrder] = useState('0');
@@ -27,7 +28,7 @@ export function DiscountsSection() {
     createDiscountMutation.mutate(
       {
         code: formattedCode,
-        type: discountType.toUpperCase() as any,
+        type: discountType,
         value: discountValue,
         maxRedemptions: Number(maxUsage) || 100,
         minOrderAmount: Number(minOrder) || 0,
@@ -84,7 +85,7 @@ export function DiscountsSection() {
         <div className="stat-card p-5 space-y-1">
           <span className="text-xs text-white/40 block">Active Promo Codes</span>
           <span className="text-2xl font-extrabold text-white block">
-            {discounts.filter(d => (d.status as string).toLowerCase() === 'active').length} Active
+            {discounts.filter(d => d.status === 'ACTIVE').length} Active
           </span>
           <span className="text-[11px] text-[#27C93F] font-semibold">Live PostgreSQL database backed</span>
         </div>
@@ -150,9 +151,9 @@ export function DiscountsSection() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4 font-bold text-white">
-                      {(d.type as string).toLowerCase() === 'percentage'
+                      {d.type === 'PERCENTAGE'
                         ? `${d.value}% OFF`
-                        : (d.type as string).toLowerCase() === 'fixed'
+                        : d.type === 'FIXED'
                         ? `$${d.value} OFF`
                         : 'Free Shipping'}
                     </td>
@@ -161,9 +162,9 @@ export function DiscountsSection() {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        (d.status as string).toLowerCase() === 'active' ? 'bg-[#27C93F]/10 text-[#27C93F]' : 'bg-[#FF5F56]/10 text-[#FF5F56]'
+                        d.status === 'ACTIVE' ? 'bg-[#27C93F]/10 text-[#27C93F]' : 'bg-[#FF5F56]/10 text-[#FF5F56]'
                       }`}>
-                        {d.status.toUpperCase()}
+                        {d.status}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-white/40">{d.createdAt}</td>
@@ -219,10 +220,10 @@ export function DiscountsSection() {
                 </select>
               </div>
 
-              {discountType !== 'shipping' && (
+              {discountType !== 'SHIPPING' && (
                 <div>
                   <label className="block text-white/60 mb-1">
-                    {discountType === 'percentage' ? 'Percentage Off (%)' : 'Dollar Amount Off ($)'}
+                    {discountType === 'PERCENTAGE' ? 'Percentage Off (%)' : 'Dollar Amount Off ($)'}
                   </label>
                   <input
                     type="number"

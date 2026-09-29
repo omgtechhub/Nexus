@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { 
-  CreditCard, ShieldCheck, DollarSign, ArrowUpRight, CheckCircle2, 
-  ToggleLeft, ToggleRight, Building2, Download, RefreshCw, Lock
+  CreditCard, ShieldCheck, ArrowUpRight, ToggleLeft, ToggleRight, Building2, Download
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { usePaymentsQuery } from '../../hooks/usePayments';
 import toast from 'react-hot-toast';
 
 export function PaymentsSection() {
-  const { data: realPayments = [], isLoading } = usePaymentsQuery();
+  const { data: realPayments = [] } = usePaymentsQuery();
   const [gateways, setGateways] = useState({
     paystack: true,
     flutterwave: true,

@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import { 
-  Activity, CheckCircle2, ShieldCheck, RefreshCw, Server, Wifi, Globe
+  CheckCircle2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
-import { useApp } from '../context/AppContext';
 
 export function StatusPage() {
-  const { navigate } = useApp();
 
   const systems = [
     { name: 'Storefront Global Edge CDN', status: 'Operational', uptime: '100%', latency: '14ms' },

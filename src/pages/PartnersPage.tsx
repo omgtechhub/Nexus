@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { 
-  Users, Award, DollarSign, CheckCircle2, ArrowRight, Sparkles, Building, Briefcase
+  Users, Award, DollarSign, ArrowRight, Building
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

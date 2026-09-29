@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Store, ShoppingBag, ShieldCheck, CheckCircle2, ArrowRight, 
-  Sparkles, DollarSign, Clock, Users, Smartphone, Receipt
+  Store, ArrowRight, 
+  Clock
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

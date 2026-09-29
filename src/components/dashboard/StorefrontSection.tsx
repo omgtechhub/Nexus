@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  Store, Palette, Eye, Globe, CheckCircle2, Save, MoveUp, MoveDown, Plus, Trash2, Edit3,
-  FileText, Menu, RefreshCw, Layout, Monitor, Smartphone, AlertCircle
+  Store, Palette, Eye, Save, MoveUp, MoveDown, Plus, Trash2, Edit3,
+  FileText, Menu, Layout, Monitor, Smartphone
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
@@ -19,7 +19,19 @@ import {
   useNavigationMenusQuery,
   useSaveNavigationMenuMutation,
 } from '../../hooks/usePhase7Queries';
+import type {
+  StorefrontSection as StorefrontSectionConfig,
+  StorefrontTheme,
+} from '../../api/storefrontConfig';
+import type { NavigationMenuData } from '../../api/navigation';
 import toast from 'react-hot-toast';
+
+/**
+ * A stable empty default. Writing `= []` inline would build a new array on every
+ * render while the query is still loading, and this value is a dependency of the
+ * effect below — which made that effect re-run and re-set state forever.
+ */
+const NO_MENUS: NavigationMenuData[] = [];
 
 export function StorefrontSection() {
   const { store } = useApp();
@@ -28,7 +40,7 @@ export function StorefrontSection() {
   const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
 
   // Storefront Config Query
-  const { data: configData, isLoading: configLoading } = useStorefrontConfigQuery();
+  const { data: configData } = useStorefrontConfigQuery();
   const updateDraftMutation = useUpdateStorefrontDraftConfigMutation();
   const publishMutation = usePublishStorefrontConfigMutation();
 
@@ -39,18 +51,19 @@ export function StorefrontSection() {
   const deletePageMutation = useDeletePageMutation();
 
   // Navigation Query
-  const { data: navData = [] } = useNavigationMenusQuery();
+  const { data: navData = NO_MENUS } = useNavigationMenusQuery();
   const saveNavMutation = useSaveNavigationMenuMutation();
 
   // Local Draft State
-  const [theme, setTheme] = useState({
+  // Typed against the API's config shape so the loaded draft can replace it.
+  const [theme, setTheme] = useState<StorefrontTheme>({
     primaryColor: '#FFBD2E',
     fontFamily: 'Inter',
     accentColor: '#27C93F',
     bannerText: '🎉 Flash Sale: Get 20% off all summer collections with code SUMMER20',
   });
 
-  const [sections, setSections] = useState([
+  const [sections, setSections] = useState<StorefrontSectionConfig[]>([
     { id: 'announcement-1', type: 'announcement', enabled: true, settings: { text: '🎉 Flash Sale: Get 20% off with code SUMMER20' } },
     { id: 'header-1', type: 'header', enabled: true, settings: { logoText: store?.name || 'Aura Apparel' } },
     { id: 'hero-1', type: 'hero', enabled: true, settings: { title: 'Elevate Your Daily Style', subtitle: 'Crafted with sustainable fabrics', ctaText: 'Shop Summer Drop' } },
@@ -58,10 +71,15 @@ export function StorefrontSection() {
     { id: 'footer-1', type: 'footer', enabled: true, settings: { copyright: '© 2026 Aura Apparel. All rights reserved.' } },
   ]);
 
-  // Sync loaded config to local draft state
+  // Sync loaded config to local draft state. The stored theme is merged over the
+  // defaults rather than replacing them: a draft saved before a field existed has
+  // no value for it, and assigning undefined to a bound input turns that input
+  // from controlled to uncontrolled.
   useEffect(() => {
     if (configData?.draftConfig) {
-      if (configData.draftConfig.theme) setTheme(configData.draftConfig.theme);
+      if (configData.draftConfig.theme) {
+        setTheme(prev => ({ ...prev, ...configData.draftConfig.theme }));
+      }
       if (configData.draftConfig.sections && configData.draftConfig.sections.length > 0) {
         setSections(configData.draftConfig.sections);
       }
@@ -76,7 +94,7 @@ export function StorefrontSection() {
   const [navItems, setNavItems] = useState<{ id: string; label: string; url: string; order: number }[]>([]);
 
   useEffect(() => {
-    const currentMenu = navData.find((m: any) => m.handle === selectedNavHandle);
+    const currentMenu = navData.find(m => m.handle === selectedNavHandle);
     if (currentMenu) {
       setNavItems(currentMenu.items || []);
     } else if (selectedNavHandle === 'main-menu') {
@@ -160,7 +178,7 @@ export function StorefrontSection() {
     }
   };
 
-  const storeSlug = store?.slug || store?.id || 'str_aura_apparel';
+  const storeSlug = store?.id;
 
   return (
     <div className="space-y-6">

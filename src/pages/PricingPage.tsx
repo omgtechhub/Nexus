@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Check, ArrowRight, Sparkles, HelpCircle, ChevronDown, ChevronUp, 
-  Zap, Shield, Calculator, CheckCircle2, Star, ShoppingBag
+  ArrowRight, ChevronDown, ChevronUp, 
+  Zap, CheckCircle2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

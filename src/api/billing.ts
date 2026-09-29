@@ -9,6 +9,7 @@ export interface SubscriptionPlanData {
   annualPrice: number;
   currency: string;
   trialDays: number;
+  isActive: boolean;
   displayOrder: number;
   maxProducts: number;
   maxTeamMembers: number;
@@ -43,7 +44,9 @@ export interface InvoiceData {
   periodStart: string;
   periodEnd: string;
   issueDate: string;
+  dueDate: string | null;
   paidAt: string | null;
+  createdAt: string;
   items: Array<{ id: string; description: string; amount: number; quantity: number }>;
 }
 

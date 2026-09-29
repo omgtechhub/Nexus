@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Zap, Star } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
-import { pricingPlans } from '../../data/mockData';
+import { pricingPlans } from '../../data/marketingContent';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';

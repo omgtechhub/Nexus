@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { CustomerPortalPage } from '../../../pages/CustomerPortalPage';
 import { AuthPage } from '../../../components/auth/AuthPage';
@@ -7,7 +6,7 @@ import { CustomerLayout } from '../layout/CustomerLayout';
 import { useApp } from '../../../context/AppContext';
 
 export function CustomerRoutes() {
-  const { isAuthenticated, user } = useApp();
+  const { isAuthenticated } = useApp();
 
   return (
     <Routes>

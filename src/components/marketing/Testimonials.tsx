@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
-import { testimonials } from '../../data/mockData';
+import { testimonials } from '../../data/marketingContent';
 import { cn } from '../../utils/cn';
 import { getAssetUrl } from '../../utils/assetPath';
 

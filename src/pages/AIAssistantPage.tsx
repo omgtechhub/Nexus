@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Sparkles, Bot, Zap, Brain, MessageSquare, TrendingUp, Copy, Check, 
-  ArrowRight, RefreshCw, BarChart2, ShieldCheck, Terminal, ShoppingBag, Tag, Sparkle
+  Sparkles, Zap, Brain, MessageSquare, TrendingUp, Copy, Check, 
+  ArrowRight, ShoppingBag
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

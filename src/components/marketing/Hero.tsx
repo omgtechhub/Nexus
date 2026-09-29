@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   ArrowRight, Play, Star, TrendingUp, Users, ShoppingBag, 
-  Sparkles, Store, Package, Layout, X
+  Sparkles, Store, Layout, X
 } from 'lucide-react';
 import gsap from 'gsap';
 import { useApp } from '../../context/AppContext';

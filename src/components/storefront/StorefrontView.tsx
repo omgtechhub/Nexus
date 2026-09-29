@@ -1,27 +1,34 @@
 import { useState } from 'react';
 import {
   ShoppingBag, Search, X, Plus, Minus, Trash2, CheckCircle2, ArrowRight,
-  Store, Globe, Tag, Truck, ShieldCheck, ExternalLink, Sparkles, Filter, ChevronRight
+  Globe, ShieldCheck, Clock
 } from 'lucide-react';
-import { CartProvider, useCart, CartItem } from '../../context/CartContext';
+import { useParams } from 'react-router-dom';
+import { CartProvider, useCart } from '../../context/CartContext';
 import {
   useStorefrontInfoQuery,
   useStorefrontProductsQuery,
   useStorefrontCategoriesQuery,
-  useValidateCartMutation,
   useCheckoutMutation,
 } from '../../hooks/useStorefront';
 import { StorefrontProduct, StorefrontProductVariant, CheckoutResult } from '../../api/storefront';
-import { initializePaymentApi, verifyPaymentApi } from '../../api/payments';
+import { initializePaymentApi } from '../../api/payments';
 import { Button } from '../ui/Button';
+import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
 
 interface StorefrontViewProps {
+  /** Omit to read the slug from the `/storefront/:storeSlug` route parameter. */
+  storeSlug?: string;
+  onClose?: () => void;
+}
+
+interface StorefrontContentProps {
   storeSlug: string;
   onClose?: () => void;
 }
 
-function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
+function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
   const { items, itemCount, subtotal, cartOpen, setCartOpen, addToCart, updateQuantity, removeFromCart, clearCart } = useCart();
 
   // Filters & State
@@ -39,15 +46,18 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
   // Checkout Form State
   const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
-  const [customerPhone, setCustomerPhone] = useState<string>('');
+  // TODO(checkout): no phone field on the form yet.
+  const customerPhone = '';
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
   const [address1, setAddress1] = useState<string>('');
-  const [address2, setAddress2] = useState<string>('');
+  // TODO(checkout): no apartment/suite field on the form yet.
+  const address2 = '';
   const [city, setCity] = useState<string>('');
   const [state, setState] = useState<string>('');
   const [zip, setZip] = useState<string>('');
-  const [country, setCountry] = useState<string>('United States');
+  // TODO(checkout): no country selector yet, so every order ships domestic.
+  const country = 'United States';
   const [discountCode, setDiscountCode] = useState<string>('');
 
   // Queries
@@ -59,16 +69,16 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
   });
   const categoriesQuery = useStorefrontCategoriesQuery(storeSlug);
 
-  // Mutations
-  const validateCartMut = useValidateCartMutation(storeSlug);
+  // Mutations. The cart is not stock-validated before checkout yet, so the
+  // checkout call is where an out-of-stock line is first rejected — see Phase 4.
   const checkoutMut = useCheckoutMutation(storeSlug);
 
   const storeInfo = infoQuery.data?.store;
   const settings = storeInfo?.settings;
   const products = productsQuery.data?.products || [];
   const categories = categoriesQuery.data?.categories || [];
-
-  const primaryColor = settings?.primaryColor || '#FFBD2E';
+  // TODO(theming): settings.primaryColor is not applied to the storefront yet, so
+  // every store renders in the default palette — see Phase 8 (design system).
 
   // Handle open product modal
   const handleOpenProduct = (prod: StorefrontProduct) => {
@@ -101,9 +111,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
     setSelectedProduct(null);
   };
 
-  const [selectedProvider, setSelectedProvider] = useState<'PAYSTACK' | 'FLUTTERWAVE'>('PAYSTACK');
-  const [paymentAuthUrl, setPaymentAuthUrl] = useState<string | null>(null);
-  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  // TODO(checkout): no gateway picker yet.
+  const selectedProvider: 'PAYSTACK' | 'FLUTTERWAVE' = 'PAYSTACK';
   const [isInitializingPayment, setIsInitializingPayment] = useState<boolean>(false);
 
   // Handle Checkout submission
@@ -137,11 +146,11 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
       });
 
       if (res.success && res.order) {
-        setCompletedOrder(res.order);
         clearCart();
         setCheckoutModalOpen(false);
 
-        // Initialize real payment with selected provider
+        // The order exists but is unpaid until the gateway says otherwise, so the
+        // customer is handed off to it rather than being shown a confirmation here.
         try {
           const initRes = await initializePaymentApi({
             orderId: res.order.id,
@@ -149,22 +158,37 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
             callbackUrl: window.location.href,
           });
 
-          if (initRes.success && initRes.data) {
-            setPaymentAuthUrl(initRes.data.authorizationUrl);
-            setPaymentReference(initRes.data.reference);
-            toast.success(`Payment initialized with ${selectedProvider}!`, { icon: '💳' });
+          if (initRes.success && initRes.data?.authorizationUrl) {
+            // Kept for the return leg, which verifies the reference server-side.
+            // TODO(checkout): no return-leg verification yet -- see Phase 4.
+            try {
+              sessionStorage.setItem('nexus_payment_reference', initRes.data.reference);
+            } catch {
+              // A blocked storage API must not stop the customer paying.
+            }
+            window.location.href = initRes.data.authorizationUrl;
+            return;
           }
+
+          toast.error('Could not reach the payment provider. Your order is saved as unpaid.');
         } catch (payErr: any) {
           console.error('Payment initialization error:', payErr);
+          toast.error('Could not start payment. Your order is saved as unpaid.');
         } finally {
           setIsInitializingPayment(false);
         }
+
+        // Payment never started, so show the order with its real, unpaid status.
+        setCompletedOrder(res.order);
       }
     } catch (err: any) {
       setIsInitializingPayment(false);
       toast.error(err.message || 'Checkout failed. Please verify your items.');
     }
   };
+
+  const orderIsPaid = completedOrder?.paymentStatus === 'PAID'
+    || completedOrder?.paymentStatus === 'SUCCESS';
 
   const taxEstimate = Number((subtotal * 0.08).toFixed(2));
   const shippingEstimate = subtotal >= 100 || subtotal === 0 ? 0 : 15.0;
@@ -762,7 +786,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
                 type="submit"
                 variant="primary"
                 size="lg"
-                loading={checkoutMut.isPending}
+                loading={checkoutMut.isPending || isInitializingPayment}
                 className="w-full py-3.5 text-sm font-extrabold rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-slate-950"
               >
                 Place Order (${totalEstimate.toFixed(2)})
@@ -776,15 +800,30 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
       {completedOrder && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="glass rounded-3xl border border-white/15 max-w-lg w-full p-8 text-center space-y-6 shadow-2xl relative">
-            <div className="w-16 h-16 rounded-full bg-[#27C93F]/20 text-[#27C93F] border border-[#27C93F]/40 flex items-center justify-center mx-auto shadow-lg">
-              <CheckCircle2 size={36} />
+            <div className={cn(
+              'w-16 h-16 rounded-full border flex items-center justify-center mx-auto shadow-lg',
+              orderIsPaid
+                ? 'bg-[#27C93F]/20 text-[#27C93F] border-[#27C93F]/40'
+                : 'bg-[#FFBD2E]/20 text-[#FFBD2E] border-[#FFBD2E]/40'
+            )}>
+              {orderIsPaid ? <CheckCircle2 size={36} /> : <Clock size={36} />}
             </div>
 
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#27C93F]">Order Confirmed</span>
-              <h3 className="text-2xl font-extrabold text-white mt-1">Thank you for your order!</h3>
+              <span className={cn(
+                'text-[10px] font-bold uppercase tracking-widest',
+                orderIsPaid ? 'text-[#27C93F]' : 'text-[#FFBD2E]'
+              )}>
+                {orderIsPaid ? 'Order Confirmed' : 'Awaiting Payment'}
+              </span>
+              <h3 className="text-2xl font-extrabold text-white mt-1">
+                {orderIsPaid ? 'Thank you for your order!' : 'Your order is saved'}
+              </h3>
               <p className="text-xs text-white/60 mt-1">
-                Order <span className="font-mono text-[#FFBD2E] font-bold">{completedOrder.orderNumber}</span> has been created.
+                Order <span className="font-mono text-[#FFBD2E] font-bold">{completedOrder.orderNumber}</span>
+                {orderIsPaid
+                  ? ' has been confirmed.'
+                  : ' was created, but payment has not been completed yet.'}
               </p>
             </div>
 
@@ -824,9 +863,22 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontViewProps) {
 }
 
 export function StorefrontView({ storeSlug, onClose }: StorefrontViewProps) {
+  const { storeSlug: routeSlug } = useParams<{ storeSlug?: string }>();
+  const resolvedSlug = storeSlug || routeSlug;
+
+  if (!resolvedSlug) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-6">
+        <p className="text-sm text-white/50 text-center">
+          No storefront specified. Open a store from its own link.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <StorefrontContent storeSlug={storeSlug} onClose={onClose} />
+    <CartProvider storeSlug={resolvedSlug}>
+      <StorefrontContent storeSlug={resolvedSlug} onClose={onClose} />
     </CartProvider>
   );
 }

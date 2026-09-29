@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ShieldCheck, DollarSign, Users, Store, Layers, TrendingUp, Plus, Edit3, CheckCircle2, XCircle, FileText, ArrowUpRight
+  ShieldCheck, Store, Layers, TrendingUp, Plus, Edit3, FileText
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -19,10 +19,10 @@ export function PlatformAdminView({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<'metrics' | 'merchants' | 'plans' | 'invoices'>('metrics');
 
   // Platform Admin Queries
-  const { data: metrics, isLoading: metricsLoading } = usePlatformMetricsQuery();
-  const { data: merchants = [], isLoading: merchantsLoading } = usePlatformMerchantsQuery();
-  const { data: plans = [], isLoading: plansLoading } = usePlatformPlansQuery();
-  const { data: invoices = [], isLoading: invoicesLoading } = usePlatformInvoicesQuery();
+  const { data: metrics } = usePlatformMetricsQuery();
+  const { data: merchants = [] } = usePlatformMerchantsQuery();
+  const { data: plans = [] } = usePlatformPlansQuery();
+  const { data: invoices = [] } = usePlatformInvoicesQuery();
 
   const createPlanMutation = useCreatePlatformPlanMutation();
   const updatePlanMutation = useUpdatePlatformPlanMutation();
@@ -50,7 +50,7 @@ export function PlatformAdminView({ onClose }: { onClose?: () => void }) {
         await updatePlanMutation.mutateAsync({ id: editingPlan.id, updates: planForm });
         toast.success(`Plan "${editingPlan.name}" updated!`);
       } else {
-        await createPlatformPlanMutation.mutateAsync(planForm);
+        await createPlanMutation.mutateAsync(planForm);
         toast.success('New SaaS plan created!');
       }
       setShowPlanModal(false);
@@ -210,7 +210,7 @@ export function PlatformAdminView({ onClose }: { onClose?: () => void }) {
                     <h4 className="font-bold text-white text-base">{p.name}</h4>
                     <span className="text-[10px] font-mono text-[#FFBD2E] uppercase">{p.code}</span>
                   </div>
-                  <Badge variant={p.isActive ? 'success' : 'secondary'} size="sm">
+                  <Badge variant={p.isActive ? 'success' : 'default'} size="sm">
                     {p.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>

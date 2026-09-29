@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { 
   Map, Search, Layers, ShoppingBag, ShieldCheck, BookOpen, 
-  DollarSign, User, ExternalLink, ArrowRight, Sparkles, CheckCircle2
+  DollarSign, User, ArrowRight
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
-import { Button } from '../components/ui/Button';
 import { useApp } from '../context/AppContext';
 import { View } from '../types';
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  DollarSign, TrendingUp, ShieldCheck, CheckCircle2, ArrowRight, 
-  Sparkles, RefreshCw, Building, Zap, Percent, Clock, Award
+  DollarSign, TrendingUp, ArrowRight
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

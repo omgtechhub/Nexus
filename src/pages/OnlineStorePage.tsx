@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { 
-  Store, Smartphone, Monitor, Palette, Globe, Zap, Shield, 
-  Sparkles, ArrowRight, CheckCircle2, ShoppingBag, Eye, Layout, Sliders, Layers,
-  Tag, Truck, RefreshCcw, Search, BarChart3, Lock, Package, ArrowUpRight, X, Plus, Minus, Trash2
+  Store, Smartphone, Monitor, Globe, ArrowRight, CheckCircle2, ShoppingBag, Eye, Layout, Truck, BarChart3, Package, ArrowUpRight, X, Plus, Minus, Trash2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

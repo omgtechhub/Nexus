@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  CreditCard, ShieldCheck, DollarSign, Globe, Lock, ArrowRight, 
-  CheckCircle2, Sparkles, Zap, RefreshCw, BarChart2, ShieldAlert, Wallet, Building
+  DollarSign, ArrowRight, 
+  BarChart2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

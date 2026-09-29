@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Cookie, ShieldCheck, ToggleLeft, ToggleRight, CheckCircle2, 
-  HelpCircle, Settings, Trash2, Sliders, Server, Info
+  Sliders, Server, Info
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

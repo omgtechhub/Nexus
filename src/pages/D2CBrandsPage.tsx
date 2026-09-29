@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Sparkles, Repeat, Users, BarChart, Heart, ArrowRight, 
-  CheckCircle2, XCircle, ShoppingBag, ShieldCheck, Zap, DollarSign, Package
+  Sparkles, Repeat, ArrowRight, 
+  CheckCircle2, XCircle
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

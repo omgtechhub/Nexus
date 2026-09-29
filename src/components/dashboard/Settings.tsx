@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import {
-  User, Bell, CreditCard, Shield, Store, Save, Camera, Upload, Download, Key,
-  Users, Globe, History, Plus, Trash2, CheckCircle2, AlertCircle, RefreshCw, Mail, Check, X, ShieldCheck, FileText
+  User, Bell, CreditCard, Shield, Store, Save, Camera, Users, Globe, History, Trash2, ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
@@ -10,16 +9,9 @@ import { Badge } from '../ui/Badge';
 import { cn } from '../../utils/cn';
 import {
   useTeamQuery,
-  useInviteTeamMemberMutation,
-  useResendInvitationMutation,
-  useRevokeInvitationMutation,
   useUpdateMemberRoleMutation,
   useRemoveTeamMemberMutation,
   useDomainsQuery,
-  useAddDomainMutation,
-  useVerifyDomainMutation,
-  useSetPrimaryDomainMutation,
-  useDeleteDomainMutation,
   useAuditLogsQuery,
 } from '../../hooks/usePhase7Queries';
 import {
@@ -45,7 +37,7 @@ const settingsTabs = [
 ];
 
 export function Settings() {
-  const { user, updateUser, logout, store } = useApp();
+  const { user, updateUser, store, storeSettings } = useApp();
   const [activeTab, setActiveTab] = useState('profile');
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,40 +45,26 @@ export function Settings() {
   // Profile Form State
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('+1 (555) 234-5678');
-  const [timezone, setTimezone] = useState('America/New_York (EST)');
 
   // Store Form State
   const [storeName, setStoreName] = useState(store?.name || 'Aura Apparel');
-  const [storeUrl, setStoreUrl] = useState(store?.slug || 'auraapparel');
+  const [storeUrl, setStoreUrl] = useState(storeSettings?.storeUrl || 'auraapparel');
 
-  // Team API Hooks
+  // Team API Hooks. Inviting, resending and revoking are built on the server but
+  // have no UI here yet -- see Phase 5 (seller dashboard completion).
   const { data: teamData } = useTeamQuery();
-  const inviteMemberMutation = useInviteTeamMemberMutation();
-  const resendInviteMutation = useResendInvitationMutation();
-  const revokeInviteMutation = useRevokeInvitationMutation();
   const updateRoleMutation = useUpdateMemberRoleMutation();
   const removeMemberMutation = useRemoveTeamMemberMutation();
 
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'OWNER' | 'ADMIN' | 'STAFF' | 'VIEWER'>('STAFF');
-  const [showInviteModal, setShowInviteModal] = useState(false);
-
-  // Domains API Hooks
+  // Domains API Hooks. Adding, verifying, setting primary and deleting are built
+  // on the server but have no UI here yet -- see Phase 5.
   const { data: domainsData = [] } = useDomainsQuery();
-  const addDomainMutation = useAddDomainMutation();
-  const verifyDomainMutation = useVerifyDomainMutation();
-  const setPrimaryDomainMutation = useSetPrimaryDomainMutation();
-  const deleteDomainMutation = useDeleteDomainMutation();
-
-  const [newDomainName, setNewDomainName] = useState('');
-  const [showAddDomainModal, setShowAddDomainModal] = useState(false);
 
   // Audit Logs API Hook
   const { data: auditLogs = [] } = useAuditLogsQuery(50);
 
   // Billing API Hooks
-  const { data: subData, isLoading: subLoading } = useCurrentSubscriptionQuery();
+  const { data: subData } = useCurrentSubscriptionQuery();
   const { data: availablePlans = [] } = usePlansQuery();
   const { data: invoicesData = [] } = useInvoicesQuery();
   const changePlanMutation = useChangePlanMutation();
@@ -109,7 +87,6 @@ export function Settings() {
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -134,51 +111,6 @@ export function Settings() {
     setSaved(true);
     toast.success('Profile information saved!');
     setTimeout(() => setSaved(false), 2000);
-  };
-
-  const handleInviteMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inviteEmail.trim()) {
-      toast.error('Please enter an email address');
-      return;
-    }
-    try {
-      await inviteMemberMutation.mutateAsync({ email: inviteEmail, role: inviteRole });
-      toast.success(`Invitation sent to ${inviteEmail}!`);
-      setInviteEmail('');
-      setShowInviteModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send invitation');
-    }
-  };
-
-  const handleAddDomain = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDomainName.trim()) {
-      toast.error('Please enter a custom domain');
-      return;
-    }
-    try {
-      await addDomainMutation.mutateAsync(newDomainName.trim());
-      setNewDomainName('');
-      setShowAddDomainModal(false);
-      toast.success('Domain registered! Please configure your DNS records.');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add custom domain');
-    }
-  };
-
-  const handleVerifyDomain = async (id: string) => {
-    try {
-      const res = await verifyDomainMutation.mutateAsync(id);
-      if (res.verified) {
-        toast.success('DNS verified successfully! Domain is now active.', { icon: '✨' });
-      } else {
-        toast.error(res.message || 'DNS verification pending or failed');
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'DNS verification failed');
-    }
   };
 
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -346,14 +278,6 @@ export function Settings() {
                   <h3 className="text-base font-semibold text-white mb-1">Team Management & RBAC</h3>
                   <p className="text-xs text-white/40">Invite staff members and manage access permissions (OWNER, ADMIN, STAFF, VIEWER)</p>
                 </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<Plus size={14} />}
-                  onClick={() => setShowInviteModal(true)}
-                >
-                  Invite Member
-                </Button>
               </div>
 
               <div className="space-y-3">
@@ -421,14 +345,6 @@ export function Settings() {
                   <h3 className="text-base font-semibold text-white mb-1">Custom Domain Management</h3>
                   <p className="text-xs text-white/40">Connect your custom web domain with real automated DNS verification</p>
                 </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<Plus size={14} />}
-                  onClick={() => setShowAddDomainModal(true)}
-                >
-                  Add Custom Domain
-                </Button>
               </div>
 
               <div className="space-y-3">

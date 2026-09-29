@@ -58,7 +58,7 @@ const navItems = [
 ];
 
 export function Navbar() {
-  const { navigate, isAuthenticated, user } = useApp();
+  const { navigate, isAuthenticated, user, isAdmin, isCustomer } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -198,14 +198,14 @@ export function Navbar() {
 
               {isAuthenticated ? (
                 <>
-                  {(user as any)?.platformRole === 'PLATFORM_OWNER' || (user as any)?.platformRole === 'PLATFORM_ADMIN' ? (
+                  {isAdmin ? (
                     <button
                       onClick={() => navigate('/admin/dashboard')}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-400 bg-amber-400/10 border border-amber-400/30 hover:bg-amber-400/20 transition-colors"
                     >
                       Admin Portal
                     </button>
-                  ) : user?.plan === 'customer' ? (
+                  ) : isCustomer ? (
                     <button
                       onClick={() => navigate('/account/dashboard')}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#27C93F] bg-[#27C93F]/10 border border-[#27C93F]/30 hover:bg-[#27C93F]/20 transition-colors"
@@ -222,8 +222,8 @@ export function Navbar() {
                   )}
                   <button
                     onClick={() => {
-                      if ((user as any)?.platformRole === 'PLATFORM_OWNER' || (user as any)?.platformRole === 'PLATFORM_ADMIN') navigate('/admin/dashboard');
-                      else if (user?.plan === 'customer') navigate('/account/dashboard');
+                      if (isAdmin) navigate('/admin/dashboard');
+                      else if (isCustomer) navigate('/account/dashboard');
                       else navigate('/seller/dashboard');
                     }}
                     className="flex items-center gap-2 rounded-full border border-white/10 hover:border-emerald-500/50 p-0.5 transition-colors"
@@ -327,12 +327,12 @@ export function Navbar() {
             <div className="pt-4 space-y-3">
               {isAuthenticated ? (
                 <Button variant="primary" size="md" fullWidth onClick={() => {
-                  if ((user as any)?.platformRole === 'PLATFORM_OWNER' || (user as any)?.platformRole === 'PLATFORM_ADMIN') navigate('/admin/dashboard');
-                  else if (user?.plan === 'customer') navigate('/account/dashboard');
+                  if (isAdmin) navigate('/admin/dashboard');
+                  else if (isCustomer) navigate('/account/dashboard');
                   else navigate('/seller/dashboard');
                   setMobileOpen(false);
                 }}>
-                  {user?.plan === 'customer' ? 'Customer Account' : 'Merchant Dashboard'}
+                  {isCustomer ? 'Customer Account' : 'Merchant Dashboard'}
                 </Button>
               ) : (
                 <div className="grid grid-cols-2 gap-3">

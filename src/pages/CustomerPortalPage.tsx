@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  Package, Search, Truck, CheckCircle2, Clock, MapPin, CreditCard, User, 
-  ArrowRight, ShieldCheck, ShoppingBag, ExternalLink, RefreshCw, AlertCircle, FileText, Lock, LogIn
+  Package, Search, Truck, CheckCircle2, User, 
+  ArrowRight, ShoppingBag, LogIn
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { BASE_URL } from '../api/client';
 
 export function CustomerPortalPage({ defaultTab = 'dashboard' }: { defaultTab?: string }) {
-  const { navigate, user, isAuthenticated, login, signup, logout, orders: contextOrders = [] } = useApp();
+  const { user, isAuthenticated, login, signup, logout, orders: contextOrders = [] } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
@@ -61,9 +61,9 @@ export function CustomerPortalPage({ defaultTab = 'dashboard' }: { defaultTab?: 
     timeline: [
       { label: 'Order Placed & Verified', date: 'Confirmed', completed: true },
       { label: 'Payment Confirmed', date: 'Verified', completed: true },
-      { label: 'Package Picked & Packed', date: 'In Warehouse', completed: ord.status !== 'pending' },
-      { label: 'In Transit — Out for Carrier Dispatch', date: 'Expected Delivery Soon', completed: ord.status === 'fulfilled' || ord.status === 'DELIVERED', active: ord.status !== 'DELIVERED' },
-      { label: 'Out for Final Delivery', date: 'Final Destination', completed: ord.status === 'DELIVERED' },
+      { label: 'Package Picked & Packed', date: 'In Warehouse', completed: ord.status !== 'PENDING' },
+      { label: 'In Transit — Out for Carrier Dispatch', date: 'Expected Delivery Soon', completed: ord.status === 'FULFILLED', active: ord.status === 'PROCESSING' },
+      { label: 'Delivered', date: 'Final Destination', completed: ord.status === 'FULFILLED' },
     ]
   }));
 

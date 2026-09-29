@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { 
-  BookOpen, Search, Clock, ArrowRight, Sparkles, Tag, ExternalLink
+  BookOpen, Clock, ArrowRight
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
-import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function BlogPage() {
-  const { navigate } = useApp();
   const [activeCategory, setActiveCategory] = useState<'all' | 'growth' | 'cro' | 'pos'>('all');
 
   const articles = [

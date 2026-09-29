@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { 
-  CreditCard, Wifi, Shield, RefreshCw, Layers, CheckCircle2, 
-  ArrowRight, Scan, Plus, Minus, Trash2, Printer, AlertCircle, Sparkles, Smartphone, Store,
-  Users, ShoppingBag, DollarSign, PackageCheck, Receipt
+  CreditCard, Wifi, RefreshCw, CheckCircle2, 
+  ArrowRight, Scan, Plus, Minus, Trash2, Printer, Smartphone, Store,
+  Users
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
@@ -25,7 +25,7 @@ export function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState<'nfc' | 'card' | 'qr'>('nfc');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [customerPhone, setCustomerPhone] = useState('(555) 234-5678');
+  const customerPhone = '(555) 234-5678';
   const [loyaltyPoints, setLoyaltyPoints] = useState(240);
 
   const availableProducts = [

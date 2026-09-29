@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { 
-  TrendingUp, ShieldCheck, DollarSign, FileText, Download, 
-  BarChart3, Globe, Building2, CheckCircle2, ArrowRight
+  TrendingUp, Download, 
+  Building2, CheckCircle2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function InvestorsPage() {
-  const { navigate } = useApp();
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const fundingRounds = [
@@ -26,7 +24,7 @@ export function InvestorsPage() {
     { label: 'Gross Profit Margin', value: '78%', note: 'High-margin software & payment splits' },
   ];
 
-  const handleDownloadReport = (reportName: string) => {
+  const handleDownloadReport = (_reportName: string) => {
     setDownloadSuccess(true);
     setTimeout(() => setDownloadSuccess(false), 3000);
   };

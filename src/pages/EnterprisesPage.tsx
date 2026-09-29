@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  Building2, ShieldCheck, Zap, Activity, Globe, Lock, Cpu, 
-  ArrowRight, CheckCircle2, Server, Sliders, Headphones, FileText, ShoppingCart
+  Building2, Activity, Globe, Lock, ArrowRight, CheckCircle2, Headphones
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

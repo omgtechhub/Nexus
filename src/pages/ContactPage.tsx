@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Mail, Phone, MapPin, MessageSquare, Clock, Send, 
-  CheckCircle2, Globe, Headphones, Building2
+  Phone, MapPin, MessageSquare, Send, 
+  CheckCircle2, Headphones, Building2
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

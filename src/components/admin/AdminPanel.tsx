@@ -2,21 +2,16 @@ import { useState } from 'react';
 import {
   Shield, Users, Database, Activity, AlertCircle,
   CheckCircle, Server, Lock, FileText,
-  ArrowLeft, TrendingUp, Send, RefreshCw, Download, Check, X, ShieldAlert, Zap, Layers, Store, DollarSign, Plus, Edit3
+  TrendingUp, Send, RefreshCw, Download, Check, Zap, Layers, DollarSign
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { Input } from '../ui/Input';
 import { cn } from '../../utils/cn';
 import {
   usePlatformMetricsQuery,
   usePlatformMerchantsQuery,
   usePlatformPlansQuery,
-  usePlatformInvoicesQuery,
-  useCreatePlatformPlanMutation,
-  useUpdatePlatformPlanMutation,
-} from '../../hooks/useBillingQueries';
+  } from '../../hooks/useBillingQueries';
 import toast from 'react-hot-toast';
 
 const adminTabs = [
@@ -55,17 +50,12 @@ const apiRequests = [
 ];
 
 export function AdminPanel({ defaultTab = 'overview' }: { defaultTab?: string }) {
-  const { navigate } = useApp();
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Live Backend Platform Admin Queries
-  const { data: metrics, isLoading: metricsLoading } = usePlatformMetricsQuery();
-  const { data: merchants = [], isLoading: merchantsLoading } = usePlatformMerchantsQuery();
-  const { data: plans = [], isLoading: plansLoading } = usePlatformPlansQuery();
-  const { data: invoices = [], isLoading: invoicesLoading } = usePlatformInvoicesQuery();
-
-  const createPlanMutation = useCreatePlatformPlanMutation();
-  const updatePlanMutation = useUpdatePlatformPlanMutation();
+  const { data: metrics } = usePlatformMetricsQuery();
+  const { data: merchants = [] } = usePlatformMerchantsQuery();
+  const { data: plans = [] } = usePlatformPlansQuery();
 
   const [usersList, setUsersList] = useState(initialUsers);
   const [securityLogs, setSecurityLogs] = useState([
@@ -227,12 +217,6 @@ export function AdminPanel({ defaultTab = 'overview' }: { defaultTab?: string })
     link.click();
     document.body.removeChild(link);
     toast.success('Exported admin users list to CSV!');
-  };
-
-  const handleToggleUserStatus = (id: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    setUsersList(prev => prev.map(u => u.id === id ? { ...u, status: nextStatus } : u));
-    toast.success(`User account status updated to ${nextStatus}!`);
   };
 
   const handleExportSecurityLogs = () => {
@@ -529,7 +513,7 @@ export function AdminPanel({ defaultTab = 'overview' }: { defaultTab?: string })
                       <h4 className="font-bold text-white text-base">{p.name}</h4>
                       <span className="text-[10px] font-mono text-[#FFBD2E] uppercase">{p.code}</span>
                     </div>
-                    <Badge variant={p.isActive ? 'success' : 'secondary'} size="sm">
+                    <Badge variant={p.isActive ? 'success' : 'default'} size="sm">
                       {p.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>

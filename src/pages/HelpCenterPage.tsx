@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { 
   HelpCircle, Search, ShoppingBag, CreditCard, Truck, RefreshCw, 
-  Shield, Users, ChevronRight, ArrowRight
+  Shield, Users
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
-import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function HelpCenterPage() {
-  const { navigate } = useApp();
   const [search, setSearch] = useState('');
 
   const categories = [

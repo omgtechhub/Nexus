@@ -13,19 +13,14 @@ import { DiscountsSection } from './DiscountsSection';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
 import { Bell } from 'lucide-react';
-import { useParams } from 'react-router-dom';
 
 export function DashboardLayout() {
-  const { dashboardSection, sidebarOpen } = useApp();
-  const { section: urlSection } = useParams<{ section?: string }>();
-
-  const currentSection = (urlSection && urlSection !== 'dashboard') ? urlSection : dashboardSection;
-  const activeSection = currentSection || 'overview';
+  // `dashboardSection` is derived from the URL, so it already reflects :section.
+  const { dashboardSection: activeSection, sidebarOpen } = useApp();
 
   const renderSection = () => {
     switch (activeSection) {
       case 'overview':
-      case 'dashboard':
         return <Overview />;
       case 'analytics':
         return <Analytics />;

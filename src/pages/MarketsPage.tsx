@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { 
-  Globe, DollarSign, CheckCircle2, ArrowRight, ShieldCheck, 
-  MapPin, RefreshCw, Languages, ShoppingBag, Landmark
+  Globe, ArrowRight
 } from 'lucide-react';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';

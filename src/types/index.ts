@@ -1,17 +1,33 @@
 // Core Application Types for Nexus Commerce
 
+export type AccountType = 'CUSTOMER' | 'SELLER';
+export type PlatformRole = 'PLATFORM_OWNER' | 'PLATFORM_ADMIN' | 'PLATFORM_SUPPORT';
+
+/**
+ * Mirrors the `User` row the API returns (the Prisma model minus `passwordHash`).
+ * `accountType` and `platformRole` are the stored, authoritative portal
+ * assignment — never infer a portal from `plan` or from having a store.
+ */
 export interface User {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
-  role: 'owner' | 'admin' | 'staff' | 'viewer';
-  plan: 'starter' | 'growth' | 'pro' | 'enterprise';
-  createdAt: Date;
+  avatar?: string | null;
+  phone?: string | null;
+  accountType: AccountType;
+  platformRole?: PlatformRole | null;
+  /** Billing tier code, e.g. "pro". Says nothing about which portal a user belongs to. */
+  plan: string;
   isVerified: boolean;
+  emailVerifiedAt?: string | null;
   twoFactorEnabled: boolean;
-  notificationPrefs: NotificationPrefs;
-  billing: BillingInfo;
+  lastLoginAt?: string | null;
+  createdAt: Date;
+  /** Store-scoped membership role, present only when resolved from a StoreMember. */
+  role?: 'OWNER' | 'ADMIN' | 'STAFF' | 'VIEWER';
+  /** Client-side preference set; not part of the User row. */
+  notificationPrefs?: NotificationPrefs;
+  billing?: BillingInfo;
 }
 
 export interface NotificationPrefs {
@@ -58,21 +74,42 @@ export interface Product {
   updatedAt: Date;
 }
 
+export type OrderStatus =
+  | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'FULFILLED' | 'CANCELLED' | 'REFUNDED';
+
+export type PaymentStatus =
+  | 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'PAID'
+  | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+
+export type FulfillmentStatus = 'UNFULFILLED' | 'PARTIAL' | 'FULFILLED';
+
+/**
+ * Mirrors the `Order` row the API returns. The three status fields are database
+ * enums and arrive uppercase; the customer name and email are stored flat on the
+ * order so it survives the CRM record being deleted, with `customer` set only
+ * while that record still exists.
+ */
 export interface Order {
   id: string;
   orderNumber: string;
-  customer: Customer;
+  customer?: Customer | null;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
   items: OrderItem[];
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  status: OrderStatus;
   total: number;
   subtotal: number;
   tax: number;
   shipping: number;
   discount: number;
-  paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
-  shippingAddress: Address;
+  currency?: string;
+  paymentStatus: PaymentStatus;
+  fulfillmentStatus: FulfillmentStatus;
+  discountCode?: string | null;
+  notes?: string | null;
+  shippingAddress?: Address;
   createdAt: Date;
-  fulfillmentStatus: 'unfulfilled' | 'partial' | 'fulfilled';
 }
 
 export interface OrderItem {
@@ -173,14 +210,21 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export type DiscountType = 'PERCENTAGE' | 'FIXED' | 'SHIPPING';
+export type DiscountStatus = 'ACTIVE' | 'SCHEDULED' | 'EXPIRED';
+
 export interface DiscountCode {
   id: string;
   code: string;
-  type: 'percentage' | 'fixed' | 'shipping';
+  type: DiscountType;
   value: string;
   redemptions: number;
   maxRedemptions: number;
-  status: 'active' | 'scheduled' | 'expired';
+  status: DiscountStatus;
+  minOrderAmount?: number | null;
+  allowedCategory?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
   createdAt: string;
 }
 
@@ -196,4 +240,4 @@ export interface StoreSettings {
 }
 
 export type Theme = 'dark' | 'light';
-export type View = 'marketing' | 'auth' | 'dashboard' | 'admin' | 'online-store' | 'pos' | 'payments' | 'ai-assistant' | 'startups' | 'enterprises' | 'd2c' | 'b2b' | 'pricing' | 'resources' | 'capital' | 'shipping' | 'markets' | 'shop-pay' | 'small-business' | 'marketplaces' | 'retail' | 'international' | 'docs' | 'blog' | 'help-center' | 'partners' | 'app-store' | 'changelog' | 'status-page' | 'community' | 'privacy' | 'terms' | 'cookies' | 'sitemap' | 'about' | 'careers' | 'press' | 'investors' | 'contact';
+export type View = 'marketing' | 'auth' | 'login' | 'signup' | 'dashboard' | 'admin' | 'online-store' | 'pos' | 'payments' | 'ai-assistant' | 'startups' | 'enterprises' | 'd2c' | 'b2b' | 'pricing' | 'resources' | 'capital' | 'shipping' | 'markets' | 'shop-pay' | 'small-business' | 'marketplaces' | 'retail' | 'international' | 'docs' | 'blog' | 'help-center' | 'partners' | 'app-store' | 'changelog' | 'status-page' | 'community' | 'privacy' | 'terms' | 'cookies' | 'sitemap' | 'about' | 'careers' | 'press' | 'investors' | 'contact';

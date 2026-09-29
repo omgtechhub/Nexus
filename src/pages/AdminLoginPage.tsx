@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Lock, Mail, ArrowRight, CheckCircle2, ShieldAlert, Key } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/Button';
 import toast from 'react-hot-toast';
