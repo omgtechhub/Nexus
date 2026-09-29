@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -62,19 +62,7 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
     return <Navigate to={target} replace />;
   }
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetSubmitted, setResetSubmitted] = useState(false);
 
-  /**
-   * Password reset is not implemented server-side yet (Phase 1). Say so rather
-   * than claiming an email was sent — the previous version told users to check
-   * an inbox that would never receive anything.
-   */
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.error('Password reset is not available yet. Contact support@nexuscommerce.io to regain access.');
-  };
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [watchedPassword, setWatchedPassword] = useState('');
 
@@ -312,13 +300,12 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
                     {...loginForm.register('password')}
                   />
                   <div className="flex justify-end mt-1.5">
-                    <button 
-                      type="button" 
-                      onClick={() => { setResetSubmitted(false); setShowForgotModal(true); }}
-                      className="text-xs text-[#FFBD2E] hover:text-[#27C93F] transition-colors"
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs text-[#FFBD2E] hover:text-[#27C93F] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
                     >
                       Forgot password?
-                    </button>
+                    </Link>
                   </div>
                 </div>
 
@@ -498,48 +485,6 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
-      {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowForgotModal(false)} />
-          <div className="relative z-10 w-full max-w-md bg-[#121528] border border-white/20 p-6 rounded-2xl space-y-4 shadow-2xl">
-            <h3 className="text-xl font-bold text-white">Reset Your Password</h3>
-            <p className="text-xs text-white/50 leading-relaxed">
-              Enter the email address associated with your store account, and we'll send you a password reset link.
-            </p>
-
-            {resetSubmitted ? (
-              <div className="p-4 rounded-xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[#27C93F] text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 size={16} /> Reset link sent! Please check your email inbox.
-              </div>
-            ) : (
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div>
-                  <label className="block text-xs text-white/60 mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="merchant@yourstore.com"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="primary" size="sm" type="submit">
-                    Send Reset Link
-                  </Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={() => setShowForgotModal(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* OAuth Email Selection Modal */}
     </div>
   );
 }

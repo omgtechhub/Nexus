@@ -636,7 +636,12 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
       const shipping = subtotal >= 100 ? 0 : 15.00;
       const total = Number((subtotal - discountAmount + tax + shipping).toFixed(2));
 
-      // Resolve or create Customer record for store
+      // Resolve or create the store's Customer record for this buyer.
+      // When the buyer is signed in, stamp their account id so the purchase
+      // shows up in their unified cross-store order history immediately
+      // rather than waiting to be claimed at next sign-in.
+      const buyerUserId = req.user?.id ?? null;
+
       let customer = await tx.customer.findFirst({
         where: { storeId: store.id, email: payload.customer.email.toLowerCase() },
       });
@@ -645,6 +650,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
         customer = await tx.customer.create({
           data: {
             storeId: store.id,
+            userId: buyerUserId,
             name: payload.customer.name,
             email: payload.customer.email.toLowerCase(),
             phone: payload.customer.phone,
@@ -658,6 +664,8 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
         customer = await tx.customer.update({
           where: { id: customer.id },
           data: {
+            // Only ever fill a blank owner; never reassign an existing one.
+            ...(buyerUserId && !customer.userId ? { userId: buyerUserId } : {}),
             totalOrders: { increment: 1 },
             totalSpent: { increment: total },
             lastOrderAt: new Date(),

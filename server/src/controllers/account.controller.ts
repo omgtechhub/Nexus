@@ -84,13 +84,17 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
  */
 export async function getCustomerOrders(req: Request, res: Response, next: NextFunction) {
   try {
+    const userId = req.user!.id;
     const email = req.user!.email.toLowerCase();
 
+    // Prefer the Customer.userId link, which survives an email change; fall
+    // back to the email so guest orders placed before sign-up still appear
+    // until linkCustomerProfiles claims them.
     const orders = await prisma.order.findMany({
       where: {
         OR: [
+          { customer: { userId } },
           { customerEmail: { equals: email, mode: 'insensitive' } },
-          { customer: { email: { equals: email, mode: 'insensitive' } } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -119,14 +123,17 @@ export async function getCustomerOrders(req: Request, res: Response, next: NextF
 export async function getCustomerOrderById(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const userId = req.user!.id;
     const email = req.user!.email.toLowerCase();
 
+    // Ownership is part of the query, not a check afterwards: an order that
+    // isn't this user's simply doesn't match, so there is no path to an IDOR.
     const order = await prisma.order.findFirst({
       where: {
         id,
         OR: [
+          { customer: { userId } },
           { customerEmail: { equals: email, mode: 'insensitive' } },
-          { customer: { email: { equals: email, mode: 'insensitive' } } },
         ],
       },
       include: {

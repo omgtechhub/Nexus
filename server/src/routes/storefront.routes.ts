@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { optionalAuth } from '../middleware/auth.middleware.js';
 import {
   getStorefrontInfo,
   getStorefrontProducts,
@@ -21,6 +22,8 @@ storefrontRouter.get('/:storeSlug/products', getStorefrontProducts);
 storefrontRouter.get('/:storeSlug/products/:productSlug', getStorefrontProductBySlug);
 storefrontRouter.get('/:storeSlug/categories', getStorefrontCategories);
 storefrontRouter.post('/:storeSlug/cart/validate', validateCart);
-storefrontRouter.post('/:storeSlug/checkout', checkout);
+// optionalAuth: a signed-in buyer's order is attached to their account;
+// guests still check out normally.
+storefrontRouter.post('/:storeSlug/checkout', optionalAuth, checkout);
 storefrontRouter.get('/:storeSlug/orders/:orderNumber', getStorefrontOrderByNumber);
 

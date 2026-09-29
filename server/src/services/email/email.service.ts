@@ -161,6 +161,66 @@ export class EmailService {
       text: `Low stock alert: ${productTitle} (SKU: ${sku}) has ${currentStock} units remaining (threshold: ${threshold}).`,
     });
   }
+
+  /** Password reset link. The raw token appears only here and in the user's inbox. */
+  async sendPasswordReset(params: {
+    to: string;
+    name: string;
+    resetUrl: string;
+    expiresInMinutes: number;
+  }): Promise<boolean> {
+    const text = [
+      `Hi ${params.name},`,
+      '',
+      'We received a request to reset your Nexus Commerce password.',
+      `Use this link within ${params.expiresInMinutes} minutes:`,
+      params.resetUrl,
+      '',
+      'If you did not request this, you can ignore this email — your password will not change.',
+    ].join('\n');
+
+    return this.sendEmail({
+      to: params.to,
+      subject: 'Reset your Nexus Commerce password',
+      text,
+      html: `
+        <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 560px; margin: 0 auto;">
+          <h1 style="font-size: 20px; margin-bottom: 8px;">Reset your password</h1>
+          <p style="color: #444; line-height: 1.6;">Hi ${params.name}, we received a request to reset your Nexus Commerce password.</p>
+          <p style="margin: 24px 0;">
+            <a href="${params.resetUrl}" style="background: #FFBD2E; color: #000; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">Choose a new password</a>
+          </p>
+          <p style="color: #777; font-size: 13px;">This link expires in ${params.expiresInMinutes} minutes. If you did not request it, ignore this email and your password will stay the same.</p>
+        </div>`,
+    });
+  }
+
+  async sendEmailVerification(params: {
+    to: string;
+    name: string;
+    verifyUrl: string;
+  }): Promise<boolean> {
+    const text = [
+      `Hi ${params.name},`,
+      '',
+      'Confirm your email address to finish setting up your Nexus Commerce account:',
+      params.verifyUrl,
+    ].join('\n');
+
+    return this.sendEmail({
+      to: params.to,
+      subject: 'Confirm your email address',
+      text,
+      html: `
+        <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 560px; margin: 0 auto;">
+          <h1 style="font-size: 20px; margin-bottom: 8px;">Confirm your email</h1>
+          <p style="color: #444; line-height: 1.6;">Hi ${params.name}, confirm your email address to finish setting up your Nexus Commerce account.</p>
+          <p style="margin: 24px 0;">
+            <a href="${params.verifyUrl}" style="background: #27C93F; color: #000; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">Confirm email address</a>
+          </p>
+        </div>`,
+    });
+  }
 }
 
 export const emailService = new EmailService();

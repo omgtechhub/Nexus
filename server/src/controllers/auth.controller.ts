@@ -2,8 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
-import { Role, StoreStatus, PlatformRole } from '@prisma/client';
+import { Role, StoreStatus, PlatformRole, AccountType } from '@prisma/client';
 import crypto from 'crypto';
+import { logger } from '../utils/logger.js';
+import { config } from '../config/index.js';
+import { emailService } from '../services/email/email.service.js';
+import { issueEmailVerificationToken } from '../services/auth/tokens.service.js';
 import { verifyOAuthToken, OAuthVerificationError } from '../services/auth/oauthVerifier.service.js';
 
 const SESSION_COOKIE_NAME = 'nexus_session';
@@ -85,13 +89,68 @@ async function provisionStoreForUser(
   return { store, membership };
 }
 
-/** Single source of truth for which portal an authenticated user belongs to. */
-function resolveAccountType(
-  platformRole: PlatformRole | null | undefined,
-  store: unknown
-): 'ADMIN' | 'SELLER' | 'CUSTOMER' {
-  if (platformRole) return 'ADMIN';
-  return store ? 'SELLER' : 'CUSTOMER';
+/**
+ * Send a confirmation link after sign-up.
+ *
+ * Deliberately best-effort: a mail outage must not fail an otherwise valid
+ * registration, and the user can request a fresh link from their settings.
+ */
+async function sendVerificationOnSignup(user: { id: string; email: string; name: string }) {
+  try {
+    const token = await issueEmailVerificationToken(user.id);
+    const base = (config.frontendUrl || 'http://localhost:5173').split(',')[0].trim().replace(/\/+$/, '');
+    await emailService.sendEmailVerification({
+      to: user.email,
+      name: user.name,
+      verifyUrl: `${base}/verify-email?token=${token}`,
+    });
+  } catch (err) {
+    logger.warn({ err, userId: user.id }, 'Could not send verification email at signup');
+  }
+}
+
+/**
+ * Claim any per-store CRM records that share this account's email.
+ *
+ * Guest checkouts create a Customer row with no owner. Linking them on sign-in
+ * is what makes one Nexus account show its whole purchase history across every
+ * store it has bought from, rather than a per-store island.
+ */
+async function linkCustomerProfiles(userId: string, email: string): Promise<number> {
+  const { count } = await prisma.customer.updateMany({
+    where: { email: { equals: email, mode: 'insensitive' }, userId: null },
+    data: { userId },
+  });
+  if (count > 0) {
+    logger.info({ userId, count }, 'Linked guest customer records to account');
+  }
+  return count;
+}
+
+/** Record the verified provider identity so returning users match on subject id. */
+async function linkOAuthAccount(
+  userId: string,
+  provider: string,
+  providerAccountId: string
+): Promise<void> {
+  await prisma.oAuthAccount.upsert({
+    where: { provider_providerAccountId: { provider, providerAccountId } },
+    create: { userId, provider, providerAccountId },
+    update: { userId },
+  });
+}
+
+/**
+ * Single source of truth for which portal a user belongs to.
+ * ADMIN is expressed by platformRole; everything else is the stored
+ * accountType column. Nothing here is inferred from `plan` or store presence.
+ */
+function resolveAccountType(user: {
+  platformRole?: PlatformRole | null;
+  accountType?: AccountType | null;
+}): 'ADMIN' | 'SELLER' | 'CUSTOMER' {
+  if (user.platformRole) return 'ADMIN';
+  return user.accountType === AccountType.CUSTOMER ? 'CUSTOMER' : 'SELLER';
 }
 
 export async function register(req: Request, res: Response, next: NextFunction) {
@@ -118,8 +177,9 @@ export async function register(req: Request, res: Response, next: NextFunction) 
             email,
             name: data.name.trim(),
             passwordHash: hashedPassword,
+            accountType: AccountType.CUSTOMER,
             plan: 'customer',
-            isVerified: true,
+            isVerified: false,
           },
         });
 
@@ -141,6 +201,8 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       });
 
       setSessionCookie(res, result.sessionToken);
+      await linkCustomerProfiles(result.user.id, result.user.email);
+      await sendVerificationOnSignup(result.user);
 
       const { passwordHash, ...safeUser } = result.user;
       res.status(201).json({
@@ -165,8 +227,9 @@ export async function register(req: Request, res: Response, next: NextFunction) 
           email,
           name: data.name.trim(),
           passwordHash: hashedPassword,
+          accountType: AccountType.SELLER,
           plan: 'starter',
-          isVerified: true,
+          isVerified: false,
         },
       });
 
@@ -222,6 +285,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     });
 
     setSessionCookie(res, result.sessionToken);
+    await sendVerificationOnSignup(result.user);
 
     const { passwordHash, ...safeUser } = result.user;
     res.status(201).json({
@@ -291,9 +355,15 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     const { passwordHash, ...safeUser } = user;
 
-    const accountType = safeUser.platformRole
-      ? 'ADMIN'
-      : (activeMembership?.store ? 'SELLER' : 'CUSTOMER');
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    const accountType = resolveAccountType(safeUser);
+    if (accountType === 'CUSTOMER') {
+      await linkCustomerProfiles(user.id, user.email);
+    }
 
     res.json({
       success: true,
@@ -317,9 +387,7 @@ export async function me(req: Request, res: Response, next: NextFunction) {
       return;
     }
 
-    const accountType = req.user.platformRole
-      ? 'ADMIN'
-      : (req.store && req.membership ? 'SELLER' : 'CUSTOMER');
+    const accountType = resolveAccountType(req.user as any);
 
     res.json({
       success: true,
@@ -391,6 +459,11 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
 
     // ---- Existing account: sign in. Never mutate what kind of account it is. ----
     if (existingUser) {
+      await linkOAuthAccount(existingUser.id, profile.provider, profile.providerAccountId);
+      if (resolveAccountType(existingUser) === 'CUSTOMER') {
+        await linkCustomerProfiles(existingUser.id, existingUser.email);
+      }
+
       const sessionToken = await createSessionFor(existingUser.id, req);
       setSessionCookie(res, sessionToken);
 
@@ -404,7 +477,7 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
           user: safeUser,
           store: activeMembership?.store || null,
           membership: activeMembership || null,
-          accountType: resolveAccountType(safeUser.platformRole, activeMembership?.store),
+          accountType: resolveAccountType(safeUser),
         },
       });
       return;
@@ -424,12 +497,17 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
             name: displayName,
             passwordHash: randomPassword,
             avatar: profile.picture,
+            accountType: AccountType.CUSTOMER,
             plan: 'customer',
             isVerified: true,
+            emailVerifiedAt: new Date(),
           },
         });
         return user;
       });
+
+      await linkOAuthAccount(created.id, profile.provider, profile.providerAccountId);
+      await linkCustomerProfiles(created.id, created.email);
 
       const sessionToken = await createSessionFor(created.id, req);
       setSessionCookie(res, sessionToken);
@@ -450,14 +528,18 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
           name: displayName,
           passwordHash: randomPassword,
           avatar: profile.picture,
+          accountType: AccountType.SELLER,
           plan: 'starter',
           isVerified: true,
+          emailVerifiedAt: new Date(),
         },
       });
 
       const { store, membership } = await provisionStoreForUser(tx, user, `${displayName}'s Store`);
       return { user, store, membership };
     });
+
+    await linkOAuthAccount(result.user.id, profile.provider, profile.providerAccountId);
 
     const sessionToken = await createSessionFor(result.user.id, req);
     setSessionCookie(res, sessionToken);

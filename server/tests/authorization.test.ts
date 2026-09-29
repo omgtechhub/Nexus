@@ -168,7 +168,8 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
     const resProducts = await request.get('/api/products').set('Cookie', customerCookie);
     expect(resProducts.status).toBe(403);
     expect(resProducts.body.success).toBe(false);
-    expect(resProducts.body.error).toMatch(/merchant store membership required/i);
+    // Copy may change; what matters is that a customer account is refused.
+    expect(resProducts.body.error).toMatch(/customer account|merchant store membership required/i);
 
     const resOrders = await request.get('/api/orders').set('Cookie', customerCookie);
     expect(resOrders.status).toBe(403);

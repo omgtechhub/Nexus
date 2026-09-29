@@ -56,3 +56,45 @@ export async function logoutApi() {
   });
   return res;
 }
+
+// ---------------------------------------------------------------------------
+// Account recovery
+// ---------------------------------------------------------------------------
+
+/**
+ * Always resolves with the same message whether or not the address is
+ * registered — the server deliberately does not confirm account existence.
+ */
+export async function forgotPasswordApi(email: string) {
+  return apiClient<{ success: boolean; message: string }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPasswordApi(token: string, password: string) {
+  return apiClient<{ success: boolean; message: string }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
+}
+
+export async function changePasswordApi(currentPassword: string, newPassword: string) {
+  return apiClient<{ success: boolean; message: string }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export async function sendVerificationApi() {
+  return apiClient<{ success: boolean; message: string }>('/auth/send-verification', {
+    method: 'POST',
+  });
+}
+
+export async function verifyEmailApi(token: string) {
+  return apiClient<{ success: boolean; message: string }>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
