@@ -196,8 +196,13 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     const updatedOrder = await prisma.order.findUnique({ where: { id: createdOrderId } });
     expect(updatedOrder?.fulfillmentStatus).toBe('FULFILLED');
 
-    // Retrieve shipment tracking
-    const trackRes = await request.get(`/api/shipments/orders/${createdOrderId}`);
+    // Retrieve shipment tracking. This lookup is merchant-only: it used to be
+    // mounted above the auth middleware and served any order id to anyone, so
+    // this assertion now carries the owner's session. Buyers track orders via
+    // GET /storefront/track/search, which requires the order number and email.
+    const trackRes = await request
+      .get(`/api/shipments/orders/${createdOrderId}`)
+      .set('Cookie', [storeACookie]);
     expect(trackRes.status).toBe(200);
     expect(trackRes.body.data.trackingEvents.length).toBeGreaterThan(0);
   });

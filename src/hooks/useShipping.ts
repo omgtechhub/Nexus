@@ -7,7 +7,9 @@ import {
   fulfillOrderApi,
   getShipmentsApi,
   getOrderShipmentApi,
+  updateShipmentStatusApi,
   FulfillOrderParams,
+  ShipmentStatus,
 } from '../api/shipping';
 
 export const shippingQueryKeys = {
@@ -78,5 +80,21 @@ export function useOrderShipmentQuery(orderId: string, enabled = true) {
     queryKey: shippingQueryKeys.orderShipment(orderId),
     queryFn: () => getOrderShipmentApi(orderId),
     enabled: Boolean(orderId) && enabled,
+  });
+}
+
+export function useUpdateShipmentStatusMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, description, location }: {
+      id: string;
+      status: ShipmentStatus;
+      description: string;
+      location?: string;
+    }) => updateShipmentStatusApi(id, status, description, location),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: shippingQueryKeys.shipments });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
   });
 }

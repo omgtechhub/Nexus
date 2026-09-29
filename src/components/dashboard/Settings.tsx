@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import {
-  User, Bell, CreditCard, Shield, Store, Save, Camera, Users, Globe, History, Trash2, ShieldCheck
+  User, Bell, CreditCard, Shield, Store, Save, Camera, Users, Globe, History, Trash2, ShieldCheck, Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
@@ -11,7 +11,14 @@ import {
   useTeamQuery,
   useUpdateMemberRoleMutation,
   useRemoveTeamMemberMutation,
+  useInviteTeamMemberMutation,
+  useResendInvitationMutation,
+  useRevokeInvitationMutation,
   useDomainsQuery,
+  useAddDomainMutation,
+  useVerifyDomainMutation,
+  useSetPrimaryDomainMutation,
+  useDeleteDomainMutation,
   useAuditLogsQuery,
 } from '../../hooks/usePhase7Queries';
 import {
@@ -50,15 +57,27 @@ export function Settings() {
   const [storeName, setStoreName] = useState(store?.name || 'Aura Apparel');
   const [storeUrl, setStoreUrl] = useState(storeSettings?.storeUrl || 'auraapparel');
 
-  // Team API Hooks. Inviting, resending and revoking are built on the server but
-  // have no UI here yet -- see Phase 5 (seller dashboard completion).
+  // Team API Hooks
   const { data: teamData } = useTeamQuery();
   const updateRoleMutation = useUpdateMemberRoleMutation();
   const removeMemberMutation = useRemoveTeamMemberMutation();
+  const inviteMemberMutation = useInviteTeamMemberMutation();
+  const resendInviteMutation = useResendInvitationMutation();
+  const revokeInviteMutation = useRevokeInvitationMutation();
 
-  // Domains API Hooks. Adding, verifying, setting primary and deleting are built
-  // on the server but have no UI here yet -- see Phase 5.
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'ADMIN' | 'STAFF' | 'VIEWER'>('STAFF');
+  const [showInviteForm, setShowInviteForm] = useState(false);
+
+  // Domains API Hooks
   const { data: domainsData = [] } = useDomainsQuery();
+  const addDomainMutation = useAddDomainMutation();
+  const verifyDomainMutation = useVerifyDomainMutation();
+  const setPrimaryDomainMutation = useSetPrimaryDomainMutation();
+  const deleteDomainMutation = useDeleteDomainMutation();
+
+  const [newDomain, setNewDomain] = useState('');
+  const [showDomainForm, setShowDomainForm] = useState(false);
 
   // Audit Logs API Hook
   const { data: auditLogs = [] } = useAuditLogsQuery(50);
@@ -104,6 +123,89 @@ export function Settings() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleInviteMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error('Enter the email address to invite');
+      return;
+    }
+    try {
+      await inviteMemberMutation.mutateAsync({ email, role: inviteRole });
+      toast.success(`Invitation sent to ${email}`);
+      setInviteEmail('');
+      setShowInviteForm(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Could not send that invitation');
+    }
+  };
+
+  const handleResendInvite = async (id: string, email: string) => {
+    try {
+      await resendInviteMutation.mutateAsync(id);
+      toast.success(`Invitation resent to ${email}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Could not resend that invitation');
+    }
+  };
+
+  const handleRevokeInvite = async (id: string, email: string) => {
+    try {
+      await revokeInviteMutation.mutateAsync(id);
+      toast.success(`Invitation to ${email} revoked`);
+    } catch (err: any) {
+      toast.error(err.message || 'Could not revoke that invitation');
+    }
+  };
+
+  const handleAddDomain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const domain = newDomain.trim().toLowerCase();
+    if (!domain) {
+      toast.error('Enter the domain you want to connect');
+      return;
+    }
+    try {
+      await addDomainMutation.mutateAsync(domain);
+      toast.success('Domain added. Point your DNS at Nexus, then verify.');
+      setNewDomain('');
+      setShowDomainForm(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Could not add that domain');
+    }
+  };
+
+  const handleVerifyDomain = async (id: string) => {
+    try {
+      const res = await verifyDomainMutation.mutateAsync(id);
+      if (res.verified) {
+        toast.success('DNS verified. The domain is now live.');
+      } else {
+        toast.error(res.message || 'DNS does not point at Nexus yet. Records can take a while to propagate.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Verification failed');
+    }
+  };
+
+  const handleSetPrimaryDomain = async (id: string, domain: string) => {
+    try {
+      await setPrimaryDomainMutation.mutateAsync(id);
+      toast.success(`${domain} is now your primary domain`);
+    } catch (err: any) {
+      toast.error(err.message || 'Could not set the primary domain');
+    }
+  };
+
+  const handleDeleteDomain = async (id: string, domain: string) => {
+    try {
+      await deleteDomainMutation.mutateAsync(id);
+      toast.success(`${domain} disconnected`);
+    } catch (err: any) {
+      toast.error(err.message || 'Could not disconnect that domain');
+    }
   };
 
   const handleSaveProfile = () => {
@@ -278,18 +380,116 @@ export function Settings() {
                   <h3 className="text-base font-semibold text-white mb-1">Team Management & RBAC</h3>
                   <p className="text-xs text-white/40">Invite staff members and manage access permissions (OWNER, ADMIN, STAFF, VIEWER)</p>
                 </div>
+                {!showInviteForm && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus size={14} aria-hidden="true" />}
+                    onClick={() => setShowInviteForm(true)}
+                  >
+                    Invite member
+                  </Button>
+                )}
               </div>
 
+              {showInviteForm && (
+                <form onSubmit={handleInviteMember} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <div>
+                      <label htmlFor="invite-email" className="mb-1.5 block text-xs text-white/50">
+                        Email address
+                      </label>
+                      <input
+                        id="invite-email"
+                        type="email"
+                        value={inviteEmail}
+                        onChange={e => setInviteEmail(e.target.value)}
+                        placeholder="teammate@example.com"
+                        required
+                        className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="invite-role" className="mb-1.5 block text-xs text-white/50">Role</label>
+                      <select
+                        id="invite-role"
+                        value={inviteRole}
+                        onChange={e => setInviteRole(e.target.value as 'ADMIN' | 'STAFF' | 'VIEWER')}
+                        className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white focus:border-[#FFBD2E]/50 focus:outline-none"
+                      >
+                        <option value="ADMIN">Admin</option>
+                        <option value="STAFF">Staff</option>
+                        <option value="VIEWER">Viewer</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button type="submit" variant="primary" size="sm" loading={inviteMemberMutation.isPending}>
+                      Send invitation
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setShowInviteForm(false); setInviteEmail(''); }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {teamData?.invitations && teamData.invitations.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+                    Pending invitations
+                  </h4>
+                  <div className="space-y-2">
+                    {teamData.invitations.map(inv => (
+                      <div
+                        key={inv.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-white">{inv.email}</p>
+                          <p className="text-[11px] text-white/40">
+                            {inv.role} · invited {new Date(inv.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResendInvite(inv.id, inv.email)}
+                            loading={resendInviteMutation.isPending}
+                          >
+                            Resend
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeInvite(inv.id, inv.email)}
+                            className="rounded p-1.5 text-xs font-semibold text-red-400 transition-colors hover:text-red-300"
+                            aria-label={`Revoke the invitation to ${inv.email}`}
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
-                {teamData?.members.map((m: any) => (
+                {teamData?.members.map(m => (
                   <div key={m.id} className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[#FFBD2E]/20 text-[#FFBD2E] flex items-center justify-center font-bold text-xs">
-                        {m.user?.name?.charAt(0) || 'U'}
+                        {m.name?.charAt(0) || 'U'}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">{m.user?.name} {m.userId === user?.id && '(You)'}</p>
-                        <p className="text-[11px] text-white/40">{m.user?.email}</p>
+                        <p className="text-xs font-bold text-white">{m.name} {m.userId === user?.id && '(You)'}</p>
+                        <p className="text-[11px] text-white/40">{m.email}</p>
                       </div>
                     </div>
 
@@ -316,7 +516,7 @@ export function Settings() {
                       {m.role !== 'OWNER' && (
                         <button
                           onClick={async () => {
-                            if (confirm(`Remove ${m.user?.name} from team?`)) {
+                            if (confirm(`Remove ${m.name} from team?`)) {
                               try {
                                 await removeMemberMutation.mutateAsync(m.id);
                                 toast.success('Member removed from team');
@@ -345,7 +545,49 @@ export function Settings() {
                   <h3 className="text-base font-semibold text-white mb-1">Custom Domain Management</h3>
                   <p className="text-xs text-white/40">Connect your custom web domain with real automated DNS verification</p>
                 </div>
+                {!showDomainForm && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus size={14} aria-hidden="true" />}
+                    onClick={() => setShowDomainForm(true)}
+                  >
+                    Add domain
+                  </Button>
+                )}
               </div>
+
+              {showDomainForm && (
+                <form onSubmit={handleAddDomain} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <label htmlFor="new-domain" className="mb-1.5 block text-xs text-white/50">
+                    Domain
+                  </label>
+                  <input
+                    id="new-domain"
+                    value={newDomain}
+                    onChange={e => setNewDomain(e.target.value)}
+                    placeholder="shop.yourbrand.com"
+                    required
+                    className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+                  />
+                  <p className="mt-1.5 text-[11px] text-white/40">
+                    Add the domain here first, point its DNS at Nexus, then verify.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button type="submit" variant="primary" size="sm" loading={addDomainMutation.isPending}>
+                      Add domain
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setShowDomainForm(false); setNewDomain(''); }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
 
               <div className="space-y-3">
                 {domainsData.map((dom: any) => (
@@ -360,7 +602,49 @@ export function Settings() {
                           <Badge variant="warning" size="sm" dot>DNS Pending</Badge>
                         )}
                       </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {dom.status !== 'VERIFIED' && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleVerifyDomain(dom.id)}
+                            loading={verifyDomainMutation.isPending}
+                          >
+                            Verify DNS
+                          </Button>
+                        )}
+                        {dom.status === 'VERIFIED' && !dom.isPrimary && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetPrimaryDomain(dom.id, dom.domain)}
+                            loading={setPrimaryDomainMutation.isPending}
+                          >
+                            Make primary
+                          </Button>
+                        )}
+                        {!dom.isPrimary && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDomain(dom.id, dom.domain)}
+                            className="rounded p-1.5 text-red-400 transition-colors hover:text-red-300"
+                            aria-label={`Disconnect ${dom.domain}`}
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {dom.status !== 'VERIFIED' && (
+                      <p className="text-[11px] text-white/40">
+                        Create a CNAME for{' '}
+                        <span className="font-mono text-white/70">{dom.domain}</span>{' '}
+                        pointing at{' '}
+                        <span className="font-mono text-white/70">stores.nexuscommerce.io</span>, then verify.
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

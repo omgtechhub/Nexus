@@ -164,13 +164,17 @@ export async function getShipments(req: Request, res: Response, next: NextFuncti
 }
 
 /**
- * Public/Merchant: Get Order Shipment & Tracking Details
+ * Merchant: Get Order Shipment & Tracking Details
  */
 export async function getOrderShipment(req: Request, res: Response, next: NextFunction) {
   try {
     const { orderId } = req.params;
+    const storeId = req.store!.id;
+
+    // Scoped to the caller's store, so another merchant's shipment simply does
+    // not match rather than being found and then checked.
     const shipment = await prisma.shipment.findFirst({
-      where: { orderId },
+      where: { orderId, storeId },
       include: {
         trackingEvents: { orderBy: { timestamp: 'desc' } },
       },

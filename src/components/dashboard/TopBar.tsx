@@ -14,6 +14,9 @@ const sectionTitles: Record<string, string> = {
   storefront: 'Storefront',
   payments: 'Payments',
   discounts: 'Discounts & Coupons',
+  inventory: 'Inventory',
+  shipments: 'Shipments',
+  shipping: 'Shipping Zones',
   notifications: 'Notifications',
   settings: 'Account Settings',
 };

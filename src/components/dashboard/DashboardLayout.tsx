@@ -10,6 +10,9 @@ import { Settings } from './Settings';
 import { StorefrontSection } from './StorefrontSection';
 import { PaymentsSection } from './PaymentsSection';
 import { DiscountsSection } from './DiscountsSection';
+import { InventorySection } from './InventorySection';
+import { ShipmentsSection } from './ShipmentsSection';
+import { ShippingSection } from './ShippingSection';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
 import { Bell } from 'lucide-react';
@@ -38,6 +41,12 @@ export function DashboardLayout() {
         return <PaymentsSection />;
       case 'discounts':
         return <DiscountsSection />;
+      case 'inventory':
+        return <InventorySection />;
+      case 'shipments':
+        return <ShipmentsSection />;
+      case 'shipping':
+        return <ShippingSection />;
       case 'notifications':
         return (
           <div className="space-y-3">

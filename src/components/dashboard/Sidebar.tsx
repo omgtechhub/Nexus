@@ -2,7 +2,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Package, 
   BarChart3, Settings, Bell, Zap, Store,
   CreditCard, Tag, ChevronLeft, ChevronRight,
-  HelpCircle, LogOut
+  HelpCircle, LogOut, Boxes, Truck, Globe
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Link } from 'react-router-dom';
@@ -25,6 +25,14 @@ const navSections = [
       { icon: <Store size={18} />, label: 'Storefront', id: 'storefront' },
       { icon: <CreditCard size={18} />, label: 'Payments', id: 'payments' },
       { icon: <Tag size={18} />, label: 'Discounts', id: 'discounts' },
+    ],
+  },
+  {
+    label: 'Fulfilment',
+    items: [
+      { icon: <Boxes size={18} />, label: 'Inventory', id: 'inventory' },
+      { icon: <Truck size={18} />, label: 'Shipments', id: 'shipments' },
+      { icon: <Globe size={18} />, label: 'Shipping', id: 'shipping' },
     ],
   },
   {

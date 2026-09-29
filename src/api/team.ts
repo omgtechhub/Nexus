@@ -1,25 +1,23 @@
 import { apiClient } from './client';
 
+/** Flattened by the controller, which does not nest the user relation. */
 export interface TeamMemberData {
   id: string;
   userId: string;
-  storeId: string;
+  name: string;
+  email: string;
   role: 'OWNER' | 'ADMIN' | 'STAFF' | 'VIEWER';
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-  createdAt: string;
+  avatar?: string;
+  joinedAt: string;
 }
 
 export interface TeamInvitationData {
   id: string;
-  storeId: string;
   email: string;
   role: 'OWNER' | 'ADMIN' | 'STAFF' | 'VIEWER';
-  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
+  token: string;
+  /** Lowercased by the controller. */
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
   expiresAt: string;
   createdAt: string;
 }
