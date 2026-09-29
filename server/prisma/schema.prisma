@@ -165,6 +165,7 @@ model User {
   oauthAccounts      OAuthAccount[]
   passwordResets     PasswordResetToken[]
   emailVerifications EmailVerificationToken[]
+  aiConversations    AiConversation[]
 
   @@index([accountType])
 }
@@ -247,6 +248,9 @@ model Store {
   billingCustomer     BillingCustomer?
   billingTransactions BillingTransaction[]
   invoices            Invoice[]
+  aiInsights          AiInsight[]
+  aiConversations     AiConversation[]
+  aiUsageEvents       AiUsageEvent[]
 }
 
 model StoreMember {
@@ -876,6 +880,8 @@ model SubscriptionPlan {
   storageMb                Int      @default(5000)
   customDomainAllowed      Boolean  @default(true)
   advancedAnalyticsAllowed Boolean  @default(true)
+  /// Monthly Nexus IQ token allowance. Null means unlimited.
+  aiTokensPerMonth         Int?     @default(1000)
   features                 Json     @default("[]")
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
@@ -1009,4 +1015,112 @@ model SubscriptionEvent {
   createdAt      DateTime     @default(now())
 
   @@index([subscriptionId])
+}
+
+// ---------------------------------------------------------------------------
+// Nexus IQ
+//
+// The provider that writes the prose is pluggable and currently a stub. What is
+// NOT pluggable is the evidence: every insight records the store figures it was
+// derived from, so a reader can check the claim rather than trust it.
+// ---------------------------------------------------------------------------
+
+enum AiInsightKind {
+  LOW_STOCK
+  OUT_OF_STOCK
+  UNFULFILLED_ORDERS
+  REVENUE_TREND
+  TOP_PRODUCTS
+  NO_PRODUCTS
+}
+
+enum AiInsightSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AiInsightStatus {
+  READY
+  DISMISSED
+}
+
+model AiInsight {
+  id       String            @id @default(uuid())
+  storeId  String
+  store    Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind     AiInsightKind
+  severity AiInsightSeverity @default(INFO)
+  status   AiInsightStatus   @default(READY)
+  title    String
+  body     String
+  /// The store figures this insight was computed from.
+  evidence Json              @default("{}")
+  /// Which provider and model phrased it, so stub output is never mistaken for a model's.
+  provider String            @default("stub")
+  model    String            @default("stub-v1")
+
+  generatedAt DateTime  @default(now())
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, status])
+  @@index([storeId, kind])
+}
+
+model AiConversation {
+  id      String  @id @default(uuid())
+  storeId String
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title   String  @default("New conversation")
+
+  messages  AiMessage[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([storeId, updatedAt])
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+}
+
+model AiMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AiMessageRole
+  content        String
+  provider       String?
+  model          String?
+  tokensIn       Int            @default(0)
+  tokensOut      Int            @default(0)
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+enum AiUsageKind {
+  CHAT
+  INSIGHTS
+}
+
+/// An append-only ledger. The period total is summed from it rather than kept
+/// as a counter, so usage can always be reconciled against what produced it.
+model AiUsageEvent {
+  id        String      @id @default(uuid())
+  storeId   String
+  store     Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind      AiUsageKind
+  provider  String
+  model     String
+  tokensIn  Int         @default(0)
+  tokensOut Int         @default(0)
+  createdAt DateTime    @default(now())
+
+  @@index([storeId, createdAt])
 }

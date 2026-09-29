@@ -25,6 +25,7 @@ import { plansRouter } from './plans.routes.js';
 import { subscriptionsRouter } from './subscriptions.routes.js';
 import { saasWebhooksRouter } from './saasWebhooks.routes.js';
 import { platformAdminRouter } from './platformAdmin.routes.js';
+import { nexusIqRouter } from './nexusIq.routes.js';
 
 export const apiRouter = Router();
 
@@ -54,3 +55,4 @@ apiRouter.use('/plans', plansRouter);
 apiRouter.use('/subscriptions', subscriptionsRouter);
 apiRouter.use('/saas-webhooks', saasWebhooksRouter);
 apiRouter.use('/admin', platformAdminRouter);
+apiRouter.use('/iq', nexusIqRouter);

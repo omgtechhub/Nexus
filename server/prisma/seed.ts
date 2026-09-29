@@ -542,6 +542,7 @@ async function main() {
       storageMb: 1000,
       customDomainAllowed: true,
       advancedAnalyticsAllowed: false,
+      aiTokensPerMonth: 1000,
       features: ['Up to 50 active products', '2 team members', 'Custom domain support', 'Standard analytics', 'Email support'],
     },
   });
@@ -562,6 +563,7 @@ async function main() {
       storageMb: 5000,
       customDomainAllowed: true,
       advancedAnalyticsAllowed: true,
+      aiTokensPerMonth: 10000,
       features: ['Up to 500 active products', '5 team members', 'Custom domain support', 'Advanced analytics & export', 'Priority support'],
     },
   });
@@ -582,6 +584,7 @@ async function main() {
       storageMb: 25000,
       customDomainAllowed: true,
       advancedAnalyticsAllowed: true,
+      aiTokensPerMonth: 100000,
       features: ['Up to 2,500 active products', '15 team members', 'Multi-store support', 'Advanced analytics', 'VIP 24/7 support'],
     },
   });
@@ -602,6 +605,8 @@ async function main() {
       storageMb: 100000,
       customDomainAllowed: true,
       advancedAnalyticsAllowed: true,
+      // Null is the unlimited allowance the pricing page promises this tier.
+      aiTokensPerMonth: null,
       features: ['Up to 10,000 active products', '50 team members', 'Dedicated account manager', 'Custom integrations', '99.99% SLA'],
     },
   });
