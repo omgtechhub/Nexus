@@ -34,6 +34,18 @@ export interface MerchantAdminData {
   createdAt: string;
 }
 
+export interface PlatformTransactionData {
+  id: string;
+  amount: number;
+  currency: string;
+  type: string;
+  status: string;
+  provider: string;
+  providerReference: string;
+  createdAt: string;
+  store: { id: string; name: string } | null;
+}
+
 export async function getPlatformMetricsApi(): Promise<PlatformMetricsData> {
   const res = await apiClient<{ success: boolean; data: PlatformMetricsData }>('/admin/metrics');
   return res.data;
@@ -67,5 +79,10 @@ export async function updatePlatformPlanAdminApi(id: string, updates: Partial<Su
 
 export async function getPlatformInvoicesAdminApi(): Promise<InvoiceData[]> {
   const res = await apiClient<{ success: boolean; data: InvoiceData[] }>('/admin/invoices');
+  return res.data;
+}
+
+export async function getPlatformTransactionsApi(): Promise<PlatformTransactionData[]> {
+  const res = await apiClient<{ success: boolean; data: PlatformTransactionData[] }>('/admin/transactions');
   return res.data;
 }

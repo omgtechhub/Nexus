@@ -197,8 +197,20 @@ export async function getPlatformInvoices(req: Request, res: Response, next: Nex
 
 export async function getPlatformTransactions(req: Request, res: Response, next: NextFunction) {
   try {
+    // Explicit select: the row carries `rawResponse`, the gateway's full payload,
+    // which nothing in the console needs and should not be shipped to a browser.
     const transactions = await prisma.billingTransaction.findMany({
-      include: { store: true },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        type: true,
+        status: true,
+        provider: true,
+        providerReference: true,
+        createdAt: true,
+        store: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });

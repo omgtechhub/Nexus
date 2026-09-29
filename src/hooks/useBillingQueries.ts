@@ -17,6 +17,7 @@ import {
   createPlatformPlanAdminApi,
   updatePlatformPlanAdminApi,
   getPlatformInvoicesAdminApi,
+  getPlatformTransactionsApi,
 } from '../api/platformAdmin';
 
 export const billingQueryKeys = {
@@ -160,6 +161,14 @@ export function usePlatformInvoicesQuery(enabled = true) {
   return useQuery({
     queryKey: billingQueryKeys.platformInvoices,
     queryFn: getPlatformInvoicesAdminApi,
+    enabled,
+  });
+}
+
+export function usePlatformTransactionsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ['admin', 'transactions'],
+    queryFn: getPlatformTransactionsApi,
     enabled,
   });
 }

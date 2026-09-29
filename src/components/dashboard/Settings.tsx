@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import {
-  User, Bell, CreditCard, Shield, Store, Save, Camera, Users, Globe, History, Trash2, ShieldCheck, Plus
+  User, Bell, CreditCard, Shield, Store, Save, Camera, Users, Globe, History, Trash2, Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
@@ -29,7 +29,6 @@ import {
   useCancelSubscriptionMutation,
   useResumeSubscriptionMutation,
 } from '../../hooks/useBillingQueries';
-import { PlatformAdminView } from '../admin/PlatformAdminView';
 import toast from 'react-hot-toast';
 
 const settingsTabs = [
@@ -90,8 +89,6 @@ export function Settings() {
   const cancelSubMutation = useCancelSubscriptionMutation();
   const resumeSubMutation = useResumeSubscriptionMutation();
 
-  // Platform Admin Modal
-  const [showPlatformAdmin, setShowPlatformAdmin] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
 
   // Notifications Form State
@@ -235,12 +232,6 @@ export function Settings() {
 
   return (
     <div className="max-w-5xl">
-      {showPlatformAdmin && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#060813]">
-          <PlatformAdminView onClose={() => setShowPlatformAdmin(false)} />
-        </div>
-      )}
-
       <input
         type="file"
         ref={fileInputRef}
@@ -270,21 +261,6 @@ export function Settings() {
             ))}
           </nav>
 
-          {/* Platform Admin Console Quick Access */}
-          <div className="p-3 rounded-xl bg-gradient-to-br from-white/5 to-white/10 border border-white/10 text-xs space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFBD2E] flex items-center gap-1">
-              <ShieldCheck size={12} /> Platform Admin
-            </span>
-            <p className="text-[11px] text-white/50">Access platform MRR/ARR analytics & global SaaS plans.</p>
-            <Button
-              variant="secondary"
-              size="sm"
-              fullWidth
-              onClick={() => setShowPlatformAdmin(true)}
-            >
-              Open Admin Portal
-            </Button>
-          </div>
         </div>
 
         {/* Content */}
