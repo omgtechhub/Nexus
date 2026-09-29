@@ -179,8 +179,8 @@ export function ContactPage() {
                 </span>
                 <h4 className="font-bold text-white text-base">Need instant answers?</h4>
                 <p className="text-xs text-white/60">Chat with a Nexus e-commerce specialist right now inside your browser.</p>
-                <Button variant="secondary" size="sm" onClick={() => navigate('help-center')}>
-                  Launch Live Support Chat
+                <Button variant="secondary" size="sm" onClick={() => navigate('contact')}>
+                  Send us a message
                 </Button>
               </div>
             </div>

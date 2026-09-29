@@ -102,10 +102,10 @@ export function PrivacyPolicyPage() {
                   <div className="p-4 rounded-xl bg-[#FF5F56]/10 border border-[#FF5F56]/30">
                     <p className="text-xs text-white/80 font-medium mb-2">Need a Data Processing Addendum (DPA)?</p>
                     <button
-                      onClick={() => navigate('resources')}
+                      onClick={() => navigate('contact')}
                       className="text-xs text-[#FF5F56] font-bold hover:underline flex items-center gap-1"
                     >
-                      Download Signed DPA <ArrowRight size={12} />
+                      Request a DPA <ArrowRight size={12} />
                     </button>
                   </div>
                 </div>

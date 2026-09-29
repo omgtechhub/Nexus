@@ -95,8 +95,8 @@ export function TermsOfServicePage() {
                 <div className="pt-4 border-t border-white/10 mt-4">
                   <div className="p-4 rounded-xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-xs">
                     <p className="text-white/80 font-medium mb-1">Legal or Enterprise SLA Questions?</p>
-                    <button onClick={() => navigate('resources')} className="text-[#27C93F] font-bold hover:underline">
-                      Contact Legal Team →
+                    <button onClick={() => navigate('contact')} className="text-[#27C93F] font-bold hover:underline">
+                      Contact us →
                     </button>
                   </div>
                 </div>

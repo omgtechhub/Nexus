@@ -6,11 +6,8 @@ import {
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
 
 export function CookiePolicyPage() {
-  const { navigate } = useApp();
-  
   // Interactive Cookie Preferences State
   const [preferences, setPreferences] = useState({
     necessary: true, // Always true
@@ -188,9 +185,12 @@ export function CookiePolicyPage() {
                   If you run an e-commerce store on Nexus selling to buyers in the European Union, United Kingdom, or California, you are required by law to display a compliant Cookie Consent Banner.
                 </p>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs">
-                  <span className="text-[#FFBD2E] font-bold block">Built-in Nexus Consent App</span>
+                  <span className="text-[#FFBD2E] font-bold block">Consent on your storefront</span>
                   <p className="text-white/60">
-                    Nexus provides a 1-click GDPR/CCPA Cookie Consent Banner app available in the <button onClick={() => navigate('app-store')} className="text-[#FFBD2E] underline">Nexus App Store</button> that automatically blocks non-essential marketing tracking scripts until buyer consent is explicitly granted.
+                    Nexus does not yet ship a consent banner for merchant storefronts. If
+                    you add marketing or analytics scripts to your storefront, you are
+                    responsible for collecting the consent your jurisdiction requires
+                    before those scripts run.
                   </p>
                 </div>
               </div>

@@ -161,10 +161,7 @@ export function Features() {
 
         {/* Feature image showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          <div 
-            onClick={() => navigate('ai-assistant')}
-            className="relative rounded-2xl overflow-hidden border border-white/10 group cursor-pointer"
-          >
+          <div className="relative rounded-2xl overflow-hidden border border-white/10 group">
             <img src={getAssetUrl('/images/feature-analytics.jpg')} alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
@@ -176,10 +173,7 @@ export function Features() {
             </div>
           </div>
 
-          <div 
-            onClick={() => navigate('online-store')}
-            className="relative rounded-2xl overflow-hidden border border-white/10 group cursor-pointer"
-          >
+          <div className="relative rounded-2xl overflow-hidden border border-white/10 group">
             <img src={getAssetUrl('/images/feature-commerce.jpg')} alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">

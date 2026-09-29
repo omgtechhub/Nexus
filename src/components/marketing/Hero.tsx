@@ -255,11 +255,11 @@ export function Hero() {
           {/* GSAP Top Badge */}
           <button
             ref={heroBadgeRef}
-            onClick={() => navigate('ai-assistant')}
+            onClick={() => navigate('pricing')}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 bg-[#FFBD2E]/10 text-[#FFBD2E] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:bg-[#FFBD2E]/20 hover:scale-105 transition-all duration-300 cursor-pointer group"
           >
             <Sparkles size={14} className="text-[#FFBD2E] group-hover:rotate-12 transition-transform" />
-            <span>Introducing NexusIQ — AI-powered commerce intelligence</span>
+            <span>Every plan starts with a 14-day free trial</span>
             <ArrowRight size={12} className="opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
           </button>
 
