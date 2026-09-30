@@ -2,7 +2,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Package, 
   BarChart3, Settings, Bell, Zap, Store,
   CreditCard, Tag, ChevronLeft, ChevronRight,
-  HelpCircle, LogOut, Boxes, Truck, Globe
+  HelpCircle, LogOut, Boxes, Truck, Globe, Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Link } from 'react-router-dom';
@@ -14,6 +14,7 @@ const navSections = [
     items: [
       { icon: <LayoutDashboard size={18} />, label: 'Overview', id: 'overview' },
       { icon: <BarChart3 size={18} />, label: 'Analytics', id: 'analytics' },
+      { icon: <Sparkles size={18} />, label: 'Nexus IQ', id: 'nexus-iq' },
       { icon: <ShoppingBag size={18} />, label: 'Orders', id: 'orders', badge: '12' },
       { icon: <Package size={18} />, label: 'Products', id: 'products' },
       { icon: <Users size={18} />, label: 'Customers', id: 'customers' },

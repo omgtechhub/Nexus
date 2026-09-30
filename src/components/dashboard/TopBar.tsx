@@ -8,6 +8,7 @@ import { SearchCommandPalette } from './SearchCommandPalette';
 const sectionTitles: Record<string, string> = {
   overview: 'Dashboard Overview',
   analytics: 'Analytics & Reports',
+  'nexus-iq': 'Nexus IQ',
   orders: 'Orders',
   products: 'Products',
   customers: 'Customers',

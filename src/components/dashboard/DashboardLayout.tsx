@@ -13,6 +13,7 @@ import { DiscountsSection } from './DiscountsSection';
 import { InventorySection } from './InventorySection';
 import { ShipmentsSection } from './ShipmentsSection';
 import { ShippingSection } from './ShippingSection';
+import { NexusIqSection } from './NexusIqSection';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
 import { Bell } from 'lucide-react';
@@ -47,6 +48,8 @@ export function DashboardLayout() {
         return <ShipmentsSection />;
       case 'shipping':
         return <ShippingSection />;
+      case 'nexus-iq':
+        return <NexusIqSection />;
       case 'notifications':
         return (
           <div className="space-y-3">
