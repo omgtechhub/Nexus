@@ -4,7 +4,11 @@ import { AppProvider } from './context/AppContext';
 import { AppRouter } from './app/router/AppRouter';
 
 export default function App() {
-  const basename = typeof window !== 'undefined' && window.location.pathname.startsWith('/nexus') ? '/nexus' : undefined;
+  // Derived from Vite's `base`, which is the same value the built asset URLs
+  // use. Sniffing window.location for a '/nexus' prefix was a second,
+  // independent guess at where the app is deployed, and the two could disagree.
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const basename = base || undefined;
 
   return (
     <BrowserRouter basename={basename}>

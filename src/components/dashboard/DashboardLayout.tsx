@@ -1,22 +1,44 @@
+import { lazy, Suspense } from 'react';
+
+/**
+ * The dashboard shell loads eagerly; its sections do not.
+ *
+ * Thirteen sections shipped in one chunk meant a seller opening Overview also
+ * downloaded Analytics, Settings, the storefront editor and everything else —
+ * including `recharts`, which only Overview and Analytics use. Each section is
+ * now fetched when it is first opened.
+ */
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { NotificationPanel } from './NotificationPanel';
-import { Overview } from './Overview';
-import { Orders } from './Orders';
-import { Products } from './Products';
-import { Customers } from './Customers';
-import { Analytics } from './Analytics';
-import { Settings } from './Settings';
-import { StorefrontSection } from './StorefrontSection';
-import { PaymentsSection } from './PaymentsSection';
-import { DiscountsSection } from './DiscountsSection';
-import { InventorySection } from './InventorySection';
-import { ShipmentsSection } from './ShipmentsSection';
-import { ShippingSection } from './ShippingSection';
-import { NexusIqSection } from './NexusIqSection';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
 import { Bell } from 'lucide-react';
+
+const Overview = lazy(() => import('./Overview').then(m => ({ default: m.Overview })));
+const Orders = lazy(() => import('./Orders').then(m => ({ default: m.Orders })));
+const Products = lazy(() => import('./Products').then(m => ({ default: m.Products })));
+const Customers = lazy(() => import('./Customers').then(m => ({ default: m.Customers })));
+const Analytics = lazy(() => import('./Analytics').then(m => ({ default: m.Analytics })));
+const Settings = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
+const StorefrontSection = lazy(() => import('./StorefrontSection').then(m => ({ default: m.StorefrontSection })));
+const PaymentsSection = lazy(() => import('./PaymentsSection').then(m => ({ default: m.PaymentsSection })));
+const DiscountsSection = lazy(() => import('./DiscountsSection').then(m => ({ default: m.DiscountsSection })));
+const InventorySection = lazy(() => import('./InventorySection').then(m => ({ default: m.InventorySection })));
+const ShipmentsSection = lazy(() => import('./ShipmentsSection').then(m => ({ default: m.ShipmentsSection })));
+const ShippingSection = lazy(() => import('./ShippingSection').then(m => ({ default: m.ShippingSection })));
+const NexusIqSection = lazy(() => import('./NexusIqSection').then(m => ({ default: m.NexusIqSection })));
+
+/** Shown while a section chunk arrives. The shell around it is already painted,
+ *  so this sits in the content area rather than covering the screen. */
+function SectionFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
+      <span className="sr-only">Loading section…</span>
+      <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-[#FFBD2E] animate-spin" aria-hidden="true" />
+    </div>
+  );
+}
 
 export function DashboardLayout() {
   // `dashboardSection` is derived from the URL, so it already reflects :section.
@@ -81,7 +103,12 @@ export function DashboardLayout() {
         sidebarOpen ? 'ml-0 md:ml-56' : 'ml-0 md:ml-16'
       )}>
         <div className="p-3 sm:p-5 lg:p-6 max-w-full overflow-hidden">
-          {renderSection()}
+          {/* Keyed on the section so switching sections shows the fallback again
+              rather than holding the previous section on screen while the next
+              chunk downloads. */}
+          <Suspense key={activeSection} fallback={<SectionFallback />}>
+            {renderSection()}
+          </Suspense>
         </div>
       </main>
     </div>

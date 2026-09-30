@@ -8,6 +8,7 @@ import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { apiRouter } from './routes/index.js';
+import { createOriginGuard, isAllowedOrigin } from './middleware/origin.middleware.js';
 
 import { prisma } from './prisma.js';
 
@@ -21,11 +22,23 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: ["'self'", "*"],
+      // Scoped to what the app actually talks to. A '*' here made the rest
+      // of the policy decorative.
+      connectSrc: ["'self'", ...allowedConnectSources()],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
     },
   },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
+/** Origins the browser may call, beyond the API's own. */
+function allowedConnectSources(): string[] {
+  return (config.frontendUrl || '')
+    .split(',')
+    .map((url) => url.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
 export const allowedOrigins = (config.frontendUrl || '')
   .split(',')
   .map((url) => url.trim().replace(/\/+$/, ''))
@@ -37,19 +50,20 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-      const normalizedOrigin = origin.replace(/\/+$/, '');
-      if (
-        !config.isProd ||
-        allowedOrigins.includes(normalizedOrigin) ||
-        normalizedOrigin.includes('localhost') ||
-        normalizedOrigin.includes('127.0.0.1')
-      ) {
+      // Exact origin comparison. Asking whether the origin *contains*
+      // "localhost" accepted https://localhost.attacker.example and every
+      // other lookalike host — with credentials enabled that hands over the
+      // session.
+      if (isAllowedOrigin(origin, allowedOrigins, config.isProd)) {
         callback(null, true);
       } else {
         logger.warn(
           `CORS rejected origin "${origin}". Configured FRONTEND_URL: "${config.frontendUrl}" (Allowed Origins: ${allowedOrigins.join(', ')})`
         );
-        callback(new Error(`Not allowed by CORS: ${origin}`));
+        // Withhold the CORS headers rather than throwing: the browser will not
+        // expose the response, and a write gets a clean 403 from the origin
+        // guard instead of a 500 from an unhandled error.
+        callback(null, false);
       }
     },
     credentials: true,
@@ -62,7 +76,9 @@ app.use(express.json({
     (req as any).rawBody = buf;
   },
 }));
-app.use(express.urlencoded({ extended: true }));
+// No urlencoded parser. The API speaks JSON only, and accepting a CORS
+// "simple" content type would let a cross-site <form> post a state change
+// without the browser ever sending a preflight.
 
 // Serve uploaded image files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -71,7 +87,10 @@ if (!config.isProd && process.env.NODE_ENV !== 'test') {
   app.use(pinoHttp({ logger }));
 }
 
-app.use('/api', apiRouter);
+// CSRF defence: the session cookie is SameSite=None in production, so a
+// cross-site page can make the browser attach it. Writes must come from an
+// origin we serve.
+app.use('/api', createOriginGuard(allowedOrigins), apiRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
