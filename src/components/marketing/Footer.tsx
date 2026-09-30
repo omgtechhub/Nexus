@@ -34,7 +34,7 @@ const FOOTER_SECTIONS: { heading: string; links: { label: string; to: string }[]
 ];
 
 const footerLink =
-  'rounded text-sm text-white/40 transition-colors hover:text-white ' +
+  'rounded text-sm text-muted transition-colors hover:text-white ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0D1B]';
 
 export function Footer() {
@@ -52,7 +52,7 @@ export function Footer() {
               </span>
               <span className="text-xl font-bold text-white">Nexus Commerce</span>
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-white/40">
+            <p className="max-w-xs text-sm leading-relaxed text-muted">
               The e-commerce platform for store owners who want their storefront,
               orders and customers in one place.
             </p>
@@ -80,7 +80,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-white/5 pt-8">
-          <p className="text-sm text-white/30">
+          <p className="text-sm text-muted">
             © {new Date().getFullYear()} Nexus Commerce, Inc. All rights reserved.
           </p>
         </div>

@@ -3,8 +3,10 @@ import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
 import { Badge } from '../ui/Badge';
 
+import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
 export function NotificationPanel() {
   const { notifications, notificationPanelOpen, setNotificationPanelOpen, markNotificationRead, markAllRead, unreadCount } = useApp();
+  useDismissOnEscape(notificationPanelOpen, () => setNotificationPanelOpen(false));
 
   if (!notificationPanelOpen) return null;
 
@@ -19,12 +21,12 @@ export function NotificationPanel() {
 
   return (
     <>
-      <div className="fixed inset-0 z-30" onClick={() => setNotificationPanelOpen(false)} />
+      <div className="fixed inset-0 z-30" onClick={() => setNotificationPanelOpen(false)} aria-hidden="true" />
       <div className="fixed top-16 right-4 w-80 bg-[#0D0F1F] border border-white/20 rounded-2xl shadow-2xl z-40 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <Bell size={16} className="text-white/60" />
+            <Bell size={16} className="text-secondary" />
             <h3 className="text-sm font-semibold text-white">Notifications</h3>
             {unreadCount > 0 && (
               <span className="text-xs bg-[#FF5F56] text-white px-1.5 py-0.5 rounded-full font-bold">
@@ -42,9 +44,9 @@ export function NotificationPanel() {
                 Mark all read
               </button>
             )}
-            <button
+            <button aria-label="Close notifications"
               onClick={() => setNotificationPanelOpen(false)}
-              className="p-1 rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors"
             >
               <X size={14} />
             </button>
@@ -54,7 +56,7 @@ export function NotificationPanel() {
         {/* Notifications list */}
         <div className="max-h-96 overflow-y-auto scrollbar-hide">
           {notifications.length === 0 ? (
-            <div className="p-8 text-center text-white/30 text-sm">
+            <div className="p-8 text-center text-muted text-sm">
               No notifications yet
             </div>
           ) : (
@@ -81,8 +83,8 @@ export function NotificationPanel() {
                         {notification.type}
                       </Badge>
                     </div>
-                    <p className="text-xs text-white/50 leading-relaxed">{notification.message}</p>
-                    <p className="text-[10px] text-white/25 mt-1">{notification.time}</p>
+                    <p className="text-xs text-muted leading-relaxed">{notification.message}</p>
+                    <p className="text-[10px] text-muted mt-1">{notification.time}</p>
                   </div>
                 </div>
               </div>

@@ -15,12 +15,12 @@ export function Testimonials() {
   return (
     <section id="testimonials" className="py-24 relative overflow-hidden" ref={ref}>
       <div className="absolute inset-0">
-        <img src={getAssetUrl('/images/testimonial-bg.jpg')} alt="" className="w-full h-full object-cover opacity-5" />
+        <img loading="lazy" decoding="async" src={getAssetUrl('/images/testimonial-bg.jpg')} alt="" className="w-full h-full object-cover opacity-5" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]" />
       </div>
 
       <div className={cn(
-        'relative max-w-7xl mx-auto px-4 sm:px-6 transition-all duration-700',
+        'relative max-w-7xl mx-auto px-4 sm:px-6 transition-colors duration-700',
         inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       )}>
         {/* Header */}
@@ -33,7 +33,7 @@ export function Testimonials() {
             Real merchants,
             <span className="text-gradient"> real results</span>
           </h2>
-          <p className="text-white/50 max-w-xl mx-auto">
+          <p className="text-muted max-w-xl mx-auto">
             Join over 2 million businesses who have transformed their commerce with Nexus.
           </p>
         </div>
@@ -76,7 +76,7 @@ export function Testimonials() {
                   </div>
                   <div>
                     <div className="font-semibold text-white">{testimonials[activeIndex].author}</div>
-                    <div className="text-sm text-white/50">{testimonials[activeIndex].title}</div>
+                    <div className="text-sm text-muted">{testimonials[activeIndex].title}</div>
                     <div className="text-sm text-[#27C93F] font-medium">{testimonials[activeIndex].company}</div>
                   </div>
                 </div>
@@ -89,9 +89,9 @@ export function Testimonials() {
 
           {/* Navigation */}
           <div className="flex items-center justify-center gap-4 mt-6">
-            <button
+            <button aria-label="Previous"
               onClick={prev}
-              className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:border-[#FFBD2E]/40 transition-all"
+              className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted hover:text-white hover:border-[#FFBD2E]/40 transition-colors"
             >
               <ChevronLeft size={18} />
             </button>
@@ -101,7 +101,7 @@ export function Testimonials() {
                   key={i}
                   onClick={() => setActiveIndex(i)}
                   className={cn(
-                    'rounded-full transition-all duration-300',
+                    'rounded-full transition-colors duration-300',
                     i === activeIndex
                       ? 'w-6 h-2 bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F]'
                       : 'w-2 h-2 bg-white/20 hover:bg-white/40'
@@ -109,9 +109,9 @@ export function Testimonials() {
                 />
               ))}
             </div>
-            <button
+            <button aria-label="Next"
               onClick={next}
-              className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:border-[#FFBD2E]/40 transition-all"
+              className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted hover:text-white hover:border-[#FFBD2E]/40 transition-colors"
             >
               <ChevronRight size={18} />
             </button>
@@ -125,17 +125,17 @@ export function Testimonials() {
               key={t.id}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                'p-4 rounded-xl border text-left transition-all',
+                'p-4 rounded-xl border text-left transition-colors',
                 i === activeIndex
                   ? 'glass-green border-[#27C93F]/40'
                   : 'glass border-white/5 hover:border-white/10'
               )}
             >
               <div className="flex items-center gap-3 mb-2">
-                <img src={t.avatar} alt={t.author} className="w-9 h-9 rounded-full object-cover" />
+                <img loading="lazy" decoding="async" src={t.avatar} alt={t.author} className="w-9 h-9 rounded-full object-cover" />
                 <div>
                   <div className="text-xs font-semibold text-white">{t.author}</div>
-                  <div className="text-xs text-white/40">{t.company}</div>
+                  <div className="text-xs text-muted">{t.company}</div>
                 </div>
               </div>
               <div className="flex gap-0.5">

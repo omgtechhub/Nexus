@@ -52,10 +52,10 @@ export function TermsOfServicePage() {
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
                 Nexus Commerce <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F]">Terms of Service</span>
               </h1>
-              <p className="text-lg text-white/60 leading-relaxed mb-6">
+              <p className="text-lg text-secondary leading-relaxed mb-6">
                 These Terms of Service govern your access to and use of the Nexus e-commerce platform, APIs, Point of Sale software, and payment processing services. Please review these legal terms carefully before launching your store.
               </p>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-white/40">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-muted">
                 <span className="flex items-center gap-1.5"><Shield size={12} className="text-[#27C93F]" /> Binding Merchant Contract</span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#FFBD2E]" /> 99.99% Uptime Commitment</span>
@@ -72,7 +72,7 @@ export function TermsOfServicePage() {
             {/* Sidebar Navigation */}
             <div className="lg:col-span-4">
               <div className="sticky top-28 glass p-5 rounded-2xl border border-white/10 space-y-2">
-                <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider px-3 mb-3">Terms Navigation</h3>
+                <h3 className="text-xs font-bold text-muted uppercase tracking-wider px-3 mb-3">Terms Navigation</h3>
                 {sections.map(s => (
                   <button
                     key={s.id}
@@ -80,10 +80,10 @@ export function TermsOfServicePage() {
                       setActiveTab(s.id);
                       document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium transition flex items-center justify-between ${
                       activeTab === s.id
                         ? 'bg-gradient-to-r from-[#FF5F56]/20 to-[#FFBD2E]/20 text-white border border-[#FFBD2E]/40 font-semibold'
-                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                        : 'text-secondary hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <span>{s.title}</span>
@@ -94,7 +94,7 @@ export function TermsOfServicePage() {
                 {/* Quick Support Callout */}
                 <div className="pt-4 border-t border-white/10 mt-4">
                   <div className="p-4 rounded-xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-xs">
-                    <p className="text-white/80 font-medium mb-1">Legal or Enterprise SLA Questions?</p>
+                    <p className="text-strong font-medium mb-1">Legal or Enterprise SLA Questions?</p>
                     <button onClick={() => navigate('contact')} className="text-[#27C93F] font-bold hover:underline">
                       Contact us →
                     </button>
@@ -113,10 +113,10 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">1. Master Services Agreement</h2>
                 </div>
-                <p className="text-white/70 leading-relaxed text-sm">
+                <p className="text-body leading-relaxed text-sm">
                   By creating a store on Nexus Commerce or registering a merchant account, you agree to enter into a legally binding contract with Nexus Commerce Inc. If you are accepting these terms on behalf of a corporate entity, you represent and warrant that you have full legal authority to bind that entity.
                 </p>
-                <p className="text-white/70 leading-relaxed text-sm">
+                <p className="text-body leading-relaxed text-sm">
                   Nexus grants you a limited, non-exclusive, non-transferable, revocable license to access our hosted commerce cloud, storefront themes, point-of-sale apps, and merchant dashboard during your paid subscription term.
                 </p>
               </div>
@@ -129,17 +129,17 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">2. Acceptable Use & Prohibited Goods Policy</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   Merchants are strictly prohibited from utilizing Nexus platform tools, checkout infrastructure, or payment services for illegal or deceptive commercial activities:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
                     <strong className="text-[#FF5F56] block">Prohibited Items</strong>
-                    <p className="text-white/60">Counterfeit designer goods, unauthorized pharmaceuticals, unlicensed firearms, deceptive get-rich-quick courses, or stolen gift cards.</p>
+                    <p className="text-secondary">Counterfeit designer goods, unauthorized pharmaceuticals, unlicensed firearms, deceptive get-rich-quick courses, or stolen gift cards.</p>
                   </div>
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
                     <strong className="text-[#FFBD2E] block">Platform Abuse</strong>
-                    <p className="text-white/60">Automated web scraping of competitor stores, DDoS attacks, credit card testing scripts, or transmitting malware through store apps.</p>
+                    <p className="text-secondary">Automated web scraping of competitor stores, DDoS attacks, credit card testing scripts, or transmitting malware through store apps.</p>
                   </div>
                 </div>
               </div>
@@ -152,10 +152,10 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">3. Subscriptions, Fees & Billing Terms</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   Subscription plans (Starter, Growth, Pro, Enterprise) are billed on a recurring monthly or annual basis. Payment method on file will be charged automatically at the start of each billing cycle:
                 </p>
-                <ul className="space-y-2 text-xs text-white/80 list-disc list-inside">
+                <ul className="space-y-2 text-xs text-strong list-disc list-inside">
                   <li><strong className="text-white">Transaction Fees:</strong> If you use Nexus Payments, third-party transaction fees are waived. If using external payment gateways, a 0.5% to 2.0% transaction fee applies.</li>
                   <li><strong className="text-white">14-Day Money-Back Guarantee:</strong> Annual plan signups qualify for a full refund within 14 days of initial platform activation.</li>
                   <li><strong className="text-white">Late Payments:</strong> Accounts with past-due balances exceeding 15 days may experience temporary storefront access suspension.</li>
@@ -170,7 +170,7 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">4. Nexus Payments & Chargeback Regulations</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   Merchants processing customer transactions through Nexus Payments agree to PCI-DSS compliance standards and chargeback dispute resolution protocols:
                 </p>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs">
@@ -178,7 +178,7 @@ export function TermsOfServicePage() {
                     <span>Chargeback Dispute Fee</span>
                     <span className="text-[#FFBD2E]">$15.00 per disputed transaction</span>
                   </div>
-                  <p className="text-white/60">
+                  <p className="text-secondary">
                     If a buyer files a payment chargeback, Nexus automatically submits digital delivery logs, carrier tracking numbers, and IP audit trails to the card issuing bank on your behalf.
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export function TermsOfServicePage() {
                     <p className="text-xs text-[#27C93F] font-semibold">Contractual Service Level Guarantee</p>
                   </div>
                 </div>
-                <p className="text-white/80 text-sm leading-relaxed">
+                <p className="text-strong text-sm leading-relaxed">
                   Nexus guarantees 99.99% monthly uptime for storefront checkout infrastructure. In the rare event of unannounced core platform downtime, merchants are eligible for SLA credit refunds:
                 </p>
 
@@ -206,8 +206,8 @@ export function TermsOfServicePage() {
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-xs text-white/60 mb-2">Monthly Platform Plan ($)</label>
-                      <input
+                      <label htmlFor="termsofservicepage-monthly-platform-plan-1" className="block text-xs text-secondary mb-2">Monthly Platform Plan ($)</label>
+                      <input id="termsofservicepage-monthly-platform-plan-1"
                         type="number"
                         value={monthlyFee}
                         onChange={(e) => setMonthlyFee(Number(e.target.value))}
@@ -215,8 +215,8 @@ export function TermsOfServicePage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-white/60 mb-2">Unscheduled Outage Duration (Minutes)</label>
-                      <input
+                      <label htmlFor="termsofservicepage-unscheduled-outage-duration-minu-2" className="block text-xs text-secondary mb-2">Unscheduled Outage Duration (Minutes)</label>
+                      <input id="termsofservicepage-unscheduled-outage-duration-minu-2"
                         type="number"
                         value={downtimeMinutes}
                         onChange={(e) => setDowntimeMinutes(Number(e.target.value))}
@@ -227,11 +227,11 @@ export function TermsOfServicePage() {
 
                   <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between">
                     <div>
-                      <span className="text-xs text-white/50 block">Eligible SLA Refund Credit</span>
+                      <span className="text-xs text-muted block">Eligible SLA Refund Credit</span>
                       <span className="text-xl font-extrabold text-[#27C93F]">${slaCreditAmount} USD</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-white/50 block">Credit Rate</span>
+                      <span className="text-xs text-muted block">Credit Rate</span>
                       <span className="text-sm font-bold text-[#FFBD2E]">{slaCreditPercentage}% Credit</span>
                     </div>
                   </div>
@@ -246,7 +246,7 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">6. Intellectual Property & Brand Ownership</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   You retain 100% sole ownership of all product images, brand trademarks, domain names, customer lists, and store copy uploaded to Nexus. Nexus retains ownership of core platform source code, Liquid rendering engine, and NexusIQ model weights.
                 </p>
               </div>
@@ -259,7 +259,7 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">7. Account Cancellation & Data Export Rights</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   You may cancel your subscription at any time directly through the merchant admin settings. Upon cancellation, Nexus provides a 60-day grace period allowing you to export your full customer database, order history, and product catalogs in standard CSV and JSON formats.
                 </p>
               </div>
@@ -272,7 +272,7 @@ export function TermsOfServicePage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">8. Limitation of Liability & Binding Arbitration</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   To the maximum extent permitted by applicable law, Nexus Commerce Inc.'s total aggregate liability for any claims arising out of these Terms shall not exceed the total fees paid by merchant to Nexus in the twelve (12) months preceding the incident. Any legal disputes shall be settled via binding individual arbitration in San Francisco, California.
                 </p>
               </div>

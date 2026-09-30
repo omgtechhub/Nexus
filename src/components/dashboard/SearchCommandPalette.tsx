@@ -56,23 +56,23 @@ export function SearchCommandPalette({ isOpen, onClose }: SearchCommandPalettePr
       <div className="bg-[#121528] border border-white/10 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
         {/* Search input bar */}
         <div className="flex items-center px-4 py-3 border-b border-white/10 gap-3">
-          <Search size={18} className="text-white/40 flex-shrink-0" />
-          <input
+          <Search size={18} className="text-muted flex-shrink-0" />
+          <input aria-label="Type a command or search"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command or search..."
-            className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder-white/40"
+            placeholder="Type a command or search…"
+            className="flex-1 bg-transparent text-white text-sm rounded placeholder-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
             autoFocus
           />
           {query && (
-            <button onClick={() => setQuery('')} className="text-xs text-white/40 hover:text-white">
+            <button onClick={() => setQuery('')} className="text-xs text-muted hover:text-white">
               Clear
             </button>
           )}
-          <button
+          <button aria-label="Close search"
             onClick={onClose}
-            className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors"
           >
             <X size={18} />
           </button>
@@ -81,7 +81,7 @@ export function SearchCommandPalette({ isOpen, onClose }: SearchCommandPalettePr
         {/* Results list */}
         <div className="p-2 max-h-[60vh] overflow-y-auto space-y-1">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center text-sm text-white/40">
+            <div className="p-8 text-center text-sm text-muted">
               No matching pages or tools found for "{query}"
             </div>
           ) : (
@@ -99,17 +99,17 @@ export function SearchCommandPalette({ isOpen, onClose }: SearchCommandPalettePr
                     <h4 className="text-sm font-medium text-white group-hover:text-[#FFBD2E] transition-colors">
                       {item.title}
                     </h4>
-                    <p className="text-xs text-white/30">{item.category}</p>
+                    <p className="text-xs text-muted">{item.category}</p>
                   </div>
                 </div>
-                <ArrowRight size={14} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                <ArrowRight size={14} className="text-muted group-hover:text-white group-hover:translate-x-1 transition" />
               </button>
             ))
           )}
         </div>
 
         {/* Footer info */}
-        <div className="px-4 py-2.5 border-t border-white/5 bg-white/[0.02] flex items-center justify-between text-xs text-white/30">
+        <div className="px-4 py-2.5 border-t border-white/5 bg-white/[0.02] flex items-center justify-between text-xs text-muted">
           <span>Navigate with click or type to filter</span>
           <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px]">ESC to close</span>
         </div>

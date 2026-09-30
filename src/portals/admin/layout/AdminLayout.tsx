@@ -74,7 +74,7 @@ export function AdminLayout({ children }: { children?: React.ReactNode }) {
                     cn(
                       'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
                       focusRing,
-                      isActive ? 'bg-white/10 font-semibold text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
+                      isActive ? 'bg-white/10 font-semibold text-white' : 'text-secondary hover:bg-white/5 hover:text-white'
                     )
                   }
                 >
@@ -97,7 +97,7 @@ export function AdminLayout({ children }: { children?: React.ReactNode }) {
                   onClick={handleLogout}
                   aria-label="Sign out"
                   className={cn(
-                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 transition-colors hover:bg-[#FF5F56]/20 hover:text-[#FF5F56]',
+                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-secondary transition-colors hover:bg-[#FF5F56]/20 hover:text-[#FF5F56]',
                     focusRing
                   )}
                 >
@@ -113,7 +113,7 @@ export function AdminLayout({ children }: { children?: React.ReactNode }) {
               aria-controls="admin-mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               className={cn(
-                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/5 hover:text-white lg:hidden',
+                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-body transition-colors hover:bg-white/5 hover:text-white lg:hidden',
                 focusRing
               )}
             >
@@ -133,7 +133,7 @@ export function AdminLayout({ children }: { children?: React.ReactNode }) {
                     cn(
                       'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors',
                       focusRing,
-                      isActive ? 'bg-white/5 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      isActive ? 'bg-white/5 text-white' : 'text-body hover:bg-white/5 hover:text-white'
                     )
                   }
                 >
@@ -143,7 +143,7 @@ export function AdminLayout({ children }: { children?: React.ReactNode }) {
               ))}
               <div className="border-t border-white/10 pt-4">
                 {user && (
-                  <p className="px-3 pb-2 text-xs text-white/40">
+                  <p className="px-3 pb-2 text-xs text-muted">
                     {user.email} · <span className="text-[#FFBD2E]">{platformRole?.replace('PLATFORM_', '')}</span>
                   </p>
                 )}

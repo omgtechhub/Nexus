@@ -64,7 +64,7 @@ export function Stats() {
             Trusted by millions,
             <span className="text-gradient"> proven at scale</span>
           </h2>
-          <p className="text-white/50 max-w-xl mx-auto">
+          <p className="text-muted max-w-xl mx-auto">
             The numbers behind why the world's fastest-growing brands choose Nexus Commerce.
           </p>
         </div>
@@ -75,7 +75,7 @@ export function Stats() {
             return (
               <div
                 key={stat.label}
-                className={`relative rounded-2xl p-8 border ${colors.border} ${colors.bg} backdrop-blur-sm text-center group hover:shadow-lg ${colors.glow} transition-all duration-300`}
+                className={`relative rounded-2xl p-8 border ${colors.border} ${colors.bg} backdrop-blur-sm text-center group hover:shadow-lg ${colors.glow} transition-colors duration-300`}
                 style={{ transitionDelay: `${idx * 80}ms` }}
               >
                 <div className={`w-14 h-14 rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center mx-auto mb-5 ${colors.text} group-hover:scale-110 transition-transform duration-300`}>
@@ -98,7 +98,7 @@ export function Stats() {
                   )}
                 </div>
                 <div className="text-base font-semibold text-white mb-1">{stat.label}</div>
-                <div className="text-xs text-white/40">{stat.description}</div>
+                <div className="text-xs text-muted">{stat.description}</div>
               </div>
             );
           })}
@@ -106,10 +106,10 @@ export function Stats() {
 
         {/* Logos strip */}
         <div className="mt-16 text-center">
-          <p className="text-xs text-white/30 uppercase tracking-widest mb-6 font-medium">Featured in & trusted by</p>
+          <p className="text-xs text-muted uppercase tracking-widest mb-6 font-medium">Featured in & trusted by</p>
           <div className="flex flex-wrap items-center justify-center gap-8">
             {['TechCrunch', 'Forbes', 'Wired', 'The Verge', 'Fast Company', 'Entrepreneur'].map(name => (
-              <div key={name} className="text-white/20 hover:text-white/50 transition-colors font-bold text-sm tracking-wide">
+              <div key={name} className="text-muted hover:text-body transition-colors font-bold text-sm tracking-wide">
                 {name}
               </div>
             ))}

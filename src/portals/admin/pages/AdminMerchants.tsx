@@ -31,21 +31,21 @@ export function AdminMerchants() {
       />
 
       <div className="relative mb-4 max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
         <input
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by store, domain or owner"
           aria-label="Search merchants"
-          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
         />
       </div>
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-          <Store size={20} className="mx-auto mb-3 text-white/30" aria-hidden="true" />
-          <p className="text-sm text-white/60">
+          <Store size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
+          <p className="text-sm text-secondary">
             {merchants.length === 0 ? 'No merchant stores yet.' : 'No merchants match that search.'}
           </p>
         </div>
@@ -73,20 +73,20 @@ export function AdminMerchants() {
                   <tr key={m.id} className="border-t border-white/5 hover:bg-white/[0.03]">
                     <td className="p-4">
                       <p className="text-sm font-medium text-white">{m.name}</p>
-                      <p className="mt-0.5 font-mono text-[11px] text-white/40">{m.domain}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-muted">{m.domain}</p>
                     </td>
                     <td className="p-4">
-                      <p className="text-sm text-white/80">{m.owner?.name}</p>
-                      <p className="mt-0.5 text-xs text-white/40">{m.owner?.email}</p>
+                      <p className="text-sm text-strong">{m.owner?.name}</p>
+                      <p className="mt-0.5 text-xs text-muted">{m.owner?.email}</p>
                     </td>
                     <td className="p-4">
                       {m.subscription ? (
                         <>
-                          <p className="text-sm text-white/80">{m.subscription.planName}</p>
-                          <p className="mt-0.5 text-xs text-white/40">{titleCase(m.subscription.interval)}</p>
+                          <p className="text-sm text-strong">{m.subscription.planName}</p>
+                          <p className="mt-0.5 text-xs text-muted">{titleCase(m.subscription.interval)}</p>
                         </>
                       ) : (
-                        <span className="text-xs text-white/30">No subscription</span>
+                        <span className="text-xs text-muted">No subscription</span>
                       )}
                     </td>
                     <td className="p-4">
@@ -94,10 +94,10 @@ export function AdminMerchants() {
                         {titleCase(m.subscription?.status ?? m.status)}
                       </Badge>
                     </td>
-                    <td className="p-4 text-right font-mono text-sm text-white/70">{m.metrics.productCount}</td>
-                    <td className="p-4 text-right font-mono text-sm text-white/70">{m.metrics.orderCount}</td>
-                    <td className="p-4 text-right font-mono text-sm text-white/70">{m.metrics.memberCount}</td>
-                    <td className="p-4 text-xs text-white/50">{shortDate(m.createdAt)}</td>
+                    <td className="p-4 text-right font-mono text-sm text-body">{m.metrics.productCount}</td>
+                    <td className="p-4 text-right font-mono text-sm text-body">{m.metrics.orderCount}</td>
+                    <td className="p-4 text-right font-mono text-sm text-body">{m.metrics.memberCount}</td>
+                    <td className="p-4 text-xs text-muted">{shortDate(m.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -114,7 +114,7 @@ function Th({ children, align }: { children: React.ReactNode; align?: 'right' })
     <th
       scope="col"
       className={
-        'p-4 text-xs font-semibold uppercase tracking-wider text-white/40' +
+        'p-4 text-xs font-semibold uppercase tracking-wider text-muted' +
         (align === 'right' ? ' text-right' : '')
       }
     >

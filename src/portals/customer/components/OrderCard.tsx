@@ -27,7 +27,7 @@ export function OrderCard({ order }: { order: AccountOrder }) {
           </Badge>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/50">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           {order.store && (
             <span className="inline-flex items-center gap-1.5">
               <Store size={12} aria-hidden="true" />
@@ -51,7 +51,7 @@ export function OrderCard({ order }: { order: AccountOrder }) {
         </span>
         <ChevronRight
           size={16}
-          className="text-white/30 transition-transform group-hover:translate-x-0.5 group-hover:text-white/60"
+          className="text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-body"
           aria-hidden="true"
         />
       </div>

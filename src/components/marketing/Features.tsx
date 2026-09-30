@@ -123,9 +123,9 @@ function FeatureCard({ feature, index }: { feature: typeof mainFeatures[0]; inde
       )}>
         {feature.icon}
       </div>
-      <div className="text-xs font-medium text-white/30 uppercase tracking-wider mb-2">{feature.tag}</div>
+      <div className="text-xs font-medium text-muted uppercase tracking-wider mb-2">{feature.tag}</div>
       <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#FFBD2E] transition-colors">{feature.title}</h3>
-      <p className="text-sm text-white/50 leading-relaxed">{feature.description}</p>
+      <p className="text-sm text-muted leading-relaxed">{feature.description}</p>
     </div>
   );
 }
@@ -142,7 +142,7 @@ export function Features() {
         <div
           ref={headerRef}
           className={cn(
-            'text-center max-w-3xl mx-auto mb-16 transition-all duration-700',
+            'text-center max-w-3xl mx-auto mb-16 transition-colors duration-700',
             headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           )}
         >
@@ -154,7 +154,7 @@ export function Features() {
             The complete commerce
             <span className="text-gradient"> operating system</span>
           </h2>
-          <p className="text-lg text-white/50 leading-relaxed">
+          <p className="text-lg text-muted leading-relaxed">
             One platform to build, manage, and scale your business. No duct tape. No missing features. Everything connected.
           </p>
         </div>
@@ -162,26 +162,26 @@ export function Features() {
         {/* Feature image showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
           <div className="relative rounded-2xl overflow-hidden border border-white/10 group">
-            <img src={getAssetUrl('/images/feature-analytics.jpg')} alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img loading="lazy" decoding="async" src={getAssetUrl('/images/feature-analytics.jpg')} alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5F56]/20 border border-[#FF5F56]/30 text-[#FF5F56] text-xs font-medium mb-2">
                 <BarChart3 size={12} /> NexusIQ Analytics
               </div>
               <h3 className="text-xl font-bold text-white group-hover:text-[#FFBD2E] transition-colors">AI-powered business intelligence</h3>
-              <p className="text-sm text-white/50 mt-1">Predict trends, optimize pricing, and find growth opportunities automatically.</p>
+              <p className="text-sm text-muted mt-1">Predict trends, optimize pricing, and find growth opportunities automatically.</p>
             </div>
           </div>
 
           <div className="relative rounded-2xl overflow-hidden border border-white/10 group">
-            <img src={getAssetUrl('/images/feature-commerce.jpg')} alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img loading="lazy" decoding="async" src={getAssetUrl('/images/feature-commerce.jpg')} alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#27C93F]/20 border border-[#27C93F]/30 text-[#27C93F] text-xs font-medium mb-2">
                 <Store size={12} /> Store Builder
               </div>
               <h3 className="text-xl font-bold text-white group-hover:text-[#FFBD2E] transition-colors">Checkout that converts up to 50% more</h3>
-              <p className="text-sm text-white/50 mt-1">World's fastest, most trusted checkout experience — Shop Pay included.</p>
+              <p className="text-sm text-muted mt-1">World's fastest, most trusted checkout experience — Shop Pay included.</p>
             </div>
           </div>
         </div>
@@ -195,15 +195,15 @@ export function Features() {
 
         {/* Additional features */}
         <div className="glass rounded-2xl border border-white/5 p-8">
-          <p className="text-center text-sm text-white/40 mb-6 font-medium uppercase tracking-wider">And much more</p>
+          <p className="text-center text-sm text-muted mb-6 font-medium uppercase tracking-wider">And much more</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {additionalFeatures.map(feat => (
               <div key={feat.title} onClick={() => navigate(feat.target)} className="text-center group cursor-pointer">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3 text-white/40 group-hover:text-[#FFBD2E] group-hover:border-[#FFBD2E]/30 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3 text-muted group-hover:text-[#FFBD2E] group-hover:border-[#FFBD2E]/30 transition-colors">
                   {feat.icon}
                 </div>
-                <p className="text-xs font-medium text-white/70 group-hover:text-white transition-colors">{feat.title}</p>
-                <p className="text-xs text-white/30 mt-0.5">{feat.desc}</p>
+                <p className="text-xs font-medium text-body group-hover:text-white transition-colors">{feat.title}</p>
+                <p className="text-xs text-muted mt-0.5">{feat.desc}</p>
               </div>
             ))}
           </div>

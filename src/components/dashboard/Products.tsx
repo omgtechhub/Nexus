@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
 
+import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
@@ -45,6 +46,9 @@ export function Products() {
   // Submission loading states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditingSubmitting, setIsEditingSubmitting] = useState(false);
+
+  useDismissOnEscape(showAddModal, () => setShowAddModal(false));
+  useDismissOnEscape(Boolean(editingProduct), () => setEditingProduct(null));
 
   const filtered = products.filter(p =>
     !search || p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -181,7 +185,7 @@ export function Products() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <p className="text-white/40 text-sm">{products.length} products in catalog</p>
+        <p className="text-muted text-sm">{products.length} products in catalog</p>
         <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowAddModal(true)}>
           Add product
         </Button>
@@ -189,11 +193,11 @@ export function Products() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-        <input
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input aria-label="Search products"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search products..."
+          placeholder="Search products…"
           className="form-input pl-9 h-9 text-sm"
         />
       </div>
@@ -222,9 +226,9 @@ export function Products() {
               {/* Product image */}
               <div className="w-full h-44 rounded-xl bg-gradient-to-br from-white/5 to-white/10 border border-white/10 flex items-center justify-center mb-4 relative overflow-hidden">
                 {mainImage ? (
-                  <img src={mainImage} alt={product.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                  <img loading="lazy" decoding="async" src={mainImage} alt={product.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
                 ) : (
-                  <Package size={40} className="text-white/10" />
+                  <Package size={40} className="text-decorative" />
                 )}
 
                 {product.inventory <= 3 && product.inventory > 0 && (
@@ -248,7 +252,7 @@ export function Products() {
                   >
                     <Edit2 size={14} />
                   </button>
-                  <button
+                  <button aria-label="Delete"
                     onClick={() => handleDeleteProduct(product.id, product.title)}
                     className="p-2 bg-[#FF5F56]/20 hover:bg-[#FF5F56]/30 rounded-lg text-[#FF5F56] transition-colors cursor-pointer"
                     title="Delete product"
@@ -269,15 +273,15 @@ export function Products() {
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-base font-bold text-white">{formatCurrency(product.price)}</span>
                 {product.comparePrice && (
-                  <span className="text-xs text-white/30 line-through">{formatCurrency(product.comparePrice)}</span>
+                  <span className="text-xs text-muted line-through">{formatCurrency(product.comparePrice)}</span>
                 )}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-white/40">
+              <div className="flex items-center justify-between text-xs text-muted">
                 <span className="bg-white/5 px-2 py-0.5 rounded-full">{product.category}</span>
                 <span className={cn(
                   product.inventory === 0 ? 'text-[#FF5F56]' :
-                  product.inventory <= 3 ? 'text-[#FFBD2E]' : 'text-white/40'
+                  product.inventory <= 3 ? 'text-[#FFBD2E]' : 'text-muted'
                 )}>
                   {product.inventory} in stock
                 </span>
@@ -289,7 +293,7 @@ export function Products() {
         {/* Add product card */}
         <button
           onClick={() => setShowAddModal(true)}
-          className="h-full min-h-[200px] rounded-2xl border-2 border-dashed border-white/10 hover:border-[#FFBD2E]/50 flex flex-col items-center justify-center gap-3 text-white/30 hover:text-[#FFBD2E] transition-all cursor-pointer"
+          className="h-full min-h-[200px] rounded-2xl border-2 border-dashed border-white/10 hover:border-[#FFBD2E]/50 flex flex-col items-center justify-center gap-3 text-muted hover:text-[#FFBD2E] transition-colors cursor-pointer"
         >
           <Plus size={24} />
           <span className="text-sm font-medium">Add new product</span>
@@ -300,19 +304,19 @@ export function Products() {
       {/* Add modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowAddModal(false)} aria-hidden="true" />
           <div className="relative bg-[#121528] border border-white/20 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Add New Product</h2>
-              <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">✕</button>
+              <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors">✕</button>
             </div>
             <form onSubmit={handleCreateProduct} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Product Image</label>
+                <label className="block text-sm font-medium text-body mb-1.5">Product Image</label>
                 <div className="flex items-center gap-3">
                   {imageUrl ? (
                     <div className="w-16 h-16 rounded-lg overflow-hidden border border-white/20 relative">
-                      <img src={imageUrl} alt="Uploaded preview" className="w-full h-full object-cover" />
+                      <img loading="lazy" decoding="async" src={imageUrl} alt="Uploaded preview" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setImageUrl('')}
@@ -323,17 +327,17 @@ export function Products() {
                     </div>
                   ) : (
                     <label className="flex-1 flex flex-col items-center justify-center h-20 border-2 border-dashed border-white/10 rounded-xl hover:border-[#FFBD2E]/50 cursor-pointer transition-colors">
-                      <UploadCloud size={20} className="text-white/40 mb-1" />
-                      <span className="text-xs text-white/50">{isUploading ? 'Uploading...' : 'Upload product image'}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                      <UploadCloud size={20} className="text-muted mb-1" />
+                      <span className="text-xs text-muted">{isUploading ? 'Uploading…' : 'Upload product image'}</span>
+                      <input type="file" aria-label="Upload product image" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
                     </label>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Product Title</label>
-                <input
+                <label className="block text-sm font-medium text-body mb-1.5">Product Title</label>
+                <input aria-label="e.g. Premium Denim Jacket"
                   required
                   className="form-input bg-[#121528] text-white"
                   placeholder="e.g. Premium Denim Jacket"
@@ -342,19 +346,19 @@ export function Products() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Description</label>
-                <textarea
+                <label htmlFor="products-description-3" className="block text-sm font-medium text-body mb-1.5">Description</label>
+                <textarea id="products-description-3"
                   className="form-input bg-[#121528] text-white resize-none"
                   rows={3}
-                  placeholder="Describe your product..."
+                  placeholder="Describe your product…"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Price ($)</label>
-                  <input
+                  <label className="block text-sm font-medium text-body mb-1.5">Price ($)</label>
+                  <input aria-label="120.00"
                     required
                     type="number"
                     step="0.01"
@@ -365,8 +369,8 @@ export function Products() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Initial Stock</label>
-                  <input
+                  <label className="block text-sm font-medium text-body mb-1.5">Initial Stock</label>
+                  <input aria-label="25"
                     type="number"
                     className="form-input bg-[#121528] text-white"
                     placeholder="25"
@@ -376,8 +380,8 @@ export function Products() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Category</label>
-                <select
+                <label htmlFor="products-category-4" className="block text-sm font-medium text-body mb-1.5">Category</label>
+                <select id="products-category-4"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
                   className="form-input bg-[#121528] text-white"
@@ -392,7 +396,7 @@ export function Products() {
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="submit" variant="primary" size="md" fullWidth disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving product...' : 'Save product'}
+                  {isSubmitting ? 'Saving product…' : 'Save product'}
                 </Button>
                 <Button type="button" variant="ghost" size="md" onClick={() => setShowAddModal(false)}>Cancel</Button>
               </div>
@@ -404,16 +408,16 @@ export function Products() {
       {/* Edit modal */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEditingProduct(null)} />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEditingProduct(null)} aria-hidden="true" />
           <div className="relative bg-[#121528] border border-white/20 rounded-2xl w-full max-w-lg shadow-2xl">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Edit Product</h2>
-              <button onClick={() => setEditingProduct(null)} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">✕</button>
+              <button onClick={() => setEditingProduct(null)} className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors">✕</button>
             </div>
             <form onSubmit={handleSaveEditProduct} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Product Title</label>
-                <input
+                <label htmlFor="products-product-title-5" className="block text-sm font-medium text-body mb-1.5">Product Title</label>
+                <input id="products-product-title-5"
                   required
                   className="form-input bg-[#121528] text-white"
                   value={editTitle}
@@ -421,8 +425,8 @@ export function Products() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Description</label>
-                <textarea
+                <label htmlFor="products-description-6" className="block text-sm font-medium text-body mb-1.5">Description</label>
+                <textarea id="products-description-6"
                   className="form-input bg-[#121528] text-white resize-none"
                   rows={3}
                   value={editDescription}
@@ -431,8 +435,8 @@ export function Products() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Price ($)</label>
-                  <input
+                  <label htmlFor="products-price-7" className="block text-sm font-medium text-body mb-1.5">Price ($)</label>
+                  <input id="products-price-7"
                     required
                     type="number"
                     step="0.01"
@@ -442,8 +446,8 @@ export function Products() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Inventory</label>
-                  <input
+                  <label htmlFor="products-inventory-8" className="block text-sm font-medium text-body mb-1.5">Inventory</label>
+                  <input id="products-inventory-8"
                     type="number"
                     className="form-input bg-[#121528] text-white"
                     value={editInventory}
@@ -453,8 +457,8 @@ export function Products() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Category</label>
-                  <select
+                  <label htmlFor="products-category-9" className="block text-sm font-medium text-body mb-1.5">Category</label>
+                  <select id="products-category-9"
                     value={editCategory}
                     onChange={e => setEditCategory(e.target.value)}
                     className="form-input bg-[#121528] text-white"
@@ -467,8 +471,8 @@ export function Products() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Status</label>
-                  <select
+                  <label htmlFor="products-status-10" className="block text-sm font-medium text-body mb-1.5">Status</label>
+                  <select id="products-status-10"
                     value={editStatus}
                     onChange={e => setEditStatus(e.target.value as any)}
                     className="form-input bg-[#121528] text-white"
@@ -481,7 +485,7 @@ export function Products() {
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="submit" variant="primary" size="md" fullWidth disabled={isEditingSubmitting}>
-                  {isEditingSubmitting ? 'Saving changes...' : 'Save changes'}
+                  {isEditingSubmitting ? 'Saving changes…' : 'Save changes'}
                 </Button>
                 <Button type="button" variant="ghost" size="md" onClick={() => setEditingProduct(null)}>Cancel</Button>
               </div>

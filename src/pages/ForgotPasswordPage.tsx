@@ -53,11 +53,11 @@ export function ForgotPasswordPage() {
               <CheckCircle2 size={28} />
             </div>
             <h1 className="text-2xl font-bold">Check your inbox</h1>
-            <p className="text-sm text-white/60 leading-relaxed">
-              If an account exists for <span className="text-white/90">{email}</span>, a reset link
+            <p className="text-sm text-secondary leading-relaxed">
+              If an account exists for <span className="text-strong">{email}</span>, a reset link
               is on its way. It expires in 60 minutes.
             </p>
-            <p className="text-xs text-white/40">
+            <p className="text-xs text-muted">
               Nothing arrived? Check spam, or{' '}
               <button
                 type="button"
@@ -72,7 +72,7 @@ export function ForgotPasswordPage() {
         ) : (
           <div className="bg-[#131629] border border-[#222642] rounded-2xl p-8">
             <h1 className="text-2xl font-bold mb-2">Reset your password</h1>
-            <p className="text-sm text-white/50 mb-6 leading-relaxed">
+            <p className="text-sm text-muted mb-6 leading-relaxed">
               Enter the email address on your account and we'll send you a link to choose a new
               password.
             </p>
@@ -115,7 +115,7 @@ export function ForgotPasswordPage() {
 
         <Link
           to="/seller/login"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
+          className="mt-6 inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
         >
           <ArrowLeft size={15} aria-hidden="true" />
           Back to sign in

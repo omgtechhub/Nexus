@@ -14,7 +14,7 @@ export function FAQ() {
             Questions? We've got
             <span className="text-gradient"> answers</span>
           </h2>
-          <p className="text-white/50">
+          <p className="text-muted">
             Everything you need to know about Nexus Commerce. Can't find what you're looking for?{' '}
             <button className="text-[#FFBD2E] hover:text-[#27C93F] underline underline-offset-2 transition-colors font-medium">
               Chat with us
@@ -27,7 +27,7 @@ export function FAQ() {
             <div
               key={index}
               className={cn(
-                'glass rounded-xl border transition-all duration-300 overflow-hidden',
+                'glass rounded-xl border transition-colors duration-300 overflow-hidden',
                 openIndex === index ? 'border-[#FFBD2E]/40' : 'border-white/5 hover:border-white/10'
               )}
             >
@@ -37,25 +37,25 @@ export function FAQ() {
               >
                 <span className={cn(
                   'font-medium text-sm sm:text-base transition-colors',
-                  openIndex === index ? 'text-white' : 'text-white/70'
+                  openIndex === index ? 'text-white' : 'text-body'
                 )}>
                   {faq.question}
                 </span>
                 <div className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ml-4 transition-all',
+                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ml-4 transition-colors',
                   openIndex === index
                     ? 'bg-[#FFBD2E]/20 text-[#FFBD2E]'
-                    : 'bg-white/10 text-white/40'
+                    : 'bg-white/10 text-muted'
                 )}>
                   {openIndex === index ? <Minus size={12} /> : <Plus size={12} />}
                 </div>
               </button>
 
               <div className={cn(
-                'overflow-hidden transition-all duration-300',
+                'overflow-hidden transition-colors duration-300',
                 openIndex === index ? 'max-h-96' : 'max-h-0'
               )}>
-                <div className="px-5 pb-5 text-sm text-white/50 leading-relaxed border-t border-white/5 pt-4">
+                <div className="px-5 pb-5 text-sm text-muted leading-relaxed border-t border-white/5 pt-4">
                   {faq.answer}
                 </div>
               </div>

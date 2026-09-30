@@ -2,12 +2,39 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
+
     --nexus-red: #FF5F56;
     --nexus-yellow: #FFBD2E;
     --nexus-green: #27C93F;
     --nexus-dark: #0B0D1B;
     --nexus-surface: #131629;
     --nexus-border: #222642;
+
+    /*
+     * Text scale.
+     *
+     * The app is white text on near-black, so a colour is just an alpha. These
+     * five steps replace the ad-hoc `text-white/20..90` that was scattered
+     * through the UI, where everything at 40% and below failed WCAG AA: on the
+     * darkest surface, 40% measures 3.8:1 and 30% measures 2.7:1 against the
+     * 4.5:1 body-text minimum.
+     *
+     * Every step below is >= 4.5:1 on all five app surfaces, so no text built
+     * from them can fail. Measured on #0a0a0a / #0B0D1B / #0D0F1F / #060813 /
+     * #121528 with a bg-white/5 card overlay.
+     */
+    /* Ratios are the WORST case across all five surfaces, not the best. */
+    --text-primary: rgb(255 255 255);            /* 16.0:1 — headings, key figures */
+    --text-strong: rgb(255 255 255 / 0.87);      /* 12.3:1 — emphasised body */
+    --text-body: rgb(255 255 255 / 0.74);        /*  9.3:1 — default body */
+    --text-secondary: rgb(255 255 255 / 0.62);   /*  6.9:1 — supporting copy */
+    --text-muted: rgb(255 255 255 / 0.55);       /*  5.8:1 — the quietest legible step */
+
+    /* Decorative only: never carries meaning, so contrast rules do not apply. */
+    --text-decorative: rgb(255 255 255 / 0.38);  /* 3.5:1 */
+
+    --focus-ring: var(--nexus-yellow);
   }
 
   * {
@@ -28,6 +55,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+  }
+
+  /* Removes the 300ms double-tap delay on touch devices. */
+  button,
+  a,
+  [role='button'],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 
   ::selection {
@@ -325,4 +362,47 @@ select, select option, .form-input option {
 .mobile-menu-enter-active {
   transform: translateX(0);
   transition: transform 0.3s ease;
+}
+
+/*
+ * Respect a reduced-motion preference everywhere, including the GSAP and
+ * Framer Motion work in the marketing pages. Transitions are collapsed rather
+ * than removed so state changes still register.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  /* The semantic text scale. Prefer these over raw white/alpha values. */
+  .text-primary    { color: var(--text-primary); }
+  .text-strong     { color: var(--text-strong); }
+  .text-body       { color: var(--text-body); }
+  .text-secondary  { color: var(--text-secondary); }
+  .text-muted      { color: var(--text-muted); }
+  .text-decorative { color: var(--text-decorative); }
+
+  .hover\:text-primary:hover    { color: var(--text-primary); }
+  .hover\:text-strong:hover     { color: var(--text-strong); }
+  .hover\:text-body:hover       { color: var(--text-body); }
+  .hover\:text-secondary:hover  { color: var(--text-secondary); }
+  .hover\:text-muted:hover      { color: var(--text-muted); }
+
+  .group:hover .group-hover\:text-primary   { color: var(--text-primary); }
+  .group:hover .group-hover\:text-strong    { color: var(--text-strong); }
+  .group:hover .group-hover\:text-body      { color: var(--text-body); }
+  .group:hover .group-hover\:text-secondary { color: var(--text-secondary); }
+
+  .focus\:text-primary:focus { color: var(--text-primary); }
+  .focus\:text-body:focus    { color: var(--text-body); }
+
+  /* Number columns only line up with tabular figures. */
+  .tabular { font-variant-numeric: tabular-nums; }
 }

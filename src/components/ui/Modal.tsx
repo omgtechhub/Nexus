@@ -54,9 +54,9 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', showClose
           <div className="flex items-center justify-between p-6 border-b border-white/10">
             {title && <h2 className="text-lg font-semibold text-white">{title}</h2>}
             {showClose && (
-              <button
+              <button aria-label="Close dialog"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors ml-auto"
+                className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors ml-auto"
               >
                 <X size={18} />
               </button>

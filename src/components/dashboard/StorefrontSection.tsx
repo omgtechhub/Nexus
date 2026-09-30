@@ -202,7 +202,7 @@ export function StorefrontSection() {
               <Badge variant="warning" size="sm" dot>Draft Changes Pending</Badge>
             )}
           </div>
-          <p className="text-xs text-white/50 mt-1">Customize storefront sections, theme tokens, pages, and navigation menus.</p>
+          <p className="text-xs text-muted mt-1">Customize storefront sections, theme tokens, pages, and navigation menus.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -244,10 +244,10 @@ export function StorefrontSection() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
               activeTab === tab.id
                 ? 'bg-[#FFBD2E]/20 text-[#FFBD2E] border border-[#FFBD2E]/40'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                : 'text-secondary hover:text-white hover:bg-white/5'
             }`}
           >
             {tab.icon}
@@ -267,8 +267,8 @@ export function StorefrontSection() {
               </h3>
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-white/60 mb-1">Top Announcement Banner</label>
-                  <input
+                  <label htmlFor="storefrontsection-top-announcement-banner-1" className="block text-secondary mb-1">Top Announcement Banner</label>
+                  <input id="storefrontsection-top-announcement-banner-1"
                     type="text"
                     value={theme.bannerText}
                     onChange={(e) => setTheme({ ...theme, bannerText: e.target.value })}
@@ -278,35 +278,37 @@ export function StorefrontSection() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-white/60 mb-1">Primary Color</label>
+                    <label className="block text-secondary mb-1">Primary Color</label>
                     <div className="flex items-center gap-3">
                       <input
                         type="color"
+                        aria-label="Primary colour"
                         value={theme.primaryColor}
                         onChange={(e) => setTheme({ ...theme, primaryColor: e.target.value })}
                         className="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer"
                       />
-                      <span className="font-mono text-white/80">{theme.primaryColor}</span>
+                      <span className="font-mono text-strong">{theme.primaryColor}</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-white/60 mb-1">Accent Color</label>
+                    <label className="block text-secondary mb-1">Accent Color</label>
                     <div className="flex items-center gap-3">
                       <input
                         type="color"
+                        aria-label="Accent colour"
                         value={theme.accentColor}
                         onChange={(e) => setTheme({ ...theme, accentColor: e.target.value })}
                         className="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer"
                       />
-                      <span className="font-mono text-white/80">{theme.accentColor}</span>
+                      <span className="font-mono text-strong">{theme.accentColor}</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-white/60 mb-1">Font Family</label>
-                  <select
+                  <label htmlFor="storefrontsection-font-family-4" className="block text-secondary mb-1">Font Family</label>
+                  <select id="storefrontsection-font-family-4"
                     value={theme.fontFamily}
                     onChange={(e) => setTheme({ ...theme, fontFamily: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-lg bg-[#121528] border border-white/10 text-white focus:outline-none focus:border-[#FFBD2E]"
@@ -328,44 +330,45 @@ export function StorefrontSection() {
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Layout size={16} className="text-[#27C93F]" /> Section Reordering & Controls
                 </h3>
-                <span className="text-[11px] text-white/40">Use arrows to reorder sections</span>
+                <span className="text-[11px] text-muted">Use arrows to reorder sections</span>
               </div>
 
               <div className="space-y-3">
                 {sections.map((sec, idx) => (
                   <div
                     key={sec.id}
-                    className={`p-3.5 rounded-xl border flex items-center justify-between transition-all ${
+                    className={`p-3.5 rounded-xl border flex items-center justify-between transition ${
                       sec.enabled
                         ? 'bg-white/5 border-white/10 text-white'
-                        : 'bg-white/2 border-white/5 text-white/30'
+                        : 'bg-white/2 border-white/5 text-muted'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
+                        aria-label={`Show the ${sec.type} section`}
                         checked={sec.enabled}
                         onChange={() => toggleSection(sec.id)}
                         className="w-4 h-4 rounded accent-[#27C93F] cursor-pointer"
                       />
                       <div>
                         <p className="text-xs font-bold capitalize">{sec.type} Section</p>
-                        <p className="text-[10px] text-white/40 font-mono">{sec.id}</p>
+                        <p className="text-[10px] text-muted font-mono">{sec.id}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <button
+                      <button aria-label={`Move the ${sec.type} section up`}
                         onClick={() => moveSection(idx, 'up')}
                         disabled={idx === 0}
-                        className="p-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-20 text-white/70"
+                        className="p-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-20 text-body"
                       >
                         <MoveUp size={13} />
                       </button>
-                      <button
+                      <button aria-label={`Move the ${sec.type} section down`}
                         onClick={() => moveSection(idx, 'down')}
                         disabled={idx === sections.length - 1}
-                        className="p-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-20 text-white/70"
+                        className="p-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-20 text-body"
                       >
                         <MoveDown size={13} />
                       </button>
@@ -409,13 +412,13 @@ export function StorefrontSection() {
                     placeholder="e.g. return-policy"
                   />
                   <div>
-                    <label className="block text-xs font-medium text-white/70 mb-1">Page Content (HTML/Markdown)</label>
-                    <textarea
+                    <label htmlFor="storefrontsection-page-content-html-markdown-6" className="block text-xs font-medium text-body mb-1">Page Content (HTML/Markdown)</label>
+                    <textarea id="storefrontsection-page-content-html-markdown-6"
                       rows={4}
                       value={editingPage.content}
                       onChange={(e) => setEditingPage({ ...editingPage, content: e.target.value })}
                       className="form-input bg-[#121528] text-white text-xs resize-none"
-                      placeholder="Write your page body text..."
+                      placeholder="Write your page body text…"
                     />
                   </div>
                   <div className="flex items-center gap-2 pt-1">
@@ -426,13 +429,13 @@ export function StorefrontSection() {
               ) : (
                 <div className="space-y-2">
                   {pagesData.length === 0 ? (
-                    <p className="text-xs text-white/40 text-center py-4">No custom store pages created yet.</p>
+                    <p className="text-xs text-muted text-center py-4">No custom store pages created yet.</p>
                   ) : (
                     pagesData.map((page: any) => (
                       <div key={page.id} className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
                         <div>
                           <p className="text-xs font-bold text-white">{page.title}</p>
-                          <p className="text-[10px] text-white/40 font-mono">/pages/{page.slug}</p>
+                          <p className="text-[10px] text-muted font-mono">/pages/{page.slug}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           {page.isPublished ? (
@@ -440,13 +443,13 @@ export function StorefrontSection() {
                           ) : (
                             <Badge variant="warning" size="sm">Draft</Badge>
                           )}
-                          <button
+                          <button aria-label="Edit"
                             onClick={() => setEditingPage(page)}
-                            className="p-1 text-white/60 hover:text-white"
+                            className="p-1 text-secondary hover:text-white"
                           >
                             <Edit3 size={13} />
                           </button>
-                          <button
+                          <button aria-label="Delete"
                             onClick={async () => {
                               if (confirm(`Delete page "${page.title}"?`)) {
                                 await deletePageMutation.mutateAsync(page.id);
@@ -474,6 +477,7 @@ export function StorefrontSection() {
                   <Menu size={16} className="text-[#FFBD2E]" /> Navigation Menu Editor
                 </h3>
                 <select
+                  aria-label="Navigation menu"
                   value={selectedNavHandle}
                   onChange={(e) => setSelectedNavHandle(e.target.value)}
                   className="px-2.5 py-1 rounded bg-[#121528] border border-white/10 text-white text-xs"
@@ -486,7 +490,7 @@ export function StorefrontSection() {
               <div className="space-y-2">
                 {navItems.map((item, idx) => (
                   <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
-                    <input
+                    <input aria-label="Label"
                       type="text"
                       value={item.label}
                       onChange={(e) => {
@@ -497,7 +501,7 @@ export function StorefrontSection() {
                       placeholder="Label"
                       className="col-span-5 px-3 py-1.5 rounded bg-white/5 border border-white/10 text-white text-xs"
                     />
-                    <input
+                    <input aria-label="URL path (e.g. /products)"
                       type="text"
                       value={item.url}
                       onChange={(e) => {
@@ -549,15 +553,15 @@ export function StorefrontSection() {
             </div>
 
             <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
-              <button
+              <button aria-label="Desktop preview"
                 onClick={() => setPreviewDevice('desktop')}
-                className={`p-1.5 rounded text-xs transition-colors ${previewDevice === 'desktop' ? 'bg-white/20 text-white' : 'text-white/40'}`}
+                className={`p-1.5 rounded text-xs transition-colors ${previewDevice === 'desktop' ? 'bg-white/20 text-white' : 'text-muted'}`}
               >
                 <Monitor size={14} />
               </button>
-              <button
+              <button aria-label="Mobile preview"
                 onClick={() => setPreviewDevice('mobile')}
-                className={`p-1.5 rounded text-xs transition-colors ${previewDevice === 'mobile' ? 'bg-white/20 text-white' : 'text-white/40'}`}
+                className={`p-1.5 rounded text-xs transition-colors ${previewDevice === 'mobile' ? 'bg-white/20 text-white' : 'text-muted'}`}
               >
                 <Smartphone size={14} />
               </button>
@@ -565,7 +569,7 @@ export function StorefrontSection() {
           </div>
 
           {/* Storefront Mockup Frame */}
-          <div className={`mx-auto transition-all duration-300 ${previewDevice === 'mobile' ? 'max-w-xs' : 'w-full'}`}>
+          <div className={`mx-auto transition duration-300 ${previewDevice === 'mobile' ? 'max-w-xs' : 'w-full'}`}>
             <div className="rounded-2xl border border-white/10 bg-[#0B0D1B] overflow-hidden shadow-2xl">
               {/* Dynamic Announcement Banner */}
               {sections.find(s => s.type === 'announcement')?.enabled && (
@@ -581,7 +585,7 @@ export function StorefrontSection() {
               {sections.find(s => s.type === 'header')?.enabled && (
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                   <span className="font-extrabold text-sm text-white tracking-tight">{store?.name || 'Aura Apparel'}</span>
-                  <div className="flex items-center gap-3 text-xs text-white/60">
+                  <div className="flex items-center gap-3 text-xs text-secondary">
                     {navItems.slice(0, 3).map((link, idx) => (
                       <span key={idx}>{link.label}</span>
                     ))}
@@ -597,7 +601,7 @@ export function StorefrontSection() {
                   <h4 className="text-xl font-bold text-white" style={{ fontFamily: theme.fontFamily }}>
                     {sections.find(s => s.type === 'hero')?.settings?.title || 'Elevate Your Daily Style'}
                   </h4>
-                  <p className="text-xs text-white/50 max-w-xs mx-auto">Crafted with sustainable fabrics and timeless minimalist cuts.</p>
+                  <p className="text-xs text-muted max-w-xs mx-auto">Crafted with sustainable fabrics and timeless minimalist cuts.</p>
                   <button
                     className="px-4 py-2 rounded-lg text-xs font-bold text-slate-950 transition-transform hover:scale-105"
                     style={{ backgroundColor: theme.primaryColor }}
@@ -611,12 +615,12 @@ export function StorefrontSection() {
               {sections.find(s => s.type === 'featured-products')?.enabled && (
                 <div className="p-4 grid grid-cols-2 gap-3">
                   <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                    <div className="h-20 rounded-lg bg-white/10 flex items-center justify-center text-xs text-white/30">Linen Blazer</div>
+                    <div className="h-20 rounded-lg bg-white/10 flex items-center justify-center text-xs text-muted">Linen Blazer</div>
                     <span className="text-xs font-semibold text-white block">Linen Blazer</span>
                     <span className="text-xs font-bold" style={{ color: theme.accentColor }}>$149 USD</span>
                   </div>
                   <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                    <div className="h-20 rounded-lg bg-white/10 flex items-center justify-center text-xs text-white/30">Leather Tote</div>
+                    <div className="h-20 rounded-lg bg-white/10 flex items-center justify-center text-xs text-muted">Leather Tote</div>
                     <span className="text-xs font-semibold text-white block">Leather Tote</span>
                     <span className="text-xs font-bold" style={{ color: theme.accentColor }}>$189 USD</span>
                   </div>
@@ -625,7 +629,7 @@ export function StorefrontSection() {
 
               {/* Footer Section */}
               {sections.find(s => s.type === 'footer')?.enabled && (
-                <div className="p-4 border-t border-white/10 text-center text-[10px] text-white/40">
+                <div className="p-4 border-t border-white/10 text-center text-[10px] text-muted">
                   {sections.find(s => s.type === 'footer')?.settings?.copyright || '© 2026 Aura Apparel. All rights reserved.'}
                 </div>
               )}

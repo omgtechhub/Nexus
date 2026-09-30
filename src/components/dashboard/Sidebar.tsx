@@ -66,7 +66,7 @@ export function Sidebar() {
       )}
 
       <aside className={cn(
-        'dashboard-sidebar fixed top-0 left-0 h-full z-50 md:z-30 flex flex-col transition-all duration-300 bg-[#0D0F1F]',
+        'dashboard-sidebar fixed top-0 left-0 h-full z-50 md:z-30 flex flex-col transition-colors duration-300 bg-[#0D0F1F]',
         sidebarOpen 
           ? 'w-64 md:w-56 translate-x-0' 
           : '-translate-x-full md:translate-x-0 md:w-16'
@@ -83,7 +83,7 @@ export function Sidebar() {
         {sidebarOpen && (
           <div className="flex-1 min-w-0">
             <span className="text-sm font-bold text-white truncate block">Nexus</span>
-            <span className="text-xs text-white/30 truncate block">Seller Portal</span>
+            <span className="text-xs text-muted truncate block">Seller Portal</span>
           </div>
         )}
       </Link>
@@ -94,7 +94,7 @@ export function Sidebar() {
           <div key={section.label} className="mb-4">
             {sidebarOpen && (
               <div className="px-4 mb-2">
-                <span className="text-[10px] font-semibold text-white/25 uppercase tracking-widest">
+                <span className="text-[10px] font-semibold text-muted uppercase tracking-widest">
                   {section.label}
                 </span>
               </div>
@@ -111,10 +111,10 @@ export function Sidebar() {
                   onClick={handleNavClick}
                   title={!sidebarOpen ? item.label : undefined}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all relative group cursor-pointer pointer-events-auto',
+                    'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors relative group cursor-pointer pointer-events-auto',
                     isActive
                       ? 'text-[#FFBD2E] bg-[#FFBD2E]/10 font-semibold'
-                      : 'text-white/40 hover:text-white/80 hover:bg-white/5',
+                      : 'text-muted hover:text-primary hover:bg-white/5',
                     !sidebarOpen && 'justify-center px-0'
                   )}
                 >
@@ -163,7 +163,7 @@ export function Sidebar() {
         >
           <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden flex-shrink-0 pointer-events-none">
             {user?.avatar ? (
-              <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
                 {user?.name?.charAt(0) || 'U'}
@@ -173,7 +173,7 @@ export function Sidebar() {
           {sidebarOpen && (
             <div className="flex-1 min-w-0 text-left pointer-events-none">
               <p className="text-xs font-medium text-white truncate">{user?.name || 'Seller User'}</p>
-              <p className="text-[10px] text-white/30 truncate">{user?.email || 'seller@nexus.io'}</p>
+              <p className="text-[10px] text-muted truncate">{user?.email || 'seller@nexus.io'}</p>
             </div>
           )}
         </Link>
@@ -182,7 +182,7 @@ export function Sidebar() {
           <Link
             to="/seller/settings"
             onClick={handleNavClick}
-            className="flex-1 flex items-center justify-center gap-1 p-2 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1 p-2 rounded-lg text-muted hover:text-strong hover:bg-white/5 transition-colors cursor-pointer"
             title="Help"
           >
             <HelpCircle size={15} className="pointer-events-none" />
@@ -191,7 +191,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={logout}
-            className="flex-1 flex items-center justify-center gap-1 p-2 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1 p-2 rounded-lg text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
             title="Sign out"
           >
             <LogOut size={15} className="pointer-events-none" />
@@ -200,10 +200,10 @@ export function Sidebar() {
         </div>
 
         {/* Toggle collapse */}
-        <button
+        <button aria-label="Previous"
           type="button"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full flex items-center justify-center p-1.5 rounded-lg text-white/20 hover:text-white/50 hover:bg-white/5 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center p-1.5 rounded-lg text-muted hover:text-body hover:bg-white/5 transition-colors cursor-pointer"
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>

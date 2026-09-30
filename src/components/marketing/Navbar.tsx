@@ -80,7 +80,7 @@ export function Navbar() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  cn(linkBase, isActive ? 'text-white' : 'text-white/70 hover:bg-white/5 hover:text-white')
+                  cn(linkBase, isActive ? 'text-white' : 'text-body hover:bg-white/5 hover:text-white')
                 }
               >
                 {item.label}
@@ -93,7 +93,7 @@ export function Navbar() {
               <>
                 <Link
                   to={portal.to}
-                  className={cn(linkBase, 'text-white/70 hover:bg-white/5 hover:text-white')}
+                  className={cn(linkBase, 'text-body hover:bg-white/5 hover:text-white')}
                 >
                   {portal.label}
                 </Link>
@@ -104,7 +104,7 @@ export function Navbar() {
                 >
                   <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-xs font-bold text-white">
                     {user?.avatar
-                      ? <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                      ? <img loading="lazy" decoding="async" src={user.avatar} alt="" className="h-full w-full object-cover" />
                       : user?.name?.charAt(0)}
                   </span>
                 </Link>
@@ -113,7 +113,7 @@ export function Navbar() {
               <>
                 <Link
                   to="/seller/login"
-                  className={cn(linkBase, 'text-white/70 hover:bg-white/5 hover:text-white')}
+                  className={cn(linkBase, 'text-body hover:bg-white/5 hover:text-white')}
                 >
                   Log in
                 </Link>
@@ -136,7 +136,7 @@ export function Navbar() {
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E] lg:hidden"
+            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-body transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E] lg:hidden"
           >
             {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
@@ -154,7 +154,7 @@ export function Navbar() {
                     cn(
                       'block rounded-lg px-3 py-3 text-base font-medium transition-colors',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]',
-                      isActive ? 'bg-white/5 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      isActive ? 'bg-white/5 text-white' : 'text-body hover:bg-white/5 hover:text-white'
                     )
                   }
                 >

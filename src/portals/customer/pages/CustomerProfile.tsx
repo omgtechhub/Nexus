@@ -51,9 +51,9 @@ export function CustomerProfile() {
             />
 
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-white/70">Email address</span>
+              <span className="mb-1.5 block text-sm font-medium text-body">Email address</span>
               <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                <span className="text-sm text-white/60">{profile.email}</span>
+                <span className="text-sm text-secondary">{profile.email}</span>
                 {profile.isVerified ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-[#27C93F]">
                     <CheckCircle2 size={12} aria-hidden="true" /> Verified
@@ -64,7 +64,7 @@ export function CustomerProfile() {
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 text-xs text-white/40">
+              <p className="mt-1.5 text-xs text-muted">
                 Your email identifies your orders across every store, so it cannot be
                 changed here.
               </p>
@@ -88,8 +88,8 @@ export function CustomerProfile() {
           <h2 className="text-sm font-semibold text-white">Account</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <dt className="text-white/40">Member since</dt>
-              <dd className="text-white/70">
+              <dt className="text-muted">Member since</dt>
+              <dd className="text-body">
                 {new Date(profile.createdAt).toLocaleDateString(undefined, {
                   month: 'long', year: 'numeric',
                 })}

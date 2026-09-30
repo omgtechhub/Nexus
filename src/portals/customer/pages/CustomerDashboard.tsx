@@ -33,7 +33,7 @@ export function CustomerDashboard() {
         <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
           {firstName ? `Welcome back, ${firstName}` : 'Your account'}
         </h1>
-        <p className="mt-1 text-sm text-white/50">
+        <p className="mt-1 text-sm text-muted">
           Every order you place on Nexus, from any store, in one place.
         </p>
       </div>
@@ -69,7 +69,7 @@ export function CustomerDashboard() {
               <h2 className="text-sm font-semibold text-white">Recent orders</h2>
               <Link
                 to="/account/orders"
-                className="inline-flex items-center gap-1 rounded text-xs text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+                className="inline-flex items-center gap-1 rounded text-xs text-muted transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
               >
                 View all <ArrowRight size={12} aria-hidden="true" />
               </Link>
@@ -104,7 +104,7 @@ export function CustomerDashboard() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-white/40">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
       <p className="mt-1.5 text-2xl font-bold text-white">{value}</p>
     </div>
   );
@@ -123,7 +123,7 @@ function QuickLink({
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-white">{title}</span>
-        <span className="mt-0.5 block text-xs leading-relaxed text-white/50">{description}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-muted">{description}</span>
       </span>
     </Link>
   );

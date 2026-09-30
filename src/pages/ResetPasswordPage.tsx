@@ -64,7 +64,7 @@ export function ResetPasswordPage() {
             <AlertCircle size={28} />
           </div>
           <h1 className="text-2xl font-bold">This link is incomplete</h1>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-secondary">
             The reset link is missing its token. Request a fresh one and use the most recent email.
           </p>
           <Button variant="primary" size="md" fullWidth onClick={() => navigate('/forgot-password')}>
@@ -97,14 +97,14 @@ export function ResetPasswordPage() {
               <CheckCircle2 size={28} />
             </div>
             <h1 className="text-2xl font-bold">Password changed</h1>
-            <p className="text-sm text-white/60 leading-relaxed">
+            <p className="text-sm text-secondary leading-relaxed">
               For your security, every device has been signed out. Taking you to sign in…
             </p>
           </div>
         ) : (
           <div className="bg-[#131629] border border-[#222642] rounded-2xl p-8">
             <h1 className="text-2xl font-bold mb-2">Choose a new password</h1>
-            <p className="text-sm text-white/50 mb-6">
+            <p className="text-sm text-muted mb-6">
               This also signs you out everywhere else.
             </p>
 
@@ -121,11 +121,10 @@ export function ResetPasswordPage() {
                 icon={<Lock size={16} aria-hidden="true" />}
                 aria-describedby="password-rules"
                 rightElement={
-                  <button
+                  <button aria-label="Hide"
                     type="button"
                     onClick={() => setReveal((v) => !v)}
-                    aria-label={reveal ? 'Hide password' : 'Show password'}
-                    className="text-white/40 hover:text-white/80 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded p-1"
+                    className="text-muted hover:text-primary transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded p-1"
                   >
                     {reveal ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -145,7 +144,7 @@ export function ResetPasswordPage() {
                     >
                       {c.passed ? <CheckCircle2 size={11} /> : null}
                     </span>
-                    <span className={c.passed ? 'text-white/70' : 'text-white/40'}>{c.label}</span>
+                    <span className={c.passed ? 'text-body' : 'text-muted'}>{c.label}</span>
                     <span className="sr-only">{c.passed ? '— met' : '— not yet met'}</span>
                   </li>
                 ))}

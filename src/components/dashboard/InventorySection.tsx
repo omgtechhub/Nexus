@@ -91,7 +91,7 @@ export function InventorySection() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-16 text-white/50" role="status">
+      <div className="flex items-center justify-center gap-3 py-16 text-muted" role="status">
         <RotateCw size={18} className="animate-spin" aria-hidden="true" />
         <span className="text-sm">Loading inventory…</span>
       </div>
@@ -102,7 +102,7 @@ export function InventorySection() {
     return (
       <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
         <AlertTriangle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
-        <p className="text-sm text-white/80">{(error as Error)?.message || 'Could not load inventory.'}</p>
+        <p className="text-sm text-strong">{(error as Error)?.message || 'Could not load inventory.'}</p>
         <div className="mt-4">
           <Button variant="secondary" size="sm" onClick={() => refetch()}>Try again</Button>
         </div>
@@ -120,14 +120,14 @@ export function InventorySection() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
           <input
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by product or SKU"
             aria-label="Search inventory"
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
           />
         </div>
 
@@ -142,7 +142,7 @@ export function InventorySection() {
                 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                 filter === key
                   ? 'bg-[#FFBD2E] text-slate-950 font-semibold'
-                  : 'border border-white/10 bg-white/5 text-white/60 hover:text-white'
+                  : 'border border-white/10 bg-white/5 text-secondary hover:text-white'
               )}
             >
               {key === 'all' ? 'All' : STOCK_BADGE[key].label} ({counts[key]})
@@ -153,8 +153,8 @@ export function InventorySection() {
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-          <Package size={20} className="mx-auto mb-3 text-white/30" aria-hidden="true" />
-          <p className="text-sm text-white/60">
+          <Package size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
+          <p className="text-sm text-secondary">
             {items.length === 0
               ? 'No inventory is being tracked yet. Stock is created with each product.'
               : 'No items match that search.'}
@@ -174,12 +174,12 @@ export function InventorySection() {
             <caption className="sr-only">Inventory levels by product</caption>
             <thead className="bg-white/5">
               <tr>
-                <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Product</th>
-                <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">SKU</th>
-                <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-white/40">On hand</th>
-                <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-white/40">Reserved</th>
-                <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-white/40">Available</th>
-                <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Status</th>
+                <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Product</th>
+                <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">SKU</th>
+                <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-muted">On hand</th>
+                <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-muted">Reserved</th>
+                <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-muted">Available</th>
+                <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Status</th>
                 <th scope="col" className="p-4"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -192,12 +192,12 @@ export function InventorySection() {
                     <td className="p-4">
                       <p className="text-sm font-medium text-white">{item.product?.title || 'Untitled product'}</p>
                       {item.variant?.title && (
-                        <p className="mt-0.5 text-xs text-white/40">{item.variant.title}</p>
+                        <p className="mt-0.5 text-xs text-muted">{item.variant.title}</p>
                       )}
                     </td>
-                    <td className="p-4 font-mono text-xs text-white/50">{item.sku || '—'}</td>
-                    <td className="p-4 text-right font-mono text-sm text-white/80">{item.stock}</td>
-                    <td className="p-4 text-right font-mono text-sm text-white/40">{item.reservedStock}</td>
+                    <td className="p-4 font-mono text-xs text-muted">{item.sku || '—'}</td>
+                    <td className="p-4 text-right font-mono text-sm text-strong">{item.stock}</td>
+                    <td className="p-4 text-right font-mono text-sm text-muted">{item.reservedStock}</td>
                     <td className="p-4 text-right font-mono text-sm font-semibold text-white">{item.availableStock}</td>
                     <td className="p-4">
                       <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
@@ -230,13 +230,13 @@ export function InventorySection() {
             <h2 id="adjust-stock-title" className="text-base font-semibold text-white">
               Adjust stock
             </h2>
-            <p className="mt-1 text-sm text-white/50">
+            <p className="mt-1 text-sm text-muted">
               {adjusting.product?.title}
               {adjusting.variant?.title ? ` · ${adjusting.variant.title}` : ''}
             </p>
 
             <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
-              <div className="flex items-center justify-between text-white/50">
+              <div className="flex items-center justify-between text-muted">
                 <span>On hand now</span>
                 <span className="font-mono text-white">{adjusting.stock}</span>
               </div>
@@ -244,15 +244,14 @@ export function InventorySection() {
 
             <div className="mt-4 space-y-4">
               <div>
-                <label htmlFor="stock-delta" className="mb-1.5 block text-sm font-medium text-white/70">
+                <label htmlFor="stock-delta" className="mb-1.5 block text-sm font-medium text-body">
                   Change
                 </label>
                 <div className="flex items-center gap-2">
-                  <button
+                  <button aria-label="Remove"
                     type="button"
                     onClick={() => setDelta(String((parseInt(delta, 10) || 0) - 1))}
-                    aria-label="Decrease by one"
-                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:text-white"
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-body hover:text-white"
                   >
                     <Minus size={16} aria-hidden="true" />
                   </button>
@@ -265,18 +264,17 @@ export function InventorySection() {
                     placeholder="0"
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-center font-mono text-white focus:border-[#FFBD2E]/50 focus:outline-none"
                   />
-                  <button
+                  <button aria-label="Add"
                     type="button"
                     onClick={() => setDelta(String((parseInt(delta, 10) || 0) + 1))}
-                    aria-label="Increase by one"
-                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:text-white"
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-body hover:text-white"
                   >
                     <Plus size={16} aria-hidden="true" />
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-white/40">
+                <p className="mt-1.5 text-xs text-muted">
                   Use a negative number to remove stock. New total:{' '}
-                  <span className="font-mono text-white/70">
+                  <span className="font-mono text-body">
                     {adjusting.stock + (parseInt(delta, 10) || 0)}
                   </span>
                 </p>
@@ -309,7 +307,7 @@ export function InventorySection() {
 function Stat({ label, value, tone }: { label: string; value: number; tone?: 'warning' | 'error' }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-white/40">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
       <p
         className={cn(
           'mt-1.5 text-2xl font-bold',

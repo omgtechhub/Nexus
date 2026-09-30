@@ -52,7 +52,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
     cn(
       'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
       focusRing,
-      isActive ? 'bg-white/10 font-semibold text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
+      isActive ? 'bg-white/10 font-semibold text-white' : 'text-secondary hover:bg-white/5 hover:text-white'
     );
 
   return (
@@ -66,7 +66,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
 
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-all duration-300',
+          'fixed inset-x-0 top-0 z-50 transition-colors duration-300',
           scrolled || menuOpen
             ? 'border-b border-[#222642] bg-[#0B0D1B]/95 backdrop-blur-xl'
             : 'border-b border-white/10 bg-[#0B0D1B]/60 backdrop-blur-md'
@@ -80,7 +80,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
               </span>
               <span className="text-lg font-bold text-white">
                 Nexus
-                <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-normal text-white/50">
+                <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-normal text-muted">
                   Account
                 </span>
               </span>
@@ -100,7 +100,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
             <Link
               to="/storefront"
               className={cn(
-                'hidden items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white sm:flex',
+                'hidden items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-body transition-colors hover:bg-white/10 hover:text-white sm:flex',
                 focusRing
               )}
             >
@@ -112,14 +112,14 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
               <div className="hidden items-center gap-3 border-l border-white/10 pl-3 md:flex">
                 <div className="text-right">
                   <div className="text-sm font-medium text-white">{user.name}</div>
-                  <div className="text-xs text-white/40">{user.email}</div>
+                  <div className="text-xs text-muted">{user.email}</div>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
                   aria-label="Sign out"
                   className={cn(
-                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 transition-colors hover:bg-[#FF5F56]/20 hover:text-[#FF5F56]',
+                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-secondary transition-colors hover:bg-[#FF5F56]/20 hover:text-[#FF5F56]',
                     focusRing
                   )}
                 >
@@ -135,7 +135,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
               aria-controls="account-mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               className={cn(
-                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/5 hover:text-white md:hidden',
+                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-body transition-colors hover:bg-white/5 hover:text-white md:hidden',
                 focusRing
               )}
             >
@@ -156,7 +156,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
                     cn(
                       'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors',
                       focusRing,
-                      isActive ? 'bg-white/5 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      isActive ? 'bg-white/5 text-white' : 'text-body hover:bg-white/5 hover:text-white'
                     )
                   }
                 >
@@ -168,7 +168,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
               <Link
                 to="/track"
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white',
+                  'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-body transition-colors hover:bg-white/5 hover:text-white',
                   focusRing
                 )}
               >
@@ -178,8 +178,8 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
 
               <div className="space-y-2 border-t border-white/10 pt-4">
                 {user && (
-                  <p className="px-3 text-xs text-white/40">
-                    Signed in as <span className="text-white/70">{user.email}</span>
+                  <p className="px-3 text-xs text-muted">
+                    Signed in as <span className="text-body">{user.email}</span>
                   </p>
                 )}
                 <button
@@ -203,7 +203,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
       </main>
 
       <footer className="border-t border-white/10 bg-[#0B0D1B] py-6">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-xs text-white/40 sm:flex-row sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-xs text-muted sm:flex-row sm:px-6">
           <p>© {new Date().getFullYear()} Nexus Commerce, Inc. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link to="/track" className={cn('rounded transition-colors hover:text-white', focusRing)}>Track an order</Link>

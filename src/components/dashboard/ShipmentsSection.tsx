@@ -75,7 +75,7 @@ export function ShipmentsSection() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-16 text-white/50" role="status">
+      <div className="flex items-center justify-center gap-3 py-16 text-muted" role="status">
         <RotateCw size={18} className="animate-spin" aria-hidden="true" />
         <span className="text-sm">Loading shipments…</span>
       </div>
@@ -86,7 +86,7 @@ export function ShipmentsSection() {
     return (
       <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
         <AlertTriangle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
-        <p className="text-sm text-white/80">{(error as Error)?.message || 'Could not load shipments.'}</p>
+        <p className="text-sm text-strong">{(error as Error)?.message || 'Could not load shipments.'}</p>
         <div className="mt-4">
           <Button variant="secondary" size="sm" onClick={() => refetch()}>Try again</Button>
         </div>
@@ -98,14 +98,14 @@ export function ShipmentsSection() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
           <input
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Tracking number, carrier or order"
             aria-label="Search shipments"
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
           />
         </div>
 
@@ -120,7 +120,7 @@ export function ShipmentsSection() {
                 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                 filter === key
                   ? 'bg-[#FFBD2E] text-slate-950 font-semibold'
-                  : 'border border-white/10 bg-white/5 text-white/60 hover:text-white'
+                  : 'border border-white/10 bg-white/5 text-secondary hover:text-white'
               )}
             >
               {key === 'all' ? 'All' : STATUS[key as ShipmentStatus].label} ({counts[key] ?? 0})
@@ -131,8 +131,8 @@ export function ShipmentsSection() {
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-          <Truck size={20} className="mx-auto mb-3 text-white/30" aria-hidden="true" />
-          <p className="text-sm text-white/60">
+          <Truck size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
+          <p className="text-sm text-secondary">
             {shipments.length === 0
               ? 'No shipments yet. Fulfilling an order from the Orders page creates one.'
               : 'No shipments match that search.'}
@@ -155,12 +155,12 @@ export function ShipmentsSection() {
                       </span>
                       <Badge variant={status.variant} size="sm">{status.label}</Badge>
                     </div>
-                    <p className="mt-1.5 text-sm text-white/70">
+                    <p className="mt-1.5 text-sm text-body">
                       {shipment.carrier}
-                      <span className="mx-2 text-white/20" aria-hidden="true">·</span>
-                      <span className="font-mono text-white/90">{shipment.trackingNumber}</span>
+                      <span className="mx-2 text-muted" aria-hidden="true">·</span>
+                      <span className="font-mono text-strong">{shipment.trackingNumber}</span>
                     </p>
-                    <p className="mt-1 text-xs text-white/40">
+                    <p className="mt-1 text-xs text-muted">
                       {shipment.order?.customerName}
                       {formatDate(shipment.shippedAt) && ` · Shipped ${formatDate(shipment.shippedAt)}`}
                       {formatDate(shipment.deliveredAt) && ` · Delivered ${formatDate(shipment.deliveredAt)}`}
@@ -191,7 +191,7 @@ export function ShipmentsSection() {
                       type="button"
                       onClick={() => setExpanded(isOpen ? null : shipment.id)}
                       aria-expanded={isOpen}
-                      className="text-xs font-medium text-white/50 transition-colors hover:text-white"
+                      className="text-xs font-medium text-muted transition-colors hover:text-white"
                     >
                       {isOpen ? 'Hide' : 'Show'} tracking history ({events.length})
                     </button>
@@ -200,10 +200,10 @@ export function ShipmentsSection() {
                       <ol className="mt-3 space-y-2.5">
                         {events.map(event => (
                           <li key={event.id} className="flex gap-3 text-xs">
-                            <PackageCheck size={13} className="mt-0.5 flex-shrink-0 text-white/30" aria-hidden="true" />
+                            <PackageCheck size={13} className="mt-0.5 flex-shrink-0 text-muted" aria-hidden="true" />
                             <div>
-                              <p className="text-white/80">{event.description}</p>
-                              <p className="mt-0.5 text-white/40">
+                              <p className="text-strong">{event.description}</p>
+                              <p className="mt-0.5 text-muted">
                                 {event.location && `${event.location} · `}
                                 {new Date(event.timestamp).toLocaleString()}
                               </p>

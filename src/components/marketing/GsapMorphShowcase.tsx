@@ -129,7 +129,7 @@ export function GsapMorphShowcase() {
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white mb-4">
             Dynamic Platform <span className="text-gradient">Morph Transitions</span>
           </h2>
-          <p className="text-white/60 text-sm sm:text-base">
+          <p className="text-secondary text-sm sm:text-base">
             Select a mode below to trigger real-time GSAP vector path morphing and fluid card transition states.
           </p>
         </div>
@@ -143,10 +143,10 @@ export function GsapMorphShowcase() {
               <button
                 key={key}
                 onClick={() => setActiveMode(key)}
-                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer border ${
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition duration-300 cursor-pointer border ${
                   isActive
                     ? 'bg-gradient-to-r from-white/15 to-white/5 border-white text-white shadow-xl scale-105'
-                    : 'glass text-white/60 border-white/10 hover:text-white hover:bg-white/5'
+                    : 'glass text-secondary border-white/10 hover:text-white hover:bg-white/5'
                 }`}
                 style={{ borderColor: isActive ? item.color : undefined }}
               >
@@ -160,7 +160,7 @@ export function GsapMorphShowcase() {
         {/* GSAP Morph Visualizer Card */}
         <div
           ref={cardContainerRef}
-          className="glass rounded-3xl p-8 border border-white/10 max-w-4xl mx-auto shadow-2xl relative transition-all duration-300"
+          className="glass rounded-3xl p-8 border border-white/10 max-w-4xl mx-auto shadow-2xl relative transition-colors duration-300"
         >
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
             {/* SVG Morph Shape Stage (5 cols) */}
@@ -208,7 +208,7 @@ export function GsapMorphShowcase() {
                 {morphShapes[activeMode].label}
               </h3>
 
-              <p ref={descRef} className="text-white/70 text-sm leading-relaxed">
+              <p ref={descRef} className="text-body text-sm leading-relaxed">
                 {morphShapes[activeMode].description}
               </p>
 
@@ -226,7 +226,7 @@ export function GsapMorphShowcase() {
 
                 <button
                   onClick={toggleExpand}
-                  className="px-4 py-3 rounded-xl text-xs font-bold text-white/60 hover:text-white bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                  className="px-4 py-3 rounded-xl text-xs font-bold text-secondary hover:text-white bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   {expandedCard ? 'Collapse GSAP State' : 'Morph Expand View'}
                 </button>

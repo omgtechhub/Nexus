@@ -96,7 +96,7 @@ function OrderDetail({ id }: { id: string }) {
           <h1 className="font-mono text-xl font-bold text-[#FFBD2E] sm:text-2xl">
             {order.orderNumber}
           </h1>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/50">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
             {order.store && (
               <span className="inline-flex items-center gap-1.5">
                 <Store size={13} aria-hidden="true" />
@@ -126,11 +126,11 @@ function OrderDetail({ id }: { id: string }) {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white">{item.productTitle}</p>
                     {item.variantTitle && (
-                      <p className="mt-0.5 text-xs text-white/40">{item.variantTitle}</p>
+                      <p className="mt-0.5 text-xs text-muted">{item.variantTitle}</p>
                     )}
-                    <p className="mt-0.5 text-xs text-white/40">Qty {item.quantity}</p>
+                    <p className="mt-0.5 text-xs text-muted">Qty {item.quantity}</p>
                   </div>
-                  <span className="flex-shrink-0 font-mono text-sm text-white/80">
+                  <span className="flex-shrink-0 font-mono text-sm text-strong">
                     {formatMoney(item.price * item.quantity, order.currency)}
                   </span>
                 </li>
@@ -154,7 +154,7 @@ function OrderDetail({ id }: { id: string }) {
           {shipping && (
             <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
               <h2 className="mb-3 text-sm font-semibold text-white">Delivery address</h2>
-              <address className="text-sm not-italic leading-relaxed text-white/60">
+              <address className="text-sm not-italic leading-relaxed text-secondary">
                 {shipping.firstName} {shipping.lastName}<br />
                 {shipping.address1}<br />
                 {shipping.address2 && <>{shipping.address2}<br /></>}
@@ -173,7 +173,7 @@ function OrderDetail({ id }: { id: string }) {
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
             <h2 className="mb-2 text-sm font-semibold text-white">Payment</h2>
-            <p className="text-sm text-white/60">{statusLabel(order.paymentStatus)}</p>
+            <p className="text-sm text-secondary">{statusLabel(order.paymentStatus)}</p>
           </section>
         </aside>
       </div>
@@ -183,7 +183,7 @@ function OrderDetail({ id }: { id: string }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-white/50">
+    <div className="flex items-center justify-between text-muted">
       <dt>{label}</dt>
       <dd className="font-mono">{value}</dd>
     </div>
@@ -194,7 +194,7 @@ function BackLink() {
   return (
     <Link
       to="/account/orders"
-      className="mb-5 inline-flex items-center gap-1.5 rounded text-sm text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+      className="mb-5 inline-flex items-center gap-1.5 rounded text-sm text-muted transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
     >
       <ArrowLeft size={14} aria-hidden="true" />
       All orders

@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass border border-white/10 rounded-xl p-3 shadow-xl">
-        <p className="text-xs text-white/50 mb-2">{label}</p>
+        <p className="text-xs text-muted mb-2">{label}</p>
         {payload.map((entry: any) => (
           <p key={entry.name} className="text-sm font-semibold" style={{ color: entry.color }}>
             {entry.name === 'revenue' ? formatCurrency(entry.value) : entry.value}
@@ -120,7 +120,7 @@ export function Overview() {
             <button
               key={stat.label}
               onClick={() => navigate('dashboard', stat.targetSection)}
-              className="stat-card p-5 text-left hover:border-[#FFBD2E]/40 hover:scale-[1.01] transition-all group"
+              className="stat-card p-5 text-left hover:border-[#FFBD2E]/40 hover:scale-[1.01] transition group"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center border group-hover:scale-110 transition-transform', colors.bg, colors.text, colors.border)}>
@@ -135,8 +135,8 @@ export function Overview() {
                 </div>
               </div>
               <div className="text-2xl font-bold text-white mb-0.5 group-hover:text-[#FFBD2E] transition-colors">{stat.value}</div>
-              <div className="text-xs text-white/40">{stat.label}</div>
-              <div className="text-xs text-white/25 mt-0.5">{stat.description}</div>
+              <div className="text-xs text-muted">{stat.label}</div>
+              <div className="text-xs text-muted mt-0.5">{stat.description}</div>
             </button>
           );
         })}
@@ -149,9 +149,9 @@ export function Overview() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-semibold text-white">Revenue Overview</h3>
-              <p className="text-xs text-white/30 mt-0.5">Database analytics feed</p>
+              <p className="text-xs text-muted mt-0.5">Database analytics feed</p>
             </div>
-            <select className="text-xs bg-white/5 border border-white/10 text-white/60 rounded-lg px-2 py-1 outline-none">
+            <select aria-label="Date range" className="text-xs bg-white/5 border border-white/10 text-secondary rounded-lg px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]">
               <option>Last 30 days</option>
               <option>Last 60 days</option>
               <option>Last 90 days</option>
@@ -178,7 +178,7 @@ export function Overview() {
         <div className="stat-card p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-white">Top Products</h3>
-            <button
+            <button aria-label="Forward"
               onClick={() => navigate('dashboard', 'products')}
               className="text-xs text-[#FFBD2E] hover:text-[#27C93F] flex items-center gap-1 transition-colors"
             >
@@ -188,12 +188,12 @@ export function Overview() {
           <div className="space-y-3">
             {products.slice(0, 4).map((product, i) => (
               <div key={product.id} className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/40 font-bold flex-shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xs text-muted font-bold flex-shrink-0">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white/80 truncate">{product.title}</p>
-                  <p className="text-[10px] text-white/30">{product.inventory} items in stock</p>
+                  <p className="text-xs font-medium text-strong truncate">{product.title}</p>
+                  <p className="text-[10px] text-muted">{product.inventory} items in stock</p>
                 </div>
                 <div className="text-xs font-semibold text-[#27C93F]">{formatCurrency(product.price)}</div>
               </div>
@@ -208,7 +208,7 @@ export function Overview() {
         <div className="stat-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">Recent Orders</h3>
-            <button
+            <button aria-label="Forward"
               onClick={() => navigate('dashboard', 'orders')}
               className="text-xs text-[#FFBD2E] hover:text-[#27C93F] flex items-center gap-1 transition-colors"
             >
@@ -219,7 +219,7 @@ export function Overview() {
             {orders.slice(0, 4).map(order => (
               <div key={order.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                  <Package size={14} className="text-white/40" />
+                  <Package size={14} className="text-muted" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -227,7 +227,7 @@ export function Overview() {
                     <span className="text-xs font-semibold text-white">{formatCurrency(order.total)}</span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[10px] text-white/40">{order.customer?.name}</span>
+                    <span className="text-[10px] text-muted">{order.customer?.name}</span>
                     <Badge variant={orderStatusConfig[order.status]?.variant || 'default'} size="sm">
                       {order.status}
                     </Badge>
@@ -250,8 +250,8 @@ export function Overview() {
                   {activity.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/70 leading-relaxed">{activity.message}</p>
-                  <p className="text-[10px] text-white/25 mt-0.5">{activity.time}</p>
+                  <p className="text-xs text-body leading-relaxed">{activity.message}</p>
+                  <p className="text-[10px] text-muted mt-0.5">{activity.time}</p>
                 </div>
               </div>
             ))}
@@ -264,7 +264,7 @@ export function Overview() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="text-sm font-semibold text-white">Store Visitors</h3>
-            <p className="text-xs text-white/30">Unique visitors over time</p>
+            <p className="text-xs text-muted">Unique visitors over time</p>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={160}>

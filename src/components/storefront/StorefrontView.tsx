@@ -213,7 +213,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
             <h1 className="font-extrabold text-lg sm:text-xl text-white tracking-tight">
               {settings?.storeName || storeInfo?.name || 'Storefront'}
             </h1>
-            <p className="text-[11px] text-white/50 flex items-center gap-1.5">
+            <p className="text-[11px] text-muted flex items-center gap-1.5">
               <Globe size={12} className="text-[#27C93F]" />
               <span>{settings?.customDomain || `${storeSlug}.nexuscommerce.io`}</span>
             </p>
@@ -224,7 +224,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
           {onClose && (
             <button
               onClick={onClose}
-              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/70 hover:text-white transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-body hover:text-white transition-colors"
             >
               Exit Preview
             </button>
@@ -232,7 +232,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
 
           <button
             onClick={() => setCartOpen(true)}
-            className="relative px-4 py-2 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 border border-white/10 text-xs font-bold text-white flex items-center gap-2 shadow-lg transition-all"
+            className="relative px-4 py-2 rounded-xl bg-gradient-to-r from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 border border-white/10 text-xs font-bold text-white flex items-center gap-2 shadow-lg transition-colors"
           >
             <ShoppingBag size={16} className="text-[#FFBD2E]" />
             <span>Bag</span>
@@ -257,7 +257,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
             <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
               Curated Essentials & Timeless Crafts
             </h2>
-            <p className="text-sm sm:text-base text-white/60 leading-relaxed">
+            <p className="text-sm sm:text-base text-secondary leading-relaxed">
               Explore premium products with fast worldwide shipping, effortless returns, and secure server-checked checkout.
             </p>
           </div>
@@ -268,20 +268,21 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Search Input */}
             <div className="relative w-full sm:w-80">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-              <input
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+              <input aria-label="Search products"
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search products…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-[#FFBD2E] transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-muted focus:outline-none focus:border-[#FFBD2E] transition-colors"
               />
             </div>
 
             {/* Sort Dropdown */}
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <span className="text-xs text-white/40 font-medium">Sort by:</span>
+              <span className="text-xs text-muted font-medium">Sort by:</span>
               <select
+                aria-label="Sort products"
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
                 className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-[#FFBD2E]"
@@ -298,10 +299,10 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
           <div className="flex flex-wrap gap-2 pt-2 border-t border-white/10">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
                 selectedCategory === 'all'
                   ? 'bg-[#FFBD2E] text-slate-950 font-bold shadow-md'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                  : 'bg-white/5 text-secondary hover:bg-white/10 hover:text-white'
               }`}
             >
               All Categories
@@ -310,10 +311,10 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
                   selectedCategory === cat
                     ? 'bg-[#FFBD2E] text-slate-950 font-bold shadow-md'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                    : 'bg-white/5 text-secondary hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {cat}
@@ -326,13 +327,13 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
         {productsQuery.isLoading ? (
           <div className="py-20 text-center space-y-3">
             <div className="w-8 h-8 border-2 border-[#FFBD2E] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-white/40">Loading storefront catalog...</p>
+            <p className="text-xs text-muted">Loading storefront catalog…</p>
           </div>
         ) : products.length === 0 ? (
           <div className="py-20 text-center glass rounded-2xl border border-white/10 p-8 space-y-3">
-            <ShoppingBag size={40} className="text-white/20 mx-auto" />
+            <ShoppingBag size={40} className="text-muted mx-auto" />
             <h3 className="text-lg font-bold text-white">No active products found</h3>
-            <p className="text-xs text-white/50 max-w-sm mx-auto">
+            <p className="text-xs text-muted max-w-sm mx-auto">
               Check back soon for new arrivals or try adjusting your search filters.
             </p>
           </div>
@@ -342,7 +343,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
               <div
                 key={prod.id}
                 onClick={() => handleOpenProduct(prod)}
-                className="glass rounded-2xl p-4 border border-white/10 hover:border-white/25 transition-all group cursor-pointer flex flex-col justify-between"
+                className="glass rounded-2xl p-4 border border-white/10 hover:border-white/25 transition-colors group cursor-pointer flex flex-col justify-between"
               >
                 <div>
                   {/* Product Image */}
@@ -354,7 +355,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <ShoppingBag size={40} className="text-white/20 group-hover:scale-110 transition-transform" />
+                      <ShoppingBag size={40} className="text-muted group-hover:scale-110 transition-transform" />
                     )}
 
                     <span className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md border ${
@@ -373,7 +374,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                   <h4 className="font-bold text-white text-base mb-2 line-clamp-1 group-hover:text-[#FFBD2E] transition-colors">
                     {prod.title}
                   </h4>
-                  <p className="text-xs text-white/50 line-clamp-2 leading-relaxed mb-4">
+                  <p className="text-xs text-muted line-clamp-2 leading-relaxed mb-4">
                     {prod.description}
                   </p>
                 </div>
@@ -383,7 +384,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                   <div>
                     <span className="font-extrabold text-white text-lg">${prod.price.toFixed(2)}</span>
                     {prod.comparePrice && prod.comparePrice > prod.price && (
-                      <span className="text-xs text-white/40 line-through ml-2">
+                      <span className="text-xs text-muted line-through ml-2">
                         ${prod.comparePrice.toFixed(2)}
                       </span>
                     )}
@@ -408,9 +409,9 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
       {selectedProduct && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass rounded-3xl border border-white/15 max-w-2xl w-full p-6 sm:p-8 space-y-6 relative overflow-hidden shadow-2xl">
-            <button
+            <button aria-label="Close"
               onClick={() => setSelectedProduct(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+              className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-body hover:text-white transition-colors"
             >
               <X size={18} />
             </button>
@@ -419,9 +420,9 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
               {/* Product Main Image */}
               <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
                 {selectedProduct.primaryImage ? (
-                  <img src={selectedProduct.primaryImage} alt={selectedProduct.title} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={selectedProduct.primaryImage} alt={selectedProduct.title} className="w-full h-full object-cover" />
                 ) : (
-                  <ShoppingBag size={48} className="text-white/20" />
+                  <ShoppingBag size={48} className="text-muted" />
                 )}
               </div>
 
@@ -430,7 +431,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                 <div>
                   <span className="text-[10px] uppercase font-bold text-[#FFBD2E] tracking-wider">{selectedProduct.category}</span>
                   <h3 className="text-2xl font-extrabold text-white mt-1">{selectedProduct.title}</h3>
-                  <p className="text-xs text-white/40 font-mono mt-0.5">SKU: {selectedProduct.sku}</p>
+                  <p className="text-xs text-muted font-mono mt-0.5">SKU: {selectedProduct.sku}</p>
                 </div>
 
                 <div className="flex items-baseline gap-3">
@@ -438,29 +439,29 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     ${(selectedVariant ? selectedVariant.price : selectedProduct.price).toFixed(2)}
                   </span>
                   {selectedProduct.comparePrice && (
-                    <span className="text-xs text-white/40 line-through">
+                    <span className="text-xs text-muted line-through">
                       ${selectedProduct.comparePrice.toFixed(2)}
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs text-white/70 leading-relaxed max-h-28 overflow-y-auto">
+                <p className="text-xs text-body leading-relaxed max-h-28 overflow-y-auto">
                   {selectedProduct.description || 'No description provided.'}
                 </p>
 
                 {/* Variant Selector */}
                 {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-white/70">Select Option / Variant:</label>
+                    <label className="block text-xs font-semibold text-body">Select Option / Variant:</label>
                     <div className="flex flex-wrap gap-2">
                       {selectedProduct.variants.map((v) => (
                         <button
                           key={v.id}
                           onClick={() => setSelectedVariant(v)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                             selectedVariant?.id === v.id
                               ? 'bg-[#FFBD2E] text-slate-950 border-[#FFBD2E] font-bold shadow-md'
-                              : 'bg-white/5 border-white/10 text-white/70 hover:border-white/30'
+                              : 'bg-white/5 border-white/10 text-body hover:border-white/30'
                           }`}
                         >
                           {v.title} (${v.price.toFixed(2)})
@@ -472,24 +473,24 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
 
                 {/* Quantity Stepper */}
                 <div className="space-y-2 pt-2">
-                  <label className="block text-xs font-semibold text-white/70">Quantity:</label>
+                  <label className="block text-xs font-semibold text-body">Quantity:</label>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center border border-white/15 rounded-xl bg-white/5">
-                      <button
+                      <button aria-label="Remove"
                         onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
-                        className="p-2 text-white/70 hover:text-white"
+                        className="p-2 text-body hover:text-white"
                       >
                         <Minus size={14} />
                       </button>
                       <span className="px-4 font-bold text-xs text-white">{modalQuantity}</span>
-                      <button
+                      <button aria-label="Add"
                         onClick={() => setModalQuantity(modalQuantity + 1)}
-                        className="p-2 text-white/70 hover:text-white"
+                        className="p-2 text-body hover:text-white"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
-                    <span className="text-[11px] text-white/40">
+                    <span className="text-[11px] text-muted">
                       {selectedVariant
                         ? `${selectedVariant.inventoryQuantity} units available`
                         : `${selectedProduct.availableStock} units available`}
@@ -501,7 +502,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                 <button
                   onClick={handleAddToCartModal}
                   disabled={!selectedProduct.inStock}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-slate-950 font-extrabold text-sm shadow-xl hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-slate-950 font-extrabold text-sm shadow-xl hover:opacity-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {selectedProduct.inStock ? 'Add to Bag' : 'Out of Stock'}
                 </button>
@@ -520,15 +521,15 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                 <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
                   <ShoppingBag size={20} className="text-[#FFBD2E]" /> Your Shopping Bag ({itemCount})
                 </h3>
-                <button onClick={() => setCartOpen(false)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+                <button aria-label="Close" onClick={() => setCartOpen(false)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
                   <X size={18} />
                 </button>
               </div>
 
               {items.length === 0 ? (
                 <div className="py-20 text-center space-y-3">
-                  <ShoppingBag size={48} className="text-white/20 mx-auto" />
-                  <p className="text-xs text-white/50">Your bag is currently empty.</p>
+                  <ShoppingBag size={48} className="text-muted mx-auto" />
+                  <p className="text-xs text-muted">Your bag is currently empty.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -536,29 +537,29 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     <div key={item.variantId} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
                       <div className="w-14 h-14 rounded-xl bg-white/10 overflow-hidden shrink-0 flex items-center justify-center">
                         {item.image ? (
-                          <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                          <img loading="lazy" decoding="async" src={item.image} alt={item.title} className="w-full h-full object-cover" />
                         ) : (
-                          <ShoppingBag size={20} className="text-white/30" />
+                          <ShoppingBag size={20} className="text-muted" />
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <h5 className="font-bold text-xs text-white truncate">{item.title}</h5>
-                        {item.variantTitle && <p className="text-[11px] text-white/50">{item.variantTitle}</p>}
+                        {item.variantTitle && <p className="text-[11px] text-muted">{item.variantTitle}</p>}
                         <p className="text-xs font-bold text-[#27C93F] mt-1">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <div className="flex items-center border border-white/10 rounded-lg bg-black/40">
-                          <button onClick={() => updateQuantity(item.variantId, item.quantity - 1)} className="p-1 text-white/60 hover:text-white">
+                          <button aria-label="Remove" onClick={() => updateQuantity(item.variantId, item.quantity - 1)} className="p-1 text-secondary hover:text-white">
                             <Minus size={12} />
                           </button>
                           <span className="px-2 text-xs font-bold text-white">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.variantId, item.quantity + 1)} className="p-1 text-white/60 hover:text-white">
+                          <button aria-label="Add" onClick={() => updateQuantity(item.variantId, item.quantity + 1)} className="p-1 text-secondary hover:text-white">
                             <Plus size={12} />
                           </button>
                         </div>
-                        <button onClick={() => removeFromCart(item.variantId)} className="p-1.5 text-white/40 hover:text-[#FF5F56]">
+                        <button aria-label="Delete" onClick={() => removeFromCart(item.variantId)} className="p-1.5 text-muted hover:text-[#FF5F56]">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -572,15 +573,15 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
             {items.length > 0 && (
               <div className="border-t border-white/10 pt-4 space-y-4">
                 <div className="space-y-1 text-xs">
-                  <div className="flex justify-between text-white/60">
+                  <div className="flex justify-between text-secondary">
                     <span>Subtotal</span>
                     <span className="font-mono text-white">${subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-white/60">
+                  <div className="flex justify-between text-secondary">
                     <span>Estimated Tax (8%)</span>
                     <span className="font-mono text-white">${taxEstimate.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-white/60">
+                  <div className="flex justify-between text-secondary">
                     <span>Shipping</span>
                     <span className="font-mono text-white">
                       {shippingEstimate === 0 ? <span className="text-[#27C93F] font-bold">FREE</span> : `$${shippingEstimate.toFixed(2)}`}
@@ -597,7 +598,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     setCartOpen(false);
                     setCheckoutModalOpen(true);
                   }}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-slate-950 font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 hover:opacity-95 transition-all"
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-slate-950 font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 hover:opacity-95 transition-colors"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={16} />
@@ -616,7 +617,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
               <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
                 <ShieldCheck size={20} className="text-[#27C93F]" /> Express Customer Checkout
               </h3>
-              <button onClick={() => setCheckoutModalOpen(false)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+              <button aria-label="Close" onClick={() => setCheckoutModalOpen(false)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
                 <X size={18} />
               </button>
             </div>
@@ -627,8 +628,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                 <h4 className="font-bold text-white text-xs uppercase tracking-wider text-[#FFBD2E]">1. Customer Contact</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-white/60 mb-1">Full Name *</label>
-                    <input
+                    <label className="block text-secondary mb-1">Full Name *</label>
+                    <input aria-label="Jane Customer"
                       type="text"
                       required
                       placeholder="Jane Customer"
@@ -638,8 +639,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-white/60 mb-1">Email Address *</label>
-                    <input
+                    <label className="block text-secondary mb-1">Email Address *</label>
+                    <input aria-label="jane@example.com"
                       type="email"
                       required
                       placeholder="jane@example.com"
@@ -656,8 +657,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                 <h4 className="font-bold text-white text-xs uppercase tracking-wider text-[#FFBD2E]">2. Shipping Address</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-white/60 mb-1">First Name *</label>
-                    <input
+                    <label className="block text-secondary mb-1">First Name *</label>
+                    <input aria-label="Jane"
                       type="text"
                       required
                       placeholder="Jane"
@@ -667,8 +668,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-white/60 mb-1">Last Name *</label>
-                    <input
+                    <label className="block text-secondary mb-1">Last Name *</label>
+                    <input aria-label="Doe"
                       type="text"
                       required
                       placeholder="Doe"
@@ -680,8 +681,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                 </div>
 
                 <div>
-                  <label className="block text-white/60 mb-1">Address Line 1 *</label>
-                  <input
+                  <label className="block text-secondary mb-1">Address Line 1 *</label>
+                  <input aria-label="123 Commerce Way"
                     type="text"
                     required
                     placeholder="123 Commerce Way"
@@ -693,8 +694,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-white/60 mb-1">City *</label>
-                    <input
+                    <label className="block text-secondary mb-1">City *</label>
+                    <input aria-label="Seattle"
                       type="text"
                       required
                       placeholder="Seattle"
@@ -704,8 +705,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-white/60 mb-1">State *</label>
-                    <input
+                    <label className="block text-secondary mb-1">State *</label>
+                    <input aria-label="WA"
                       type="text"
                       required
                       placeholder="WA"
@@ -715,8 +716,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-white/60 mb-1">ZIP *</label>
-                    <input
+                    <label className="block text-secondary mb-1">ZIP *</label>
+                    <input aria-label="98101"
                       type="text"
                       required
                       placeholder="98101"
@@ -730,9 +731,9 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
 
               {/* Promo Code & Discount Application */}
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-                <label className="block text-white/60 mb-1 font-bold">Have a Discount Code?</label>
+                <label className="block text-secondary mb-1 font-bold">Have a Discount Code?</label>
                 <div className="flex gap-2">
-                  <input
+                  <input aria-label="e.g. SUMMER20"
                     type="text"
                     placeholder="e.g. SUMMER20"
                     value={discountCode}
@@ -755,7 +756,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                         toast.error(err.message || 'Discount validation failed');
                       }
                     }}
-                    className="px-4 py-2 bg-[#FFBD2E] text-slate-950 font-bold rounded-lg hover:brightness-110 transition-all"
+                    className="px-4 py-2 bg-[#FFBD2E] text-slate-950 font-bold rounded-lg hover:brightness-110 transition-colors"
                   >
                     Apply
                   </button>
@@ -764,15 +765,15 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
 
               {/* Order Summary & Submit */}
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-                <div className="flex justify-between text-white/70">
+                <div className="flex justify-between text-body">
                   <span>Subtotal ({itemCount} items)</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-white/70">
+                <div className="flex justify-between text-body">
                   <span>Tax (8%)</span>
                   <span>${taxEstimate.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-white/70">
+                <div className="flex justify-between text-body">
                   <span>Shipping</span>
                   <span>{shippingEstimate === 0 ? 'FREE' : `$${shippingEstimate.toFixed(2)}`}</span>
                 </div>
@@ -819,7 +820,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
               <h3 className="text-2xl font-extrabold text-white mt-1">
                 {orderIsPaid ? 'Thank you for your order!' : 'Your order is saved'}
               </h3>
-              <p className="text-xs text-white/60 mt-1">
+              <p className="text-xs text-secondary mt-1">
                 Order <span className="font-mono text-[#FFBD2E] font-bold">{completedOrder.orderNumber}</span>
                 {orderIsPaid
                   ? ' has been confirmed.'
@@ -828,15 +829,15 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
             </div>
 
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left text-xs space-y-2">
-              <div className="flex justify-between text-white/70">
+              <div className="flex justify-between text-body">
                 <span>Customer</span>
                 <span className="text-white font-semibold">{completedOrder.customerName} ({completedOrder.customerEmail})</span>
               </div>
-              <div className="flex justify-between text-white/70">
+              <div className="flex justify-between text-body">
                 <span>Payment Status</span>
                 <span className="text-[#FFBD2E] font-bold">{completedOrder.paymentStatus}</span>
               </div>
-              <div className="flex justify-between text-white/70">
+              <div className="flex justify-between text-body">
                 <span>Total Paid</span>
                 <span className="text-[#27C93F] font-bold font-mono">${completedOrder.total.toFixed(2)}</span>
               </div>
@@ -855,7 +856,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-6 text-center text-xs text-white/40">
+      <footer className="border-t border-white/10 py-6 text-center text-xs text-muted">
         Powered by <span className="font-bold text-white">Nexus Commerce</span> • Multi-tenant Storefront Platform
       </footer>
     </div>
@@ -869,7 +870,7 @@ export function StorefrontView({ storeSlug, onClose }: StorefrontViewProps) {
   if (!resolvedSlug) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-6">
-        <p className="text-sm text-white/50 text-center">
+        <p className="text-sm text-muted text-center">
           No storefront specified. Open a store from its own link.
         </p>
       </div>

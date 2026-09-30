@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { GsapMorphBg } from './GsapMorphBg';
 import { getAssetUrl } from '../../utils/assetPath';
 
+import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
 function HeroVideo({ src, poster, isActive }: { src: string; poster?: string; isActive: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -99,6 +100,8 @@ export function Hero() {
   const [videoOpen, setVideoOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
+
+  useDismissOnEscape(videoOpen, () => setVideoOpen(false));
 
   // GSAP Refs
   const heroBadgeRef = useRef<HTMLButtonElement>(null);
@@ -256,11 +259,11 @@ export function Hero() {
           <button
             ref={heroBadgeRef}
             onClick={() => navigate('pricing')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 bg-[#FFBD2E]/10 text-[#FFBD2E] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:bg-[#FFBD2E]/20 hover:scale-105 transition-all duration-300 cursor-pointer group"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 bg-[#FFBD2E]/10 text-[#FFBD2E] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:bg-[#FFBD2E]/20 hover:scale-105 transition duration-300 cursor-pointer group"
           >
             <Sparkles size={14} className="text-[#FFBD2E] group-hover:rotate-12 transition-transform" />
             <span>Every plan starts with a 14-day free trial</span>
-            <ArrowRight size={12} className="opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            <ArrowRight size={12} className="opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition" />
           </button>
 
           {/* GSAP Main headline with Morphing Phrase */}
@@ -279,14 +282,14 @@ export function Hero() {
           {/* GSAP Subtitle */}
           <p
             ref={descRef}
-            className="text-lg sm:text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-8 leading-relaxed"
+            className="text-lg sm:text-xl md:text-2xl text-secondary max-w-3xl mx-auto mb-8 leading-relaxed"
           >
             {currentDescription}
           </p>
 
           {/* GSAP Email CTA Form */}
           <form ref={heroFormRef} onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-6">
-            <input
+            <input aria-label="Enter your email address"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -305,16 +308,16 @@ export function Hero() {
             </Button>
           </form>
 
-          <p className="text-xs text-white/30 mb-8">
+          <p className="text-xs text-muted mb-8">
             14-day free trial · No credit card required · Cancel anytime
           </p>
 
           {/* Watch demo button */}
           <button
             onClick={() => setVideoOpen(true)}
-            className="inline-flex items-center gap-3 text-sm text-white/60 hover:text-white transition-colors group mb-10 cursor-pointer"
+            className="inline-flex items-center gap-3 text-sm text-secondary hover:text-white transition-colors group mb-10 cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-[#FF5F56]/20 group-hover:border-[#FF5F56]/40 transition-all">
+            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-[#FF5F56]/20 group-hover:border-[#FF5F56]/40 transition-colors">
               <Play size={14} className="text-white ml-0.5" fill="currentColor" />
             </div>
             Watch 2-min product demo
@@ -323,18 +326,18 @@ export function Hero() {
           {/* GSAP Staggered Stats Grid */}
           <div ref={heroStatsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             {stats.map(stat => (
-              <div key={stat.label} className="glass rounded-2xl p-5 text-center card-hover hover:border-[#FFBD2E]/40 transition-all">
+              <div key={stat.label} className="glass rounded-2xl p-5 text-center card-hover hover:border-[#FFBD2E]/40 transition-colors">
                 <div className="flex items-center justify-center gap-1.5 text-[#FFBD2E] mb-2 opacity-80 text-xs">
                   {stat.icon}
                 </div>
                 <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-                <div className="text-xs text-white/40">{stat.label}</div>
+                <div className="text-xs text-muted">{stat.label}</div>
               </div>
             ))}
           </div>
 
           {/* Social proof */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-white/40">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-muted">
             <div className="flex items-center gap-1.5">
               <div className="flex -space-x-2">
                 {[1, 2, 3].map(i => (
@@ -360,7 +363,7 @@ export function Hero() {
 
       {/* Dashboard preview */}
       <div className="relative z-10 mt-12 max-w-5xl mx-auto px-4 sm:px-6 w-full pb-16">
-        <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 hover:border-[#27C93F]/40 transition-all">
+        <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 hover:border-[#27C93F]/40 transition-colors">
           <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-transparent to-transparent z-10 h-32 bottom-0 top-auto" />
           <img
             src={getAssetUrl('/images/dashboard-preview.jpg')}
@@ -378,11 +381,11 @@ export function Hero() {
       {/* Video modal */}
       {videoOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setVideoOpen(false)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setVideoOpen(false)} aria-hidden="true" />
           <div className="relative z-10 w-full max-w-4xl aspect-video bg-[#0B0D1B] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
             <button
               onClick={() => setVideoOpen(false)}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/70 hover:text-white border border-white/10 transition-colors"
+              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-body hover:text-white border border-white/10 transition-colors"
               title="Close video demo"
             >
               <X size={18} />

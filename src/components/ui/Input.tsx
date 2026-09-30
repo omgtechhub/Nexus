@@ -26,13 +26,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-white/70">
+        <label htmlFor={inputId} className="block text-sm font-medium text-body">
           {label}
         </label>
       )}
       <div className="relative">
         {icon && iconPosition === 'left' && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
             {icon}
           </div>
         )}
@@ -50,7 +50,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
           {...props}
         />
         {icon && iconPosition === 'right' && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">
             {icon}
           </div>
         )}
@@ -66,7 +66,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
         </svg>
         {error}
       </p>}
-      {hint && !error && <p className="text-xs text-white/40">{hint}</p>}
+      {hint && !error && <p className="text-xs text-muted">{hint}</p>}
     </div>
   );
 });

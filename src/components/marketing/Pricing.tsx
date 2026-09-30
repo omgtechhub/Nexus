@@ -16,7 +16,7 @@ export function Pricing() {
       <div className="absolute inset-0 bg-radial-glow opacity-50" />
 
       <div className={cn(
-        'relative max-w-7xl mx-auto px-4 sm:px-6 transition-all duration-700',
+        'relative max-w-7xl mx-auto px-4 sm:px-6 transition-colors duration-700',
         inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       )}>
         {/* Header */}
@@ -29,7 +29,7 @@ export function Pricing() {
             Start free, scale with
             <span className="text-gradient"> confidence</span>
           </h2>
-          <p className="text-white/50 max-w-xl mx-auto mb-8">
+          <p className="text-muted max-w-xl mx-auto mb-8">
             Every plan comes with a 14-day free trial. No credit card required. Upgrade, downgrade, or cancel anytime.
           </p>
 
@@ -38,8 +38,8 @@ export function Pricing() {
             <button
               onClick={() => setAnnual(false)}
               className={cn(
-                'px-5 py-2 rounded-full text-sm font-medium transition-all',
-                !annual ? 'bg-gradient-to-r from-[#FF5F56] to-[#FFBD2E] text-white shadow-lg font-semibold' : 'text-white/50 hover:text-white'
+                'px-5 py-2 rounded-full text-sm font-medium transition-colors',
+                !annual ? 'bg-gradient-to-r from-[#FF5F56] to-[#FFBD2E] text-white shadow-lg font-semibold' : 'text-muted hover:text-white'
               )}
             >
               Monthly
@@ -47,8 +47,8 @@ export function Pricing() {
             <button
               onClick={() => setAnnual(true)}
               className={cn(
-                'px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2',
-                annual ? 'bg-gradient-to-r from-[#FFBD2E] to-[#27C93F] text-white shadow-lg font-semibold' : 'text-white/50 hover:text-white'
+                'px-5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2',
+                annual ? 'bg-gradient-to-r from-[#FFBD2E] to-[#27C93F] text-white shadow-lg font-semibold' : 'text-muted hover:text-white'
               )}
             >
               Annual
@@ -63,7 +63,7 @@ export function Pricing() {
             <div
               key={plan.id}
               className={cn(
-                'relative rounded-2xl p-6 border transition-all duration-300',
+                'relative rounded-2xl p-6 border transition-colors duration-300',
                 plan.highlighted
                   ? 'bg-gradient-to-b from-[#FF5F56]/15 via-[#131629] to-[#0B0D1B] border-[#FFBD2E]/50 shadow-2xl shadow-red-900/30 scale-105 z-10'
                   : 'glass border-white/10 hover:border-white/20'
@@ -89,14 +89,14 @@ export function Pricing() {
 
               <div className="relative z-10">
                 <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
-                <p className="text-xs text-white/40 mb-5">{plan.description}</p>
+                <p className="text-xs text-muted mb-5">{plan.description}</p>
 
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-extrabold text-white">
                       ${annual ? plan.annualPrice : plan.price}
                     </span>
-                    <span className="text-white/40 text-sm">/mo</span>
+                    <span className="text-muted text-sm">/mo</span>
                   </div>
                   {annual && (
                     <div className="text-xs text-[#27C93F] mt-1 font-medium">
@@ -122,11 +122,11 @@ export function Pricing() {
                         'w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
                         plan.highlighted
                           ? 'bg-[#27C93F]/20 text-[#27C93F]'
-                          : 'bg-white/10 text-white/50'
+                          : 'bg-white/10 text-muted'
                       )}>
                         <Check size={10} strokeWidth={3} />
                       </div>
-                      <span className={plan.highlighted ? 'text-white/80' : 'text-white/50'}>
+                      <span className={plan.highlighted ? 'text-strong' : 'text-muted'}>
                         {feature}
                       </span>
                     </li>
@@ -139,7 +139,7 @@ export function Pricing() {
 
         {/* Enterprise note */}
         <div className="mt-10 text-center">
-          <p className="text-sm text-white/40">
+          <p className="text-sm text-muted">
             Need a custom solution?{' '}
             <button onClick={() => navigate('contact')} className="text-[#FFBD2E] hover:text-[#27C93F] underline underline-offset-2 transition-colors font-medium">
               Talk to our sales team

@@ -71,11 +71,11 @@ export function VerifyEmailPage() {
         >
           {status === 'verifying' && (
             <>
-              <div className="w-14 h-14 rounded-2xl bg-white/5 text-white/50 mx-auto flex items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 text-muted mx-auto flex items-center justify-center">
                 <Loader2 size={26} className="animate-spin" aria-hidden="true" />
               </div>
               <h1 className="text-2xl font-bold">Confirming your email</h1>
-              <p className="text-sm text-white/50">One moment…</p>
+              <p className="text-sm text-muted">One moment…</p>
             </>
           )}
 
@@ -88,7 +88,7 @@ export function VerifyEmailPage() {
                 <CheckCircle2 size={28} />
               </div>
               <h1 className="text-2xl font-bold">Email confirmed</h1>
-              <p className="text-sm text-white/60 leading-relaxed">{message}</p>
+              <p className="text-sm text-secondary leading-relaxed">{message}</p>
               <Button variant="primary" size="md" fullWidth>
                 <Link to={isAuthenticated ? homePath : '/seller/login'} className="block w-full">
                   {isAuthenticated ? 'Go to your dashboard' : 'Sign in'}
@@ -106,8 +106,8 @@ export function VerifyEmailPage() {
                 <AlertCircle size={28} />
               </div>
               <h1 className="text-2xl font-bold">Could not confirm</h1>
-              <p className="text-sm text-white/60 leading-relaxed">{message}</p>
-              <p className="text-xs text-white/40">
+              <p className="text-sm text-secondary leading-relaxed">{message}</p>
+              <p className="text-xs text-muted">
                 Confirmation links expire after 48 hours and can only be used once. Request a new
                 one from your account settings.
               </p>

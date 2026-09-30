@@ -234,6 +234,7 @@ export function Settings() {
     <div className="max-w-5xl">
       <input
         type="file"
+        aria-label="Upload profile photo"
         ref={fileInputRef}
         accept="image/*"
         className="hidden"
@@ -249,10 +250,10 @@ export function Settings() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all text-left',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors text-left',
                   activeTab === tab.id
                     ? 'bg-[#FFBD2E]/10 text-[#FFBD2E] border border-[#FFBD2E]/30 font-semibold'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                    : 'text-muted hover:text-white hover:bg-white/5'
                 )}
               >
                 {tab.icon}
@@ -270,21 +271,21 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">Profile Settings</h3>
-                <p className="text-xs text-white/40">Manage your personal information and avatar photo</p>
+                <p className="text-xs text-muted">Manage your personal information and avatar photo</p>
               </div>
 
               <div className="flex items-center gap-5">
                 <div className="relative">
                   <div className="w-20 h-20 rounded-full border-2 border-white/10 overflow-hidden bg-slate-900">
                     {user?.avatar ? (
-                      <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                      <img loading="lazy" decoding="async" src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] flex items-center justify-center text-white text-2xl font-bold">
                         {user?.name?.charAt(0) || 'U'}
                       </div>
                     )}
                   </div>
-                  <button
+                  <button aria-label="Change profile photo"
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="absolute bottom-0 right-0 w-7 h-7 bg-[#FFBD2E] hover:bg-[#27C93F] text-slate-950 rounded-full border-2 border-[#141414] flex items-center justify-center transition-colors cursor-pointer"
@@ -294,7 +295,7 @@ export function Settings() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white">{user?.name}</p>
-                  <p className="text-xs text-white/40 mt-0.5">{user?.role || 'Owner'} · {entitlements?.planName || 'Pro Merchant'}</p>
+                  <p className="text-xs text-muted mt-0.5">{user?.role || 'Owner'} · {entitlements?.planName || 'Pro Merchant'}</p>
                 </div>
               </div>
 
@@ -325,7 +326,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">Store Profile & Settings</h3>
-                <p className="text-xs text-white/40">Configure store identity, currency, and business defaults</p>
+                <p className="text-xs text-muted">Configure store identity, currency, and business defaults</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -338,7 +339,7 @@ export function Settings() {
                   label="Store URL Handle"
                   value={storeUrl}
                   onChange={(e) => setStoreUrl(e.target.value)}
-                  rightElement={<span className="text-xs text-white/30 pr-1">.nexuscommerce.io</span>}
+                  rightElement={<span className="text-xs text-muted pr-1">.nexuscommerce.io</span>}
                 />
               </div>
 
@@ -354,7 +355,7 @@ export function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-white mb-1">Team Management & RBAC</h3>
-                  <p className="text-xs text-white/40">Invite staff members and manage access permissions (OWNER, ADMIN, STAFF, VIEWER)</p>
+                  <p className="text-xs text-muted">Invite staff members and manage access permissions (OWNER, ADMIN, STAFF, VIEWER)</p>
                 </div>
                 {!showInviteForm && (
                   <Button
@@ -372,7 +373,7 @@ export function Settings() {
                 <form onSubmit={handleInviteMember} className="p-4 rounded-xl bg-white/5 border border-white/10">
                   <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
                     <div>
-                      <label htmlFor="invite-email" className="mb-1.5 block text-xs text-white/50">
+                      <label htmlFor="invite-email" className="mb-1.5 block text-xs text-muted">
                         Email address
                       </label>
                       <input
@@ -382,11 +383,11 @@ export function Settings() {
                         onChange={e => setInviteEmail(e.target.value)}
                         placeholder="teammate@example.com"
                         required
-                        className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+                        className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label htmlFor="invite-role" className="mb-1.5 block text-xs text-white/50">Role</label>
+                      <label htmlFor="invite-role" className="mb-1.5 block text-xs text-muted">Role</label>
                       <select
                         id="invite-role"
                         value={inviteRole}
@@ -417,7 +418,7 @@ export function Settings() {
 
               {teamData?.invitations && teamData.invitations.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
                     Pending invitations
                   </h4>
                   <div className="space-y-2">
@@ -428,7 +429,7 @@ export function Settings() {
                       >
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-white">{inv.email}</p>
-                          <p className="text-[11px] text-white/40">
+                          <p className="text-[11px] text-muted">
                             {inv.role} · invited {new Date(inv.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -465,12 +466,13 @@ export function Settings() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-white">{m.name} {m.userId === user?.id && '(You)'}</p>
-                        <p className="text-[11px] text-white/40">{m.email}</p>
+                        <p className="text-[11px] text-muted">{m.email}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <select
+                        aria-label={`Role for ${m.name}`}
                         value={m.role}
                         onChange={async (e) => {
                           try {
@@ -490,7 +492,7 @@ export function Settings() {
                       </select>
 
                       {m.role !== 'OWNER' && (
-                        <button
+                        <button aria-label={`Remove ${m.name} from the team`}
                           onClick={async () => {
                             if (confirm(`Remove ${m.name} from team?`)) {
                               try {
@@ -519,7 +521,7 @@ export function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-white mb-1">Custom Domain Management</h3>
-                  <p className="text-xs text-white/40">Connect your custom web domain with real automated DNS verification</p>
+                  <p className="text-xs text-muted">Connect your custom web domain with real automated DNS verification</p>
                 </div>
                 {!showDomainForm && (
                   <Button
@@ -535,7 +537,7 @@ export function Settings() {
 
               {showDomainForm && (
                 <form onSubmit={handleAddDomain} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <label htmlFor="new-domain" className="mb-1.5 block text-xs text-white/50">
+                  <label htmlFor="new-domain" className="mb-1.5 block text-xs text-muted">
                     Domain
                   </label>
                   <input
@@ -544,9 +546,9 @@ export function Settings() {
                     onChange={e => setNewDomain(e.target.value)}
                     placeholder="shop.yourbrand.com"
                     required
-                    className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+                    className="w-full rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
                   />
-                  <p className="mt-1.5 text-[11px] text-white/40">
+                  <p className="mt-1.5 text-[11px] text-muted">
                     Add the domain here first, point its DNS at Nexus, then verify.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -614,11 +616,11 @@ export function Settings() {
                     </div>
 
                     {dom.status !== 'VERIFIED' && (
-                      <p className="text-[11px] text-white/40">
+                      <p className="text-[11px] text-muted">
                         Create a CNAME for{' '}
-                        <span className="font-mono text-white/70">{dom.domain}</span>{' '}
+                        <span className="font-mono text-body">{dom.domain}</span>{' '}
                         pointing at{' '}
-                        <span className="font-mono text-white/70">stores.nexuscommerce.io</span>, then verify.
+                        <span className="font-mono text-body">stores.nexuscommerce.io</span>, then verify.
                       </p>
                     )}
                   </div>
@@ -632,7 +634,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">Merchant Audit Trail</h3>
-                <p className="text-xs text-white/40">Audit logging for security compliance and store activity</p>
+                <p className="text-xs text-muted">Audit logging for security compliance and store activity</p>
               </div>
 
               <div className="space-y-2">
@@ -641,9 +643,9 @@ export function Settings() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-white uppercase text-[10px] px-1.5 py-0.5 rounded bg-white/10">{log.action}</span>
-                        <span className="text-white/80 font-mono">{log.resource}</span>
+                        <span className="text-strong font-mono">{log.resource}</span>
                       </div>
-                      <p className="text-[11px] text-white/40 mt-1">
+                      <p className="text-[11px] text-muted mt-1">
                         By {log.userEmail || 'System'} • {new Date(log.createdAt).toLocaleString()}
                       </p>
                     </div>
@@ -658,7 +660,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">SaaS Subscription & Entitlements</h3>
-                <p className="text-xs text-white/40">Manage your Nexus Commerce platform subscription, capability limits, and invoices</p>
+                <p className="text-xs text-muted">Manage your Nexus Commerce platform subscription, capability limits, and invoices</p>
               </div>
 
               {/* Current Active Plan Card */}
@@ -670,7 +672,7 @@ export function Settings() {
                       <Badge variant="success" size="sm" dot>{sub?.status || 'ACTIVE'}</Badge>
                       {sub?.cancelAtPeriodEnd && <Badge variant="warning" size="sm">Cancels at Period End</Badge>}
                     </div>
-                    <p className="text-xs text-white/50 mt-1">
+                    <p className="text-xs text-muted mt-1">
                       Billing Period Ends: <span className="font-mono text-white font-bold">{sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : 'Active'}</span>
                     </p>
                   </div>
@@ -679,7 +681,7 @@ export function Settings() {
                     <span className="text-2xl font-black text-[#27C93F]">
                       ${sub?.plan?.monthlyPrice || 79}
                     </span>
-                    <span className="text-xs text-white/40">/month</span>
+                    <span className="text-xs text-muted">/month</span>
                   </div>
                 </div>
 
@@ -687,26 +689,26 @@ export function Settings() {
                 {entitlements && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-white/10 text-xs">
                     <div className="space-y-1">
-                      <div className="flex justify-between text-white/70">
+                      <div className="flex justify-between text-body">
                         <span>Active Products</span>
                         <span className="font-bold font-mono">{entitlements.productCount} / {entitlements.maxProducts}</span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                         <div
-                          className="h-full bg-[#FFBD2E] rounded-full transition-all"
+                          className="h-full bg-[#FFBD2E] rounded-full transition-colors"
                           style={{ width: `${Math.min(100, (entitlements.productCount / entitlements.maxProducts) * 100)}%` }}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex justify-between text-white/70">
+                      <div className="flex justify-between text-body">
                         <span>Team Members</span>
                         <span className="font-bold font-mono">{entitlements.teamMemberCount} / {entitlements.maxTeamMembers}</span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                         <div
-                          className="h-full bg-[#27C93F] rounded-full transition-all"
+                          className="h-full bg-[#27C93F] rounded-full transition-colors"
                           style={{ width: `${Math.min(100, (entitlements.teamMemberCount / entitlements.maxTeamMembers) * 100)}%` }}
                         />
                       </div>
@@ -752,10 +754,10 @@ export function Settings() {
                   {availablePlans.map((p) => (
                     <div
                       key={p.id}
-                      className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
+                      className={`p-4 rounded-xl border flex flex-col justify-between transition ${
                         sub?.planId === p.id
                           ? 'bg-white/10 border-[#FFBD2E] text-white shadow-lg'
-                          : 'bg-white/5 border-white/10 text-white/70 hover:border-white/20'
+                          : 'bg-white/5 border-white/10 text-body hover:border-white/20'
                       }`}
                     >
                       <div className="space-y-2">
@@ -763,8 +765,8 @@ export function Settings() {
                           <span className="text-sm font-bold text-white">{p.name}</span>
                           {sub?.planId === p.id && <Badge variant="success" size="sm">Current Plan</Badge>}
                         </div>
-                        <p className="text-[11px] text-white/40 leading-relaxed">{p.description}</p>
-                        <div className="text-lg font-black text-white">${p.monthlyPrice} <span className="text-xs text-white/40">/mo</span></div>
+                        <p className="text-[11px] text-muted leading-relaxed">{p.description}</p>
+                        <div className="text-lg font-black text-white">${p.monthlyPrice} <span className="text-xs text-muted">/mo</span></div>
                       </div>
 
                       <div className="pt-4">
@@ -797,13 +799,13 @@ export function Settings() {
                 <h4 className="text-sm font-bold text-white">Subscription Invoices & Receipts</h4>
                 <div className="space-y-2">
                   {invoicesData.length === 0 ? (
-                    <p className="text-xs text-white/40 text-center py-4">No billing invoices found.</p>
+                    <p className="text-xs text-muted text-center py-4">No billing invoices found.</p>
                   ) : (
                     invoicesData.map((inv) => (
                       <div key={inv.id} className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
                         <div>
                           <p className="font-bold text-white font-mono">{inv.invoiceNumber}</p>
-                          <p className="text-[11px] text-white/40">Issued: {new Date(inv.issueDate).toLocaleDateString()}</p>
+                          <p className="text-[11px] text-muted">Issued: {new Date(inv.issueDate).toLocaleDateString()}</p>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -830,7 +832,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">Notification Preferences</h3>
-                <p className="text-xs text-white/40">Choose when and how you receive store alerts</p>
+                <p className="text-xs text-muted">Choose when and how you receive store alerts</p>
               </div>
 
               <div className="space-y-0">
@@ -842,7 +844,7 @@ export function Settings() {
                   <div key={item.key} className={cn('flex items-center justify-between py-4', i !== 0 && 'border-t border-white/5')}>
                     <div>
                       <p className="text-sm font-medium text-white">{item.label}</p>
-                      <p className="text-xs text-white/40 mt-0.5">{item.desc}</p>
+                      <p className="text-xs text-muted mt-0.5">{item.desc}</p>
                     </div>
                     <Toggle
                       checked={notifPrefs[item.key as keyof typeof notifPrefs]}
@@ -859,7 +861,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">Security Settings</h3>
-                <p className="text-xs text-white/40">Keep your account and access credentials safe</p>
+                <p className="text-xs text-muted">Keep your account and access credentials safe</p>
               </div>
 
               <div className="space-y-3">
@@ -894,7 +896,7 @@ export function Settings() {
               <Badge variant="success" size="sm">{viewingInvoice.status}</Badge>
             </div>
 
-            <div className="text-xs space-y-2 text-white/70">
+            <div className="text-xs space-y-2 text-body">
               <p>Issue Date: <strong className="text-white">{new Date(viewingInvoice.issueDate).toLocaleDateString()}</strong></p>
               <p>Billing Period: <strong className="text-white">{new Date(viewingInvoice.periodStart).toLocaleDateString()} — {new Date(viewingInvoice.periodEnd).toLocaleDateString()}</strong></p>
             </div>
@@ -905,7 +907,7 @@ export function Settings() {
                 <span>Amount</span>
               </div>
               {viewingInvoice.items?.map((item: any, idx: number) => (
-                <div key={idx} className="p-2 border-t border-white/5 flex justify-between text-white/80">
+                <div key={idx} className="p-2 border-t border-white/5 flex justify-between text-strong">
                   <span>{item.description} (x{item.quantity})</span>
                   <span className="font-mono">${item.amount.toFixed(2)}</span>
                 </div>

@@ -106,7 +106,7 @@ export function ShippingSection() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-16 text-white/50" role="status">
+      <div className="flex items-center justify-center gap-3 py-16 text-muted" role="status">
         <RotateCw size={18} className="animate-spin" aria-hidden="true" />
         <span className="text-sm">Loading shipping zones…</span>
       </div>
@@ -117,7 +117,7 @@ export function ShippingSection() {
     return (
       <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
         <AlertTriangle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
-        <p className="text-sm text-white/80">{(error as Error)?.message || 'Could not load shipping zones.'}</p>
+        <p className="text-sm text-strong">{(error as Error)?.message || 'Could not load shipping zones.'}</p>
         <div className="mt-4">
           <Button variant="secondary" size="sm" onClick={() => refetch()}>Try again</Button>
         </div>
@@ -130,7 +130,7 @@ export function ShippingSection() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-white">Shipping zones</h2>
-          <p className="mt-1 text-sm text-white/50">
+          <p className="mt-1 text-sm text-muted">
             Where you ship, and what each destination costs at checkout.
           </p>
         </div>
@@ -156,7 +156,7 @@ export function ShippingSection() {
             />
 
             <div>
-              <label htmlFor="zone-country" className="mb-1.5 block text-sm font-medium text-white/70">
+              <label htmlFor="zone-country" className="mb-1.5 block text-sm font-medium text-body">
                 Countries
               </label>
               <div className="flex gap-2">
@@ -172,7 +172,7 @@ export function ShippingSection() {
                   }}
                   placeholder="Two-letter code, e.g. NG"
                   maxLength={2}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm uppercase text-white placeholder:normal-case placeholder:text-white/30 focus:border-[#FFBD2E]/50 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm uppercase text-white placeholder:normal-case placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
                 />
                 <Button type="button" variant="secondary" size="md" onClick={addCountry}>Add</Button>
               </div>
@@ -184,7 +184,7 @@ export function ShippingSection() {
                       <button
                         type="button"
                         onClick={() => setCountries(prev => prev.filter(c => c !== code))}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/80 transition-colors hover:border-[#FF5F56]/40 hover:text-[#FF5F56]"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-strong transition-colors hover:border-[#FF5F56]/40 hover:text-[#FF5F56]"
                         aria-label={`Remove ${code}`}
                       >
                         {code}
@@ -197,13 +197,13 @@ export function ShippingSection() {
             </div>
 
             <fieldset>
-              <legend className="mb-2 text-sm font-medium text-white/70">Shipping methods</legend>
+              <legend className="mb-2 text-sm font-medium text-body">Shipping methods</legend>
               <div className="space-y-3">
                 {methods.map((method, i) => (
                   <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <label htmlFor={`m-name-${i}`} className="mb-1 block text-xs text-white/50">Name</label>
+                        <label htmlFor={`m-name-${i}`} className="mb-1 block text-xs text-muted">Name</label>
                         <input
                           id={`m-name-${i}`}
                           value={method.name}
@@ -213,7 +213,7 @@ export function ShippingSection() {
                         />
                       </div>
                       <div>
-                        <label htmlFor={`m-type-${i}`} className="mb-1 block text-xs text-white/50">Rate type</label>
+                        <label htmlFor={`m-type-${i}`} className="mb-1 block text-xs text-muted">Rate type</label>
                         <select
                           id={`m-type-${i}`}
                           value={method.rateType}
@@ -227,7 +227,7 @@ export function ShippingSection() {
                       </div>
                       {method.rateType !== 'FREE_SHIPPING' && (
                         <div>
-                          <label htmlFor={`m-price-${i}`} className="mb-1 block text-xs text-white/50">Price</label>
+                          <label htmlFor={`m-price-${i}`} className="mb-1 block text-xs text-muted">Price</label>
                           <input
                             id={`m-price-${i}`}
                             type="number"
@@ -241,7 +241,7 @@ export function ShippingSection() {
                         </div>
                       )}
                       <div>
-                        <label htmlFor={`m-days-${i}`} className="mb-1 block text-xs text-white/50">
+                        <label htmlFor={`m-days-${i}`} className="mb-1 block text-xs text-muted">
                           Estimated delivery (optional)
                         </label>
                         <input
@@ -258,7 +258,7 @@ export function ShippingSection() {
                       <button
                         type="button"
                         onClick={() => setMethods(prev => prev.filter((_, idx) => idx !== i))}
-                        className="mt-2 text-xs text-white/40 transition-colors hover:text-[#FF5F56]"
+                        className="mt-2 text-xs text-muted transition-colors hover:text-[#FF5F56]"
                       >
                         Remove this method
                       </button>
@@ -288,8 +288,8 @@ export function ShippingSection() {
 
       {zones.length === 0 && !showForm ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-          <Globe size={20} className="mx-auto mb-3 text-white/30" aria-hidden="true" />
-          <p className="text-sm text-white/60">
+          <Globe size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
+          <p className="text-sm text-secondary">
             No shipping zones yet. Until you add one, checkout cannot quote a delivery rate.
           </p>
           <div className="mt-5">
@@ -308,7 +308,7 @@ export function ShippingSection() {
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {zone.countries.map(code => (
                       <li key={code}>
-                        <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[11px] text-white/60">
+                        <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[11px] text-secondary">
                           {code}
                         </span>
                       </li>
@@ -319,7 +319,7 @@ export function ShippingSection() {
                   type="button"
                   onClick={() => handleDelete(zone.id, zone.name)}
                   aria-label={`Delete ${zone.name}`}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-[#FF5F56]/10 hover:text-[#FF5F56]"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-[#FF5F56]/10 hover:text-[#FF5F56]"
                 >
                   <Trash2 size={15} aria-hidden="true" />
                 </button>
@@ -329,13 +329,13 @@ export function ShippingSection() {
                 <ul className="mt-4 space-y-2 border-t border-white/5 pt-4">
                   {zone.methods.map((method, i) => (
                     <li key={method.id || i} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                      <span className="flex items-center gap-2 text-white/80">
+                      <span className="flex items-center gap-2 text-strong">
                         {method.name}
                         <Badge variant="default" size="sm">
                           {RATE_LABELS[method.rateType as RateType] ?? method.rateType}
                         </Badge>
                         {method.estimatedDays && (
-                          <span className="text-xs text-white/40">{method.estimatedDays}</span>
+                          <span className="text-xs text-muted">{method.estimatedDays}</span>
                         )}
                       </span>
                       <span className="font-mono text-sm text-white">

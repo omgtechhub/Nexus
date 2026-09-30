@@ -55,11 +55,11 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div>
             <h3 className="text-base font-bold text-white">Quick Action</h3>
-            <p className="text-xs text-white/40">Select what you would like to create or add</p>
+            <p className="text-xs text-muted">Select what you would like to create or add</p>
           </div>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors"
           >
             <X size={18} />
           </button>
@@ -70,7 +70,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
             <button
               key={idx}
               onClick={() => handleSelect(action.section)}
-              className="w-full flex items-center gap-4 p-3.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.07] border border-white/5 hover:border-white/15 transition-all text-left group"
+              className="w-full flex items-center gap-4 p-3.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.07] border border-white/5 hover:border-white/15 transition-colors text-left group"
             >
               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
                 {action.icon}
@@ -79,7 +79,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
                 <h4 className="text-sm font-semibold text-white group-hover:text-[#FFBD2E] transition-colors">
                   {action.title}
                 </h4>
-                <p className="text-xs text-white/40 truncate">{action.description}</p>
+                <p className="text-xs text-muted truncate">{action.description}</p>
               </div>
             </button>
           ))}

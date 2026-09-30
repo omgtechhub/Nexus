@@ -59,10 +59,10 @@ export function PrivacyPolicyPage() {
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
                 Nexus Commerce <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F]">Privacy Policy</span>
               </h1>
-              <p className="text-lg text-white/60 leading-relaxed mb-6">
+              <p className="text-lg text-secondary leading-relaxed mb-6">
                 Protecting merchant business data and buyer personal information is foundational to our mission. This document outlines how Nexus Commerce collects, processes, encrypts, and safeguards your store data across our global commerce cloud.
               </p>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-white/40">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-muted">
                 <span className="flex items-center gap-1.5"><Lock size={12} className="text-[#27C93F]" /> AES-256 Encrypted</span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5"><Globe size={12} className="text-[#FFBD2E]" /> EU-US Data Privacy Framework Certified</span>
@@ -79,7 +79,7 @@ export function PrivacyPolicyPage() {
             {/* Sidebar Navigation */}
             <div className="lg:col-span-4">
               <div className="sticky top-28 glass p-5 rounded-2xl border border-white/10 space-y-2">
-                <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider px-3 mb-3">Policy Navigation</h3>
+                <h3 className="text-xs font-bold text-muted uppercase tracking-wider px-3 mb-3">Policy Navigation</h3>
                 {sections.map(s => (
                   <button
                     key={s.id}
@@ -87,10 +87,10 @@ export function PrivacyPolicyPage() {
                       setActiveSection(s.id);
                       document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium transition flex items-center justify-between ${
                       activeSection === s.id
                         ? 'bg-gradient-to-r from-[#FF5F56]/20 to-[#FFBD2E]/20 text-white border border-[#FFBD2E]/40 font-semibold'
-                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                        : 'text-secondary hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <span>{s.title}</span>
@@ -100,8 +100,8 @@ export function PrivacyPolicyPage() {
 
                 <div className="pt-4 border-t border-white/10 mt-4">
                   <div className="p-4 rounded-xl bg-[#FF5F56]/10 border border-[#FF5F56]/30">
-                    <p className="text-xs text-white/80 font-medium mb-2">Need a Data Processing Addendum (DPA)?</p>
-                    <button
+                    <p className="text-xs text-strong font-medium mb-2">Need a Data Processing Addendum (DPA)?</p>
+                    <button aria-label="Forward"
                       onClick={() => navigate('contact')}
                       className="text-xs text-[#FF5F56] font-bold hover:underline flex items-center gap-1"
                     >
@@ -122,10 +122,10 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">1. Overview & Scope</h2>
                 </div>
-                <p className="text-white/70 leading-relaxed">
+                <p className="text-body leading-relaxed">
                   Nexus Commerce Inc. ("Nexus", "we", "us", or "our") operates the Nexus AI-powered e-commerce platform, including our storefront builder, Point of Sale (POS) applications, Nexus Payments infrastructure, NexusIQ artificial intelligence models, and developer APIs.
                 </p>
-                <p className="text-white/70 leading-relaxed">
+                <p className="text-body leading-relaxed">
                   This Privacy Policy applies to all store merchants, agency partners, platform developers, and end-consumer buyers interacting with stores hosted on the Nexus platform. By accessing or using Nexus services, you acknowledge the data processing practices described in this policy.
                 </p>
               </div>
@@ -138,19 +138,19 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">2. Merchant vs Customer Data (Controller & Processor Roles)</h2>
                 </div>
-                <p className="text-white/70 leading-relaxed">
+                <p className="text-body leading-relaxed">
                   Under global data protection legislation including the European Union General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA):
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
                     <h4 className="font-bold text-[#FFBD2E] text-sm">Nexus as Data Controller</h4>
-                    <p className="text-xs text-white/60 leading-relaxed">
+                    <p className="text-xs text-secondary leading-relaxed">
                       We act as the Data Controller for your Nexus merchant account information, billing details, staff logins, and technical telemetry collected when you manage your store.
                     </p>
                   </div>
                   <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
                     <h4 className="font-bold text-[#27C93F] text-sm">Nexus as Data Processor</h4>
-                    <p className="text-xs text-white/60 leading-relaxed">
+                    <p className="text-xs text-secondary leading-relaxed">
                       You (the Merchant) are the Data Controller for your end-customers' personal data (names, shipping addresses, order histories). Nexus acts strictly as a Data Processor under your explicit direction.
                     </p>
                   </div>
@@ -165,11 +165,11 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">3. Data We Collect & Method of Collection</h2>
                 </div>
-                <div className="space-y-4 text-white/70 text-sm">
+                <div className="space-y-4 text-body text-sm">
                   <p className="leading-relaxed">
                     We collect personal and transactional data through direct merchant input, automated storefront cookies, API webhooks, and integrated payment terminals:
                   </p>
-                  <ul className="space-y-2.5 list-disc list-inside text-white/80">
+                  <ul className="space-y-2.5 list-disc list-inside text-strong">
                     <li><strong className="text-white">Merchant Account Profile:</strong> Full name, corporate email address, phone number, store domain, tax identification number, and bank settlement details.</li>
                     <li><strong className="text-white">Store Buyer Information:</strong> Customer billing & shipping address, recipient phone number, items purchased, cart history, and order notes.</li>
                     <li><strong className="text-white">Financial & Payment Data:</strong> Credit card tokenized numbers, bank routing tokens, Shop Pay 1-click credentials, and transaction risk scores.</li>
@@ -189,7 +189,7 @@ export function PrivacyPolicyPage() {
                     <p className="text-xs text-[#FFBD2E] font-semibold">Strict Tenant Isolation & Zero Model Training</p>
                   </div>
                 </div>
-                <p className="text-white/80 leading-relaxed text-sm">
+                <p className="text-strong leading-relaxed text-sm">
                   NexusIQ powers automated product descriptions, customer support chatbots, sales forecasting, and inventory optimization. We maintain strict ethical AI standards:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -197,7 +197,7 @@ export function PrivacyPolicyPage() {
                     <div className="flex items-center gap-2 text-[#27C93F] text-xs font-bold">
                       <CheckCircle2 size={14} /> Zero Public LLM Training
                     </div>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-secondary">
                       Your store's proprietary sales numbers, catalog data, and customer chat logs are NEVER used to train shared public foundation models.
                     </p>
                   </div>
@@ -205,7 +205,7 @@ export function PrivacyPolicyPage() {
                     <div className="flex items-center gap-2 text-[#27C93F] text-xs font-bold">
                       <CheckCircle2 size={14} /> Encrypted Vector Storage
                     </div>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-secondary">
                       All embeddings generated for NexusIQ store searches are encrypted in single-tenant vector stores isolated by merchant ID.
                     </p>
                   </div>
@@ -220,10 +220,10 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">5. Global Compliance (GDPR, CCPA & International Transfers)</h2>
                 </div>
-                <p className="text-white/70 leading-relaxed text-sm">
+                <p className="text-body leading-relaxed text-sm">
                   Nexus maintains full compliance with the European Union General Data Protection Regulation (GDPR), UK GDPR, California Consumer Privacy Act (CCPA/CPRA), and Brazil LGPD:
                 </p>
-                <div className="space-y-3 text-xs text-white/70">
+                <div className="space-y-3 text-xs text-body">
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                     <strong className="text-white text-sm block mb-1">Standard Contractual Clauses (SCCs)</strong>
                     Cross-border transfers of European buyer data to US data centers are executed under approved EU Standard Contractual Clauses with supplemental encryption measures.
@@ -243,12 +243,12 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">6. Approved Sub-Processors</h2>
                 </div>
-                <p className="text-white/70 text-sm">
+                <p className="text-body text-sm">
                   To deliver seamless store hosting, payments, and shipping, Nexus engages vetted third-party sub-processors bound by data processing agreements:
                 </p>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-white/80">
-                    <thead className="bg-white/5 text-white/40 uppercase tracking-wider text-[10px]">
+                  <table className="w-full text-left text-xs text-strong">
+                    <thead className="bg-white/5 text-muted uppercase tracking-wider text-[10px]">
                       <tr>
                         <th className="py-3 px-4 rounded-l-lg">Sub-Processor Name</th>
                         <th className="py-3 px-4">Service Provided</th>
@@ -259,7 +259,7 @@ export function PrivacyPolicyPage() {
                       {subprocessors.map((sp, idx) => (
                         <tr key={idx} className="hover:bg-white/5">
                           <td className="py-3 px-4 font-semibold text-white">{sp.name}</td>
-                          <td className="py-3 px-4 text-white/60">{sp.role}</td>
+                          <td className="py-3 px-4 text-secondary">{sp.role}</td>
                           <td className="py-3 px-4 text-[#FFBD2E] font-medium">{sp.location}</td>
                         </tr>
                       ))}
@@ -276,21 +276,21 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">7. Security Safeguards & Data Retention</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   We implement enterprise-grade technical and organizational security standards across all systems:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
                     <span className="text-[#27C93F] font-bold block">TLS 1.3 & AES-256</span>
-                    <p className="text-white/50">All data in transit is encrypted using TLS 1.3. Databases are encrypted at rest with AES-256 keys.</p>
+                    <p className="text-muted">All data in transit is encrypted using TLS 1.3. Databases are encrypted at rest with AES-256 keys.</p>
                   </div>
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
                     <span className="text-[#FFBD2E] font-bold block">SOC 2 Type II</span>
-                    <p className="text-white/50">Audited annually by independent cybersecurity firms for security, availability, and confidentiality.</p>
+                    <p className="text-muted">Audited annually by independent cybersecurity firms for security, availability, and confidentiality.</p>
                   </div>
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
                     <span className="text-[#FF5F56] font-bold block">7-Year Retention</span>
-                    <p className="text-white/50">Financial transaction logs are retained for 7 years to satisfy statutory tax obligations, then purged.</p>
+                    <p className="text-muted">Financial transaction logs are retained for 7 years to satisfy statutory tax obligations, then purged.</p>
                   </div>
                 </div>
               </div>
@@ -303,7 +303,7 @@ export function PrivacyPolicyPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-white">8. Your Data Rights & Data Subject Request Portal</h2>
                 </div>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   As a merchant or customer, you have the right to request access to, correction of, or permanent deletion of your personal data stored on Nexus servers.
                 </p>
 
@@ -321,8 +321,8 @@ export function PrivacyPolicyPage() {
                     <form onSubmit={handleDsarSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-white/60 mb-1">Your Email Address</label>
-                          <input
+                          <label htmlFor="privacypolicypage-your-email-address-1" className="block text-xs text-secondary mb-1">Your Email Address</label>
+                          <input id="privacypolicypage-your-email-address-1"
                             type="email"
                             required
                             value={dsarEmail}
@@ -332,8 +332,8 @@ export function PrivacyPolicyPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-white/60 mb-1">Request Type</label>
-                          <select
+                          <label htmlFor="privacypolicypage-request-type-2" className="block text-xs text-secondary mb-1">Request Type</label>
+                          <select id="privacypolicypage-request-type-2"
                             value={dsarRequestType}
                             onChange={(e) => setDsarRequestType(e.target.value)}
                             className="w-full px-3.5 py-2.5 rounded-lg bg-[#15182b] border border-white/10 text-white text-xs focus:outline-none focus:border-[#FFBD2E]"
@@ -351,7 +351,7 @@ export function PrivacyPolicyPage() {
                   )}
                 </div>
 
-                <div className="text-xs text-white/40 pt-4 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="text-xs text-muted pt-4 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <span>Data Protection Officer (DPO): dpo@nexuscommerce.io</span>
                   <span>Nexus Legal HQ: 100 Commerce Way, San Francisco, CA 94105</span>
                 </div>

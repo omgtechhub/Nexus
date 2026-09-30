@@ -54,7 +54,7 @@ export function CookiePolicyPage() {
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
                 Nexus Commerce <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F]">Cookie Policy</span>
               </h1>
-              <p className="text-lg text-white/60 leading-relaxed mb-6">
+              <p className="text-lg text-secondary leading-relaxed mb-6">
                 We believe in full transparency regarding how cookies, local storage, and tracking scripts operate across Nexus platform administration tools and merchant storefronts.
               </p>
             </div>
@@ -73,7 +73,7 @@ export function CookiePolicyPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">Your Cookie Preferences</h3>
-                    <p className="text-xs text-white/50">Manage your active tracking permissions</p>
+                    <p className="text-xs text-muted">Manage your active tracking permissions</p>
                   </div>
                 </div>
 
@@ -82,7 +82,7 @@ export function CookiePolicyPage() {
                   <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white block">Strictly Necessary</span>
-                      <span className="text-[11px] text-white/40">Required for login & shopping cart</span>
+                      <span className="text-[11px] text-muted">Required for login & shopping cart</span>
                     </div>
                     <span className="text-xs text-[#27C93F] font-bold px-2 py-1 bg-[#27C93F]/10 rounded">Always Active</span>
                   </div>
@@ -91,10 +91,10 @@ export function CookiePolicyPage() {
                   <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white block">Functional & Preferences</span>
-                      <span className="text-[11px] text-white/40">Remembers currency & store language</span>
+                      <span className="text-[11px] text-muted">Remembers currency & store language</span>
                     </div>
                     <button onClick={() => togglePref('functional')} className="text-[#FFBD2E]">
-                      {preferences.functional ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-white/30" />}
+                      {preferences.functional ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
                     </button>
                   </div>
 
@@ -102,10 +102,10 @@ export function CookiePolicyPage() {
                   <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white block">Performance & Analytics</span>
-                      <span className="text-[11px] text-white/40">Anonymous store usage analytics</span>
+                      <span className="text-[11px] text-muted">Anonymous store usage analytics</span>
                     </div>
                     <button onClick={() => togglePref('analytics')} className="text-[#FFBD2E]">
-                      {preferences.analytics ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-white/30" />}
+                      {preferences.analytics ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
                     </button>
                   </div>
 
@@ -113,10 +113,10 @@ export function CookiePolicyPage() {
                   <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white block">Marketing & Retargeting</span>
-                      <span className="text-[11px] text-white/40">Ad campaign conversion tracking</span>
+                      <span className="text-[11px] text-muted">Ad campaign conversion tracking</span>
                     </div>
                     <button onClick={() => togglePref('marketing')} className="text-[#FFBD2E]">
-                      {preferences.marketing ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-white/30" />}
+                      {preferences.marketing ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
                     </button>
                   </div>
                 </div>
@@ -139,10 +139,10 @@ export function CookiePolicyPage() {
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   <Info size={22} className="text-[#FFBD2E]" /> What are Cookies & Local Storage?
                 </h2>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   Cookies are small text files placed on your computer or mobile device when you visit websites. They are widely used to make websites work efficiently, remember your preferences (such as shopping cart contents or currency selection), and provide analytics information to store owners.
                 </p>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   Nexus uses both first-party cookies (set directly by Nexus Commerce) and third-party cookies (set by authorized service providers like Cloudflare, Stripe, or Google Analytics).
                 </p>
               </div>
@@ -153,8 +153,8 @@ export function CookiePolicyPage() {
                   <Server size={22} className="text-[#27C93F]" /> Platform Cookie Audit & Directory
                 </h2>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-white/80">
-                    <thead className="bg-white/5 text-white/40 uppercase tracking-wider text-[10px]">
+                  <table className="w-full text-left text-xs text-strong">
+                    <thead className="bg-white/5 text-muted uppercase tracking-wider text-[10px]">
                       <tr>
                         <th className="py-3 px-4 rounded-l-lg">Cookie Name</th>
                         <th className="py-3 px-4">Category</th>
@@ -167,8 +167,8 @@ export function CookiePolicyPage() {
                         <tr key={idx} className="hover:bg-white/5">
                           <td className="py-3 px-4 font-mono text-[#FFBD2E]">{c.name}</td>
                           <td className="py-3 px-4 font-medium text-white">{c.category}</td>
-                          <td className="py-3 px-4 text-white/60">{c.duration}</td>
-                          <td className="py-3 px-4 text-white/70">{c.purpose}</td>
+                          <td className="py-3 px-4 text-secondary">{c.duration}</td>
+                          <td className="py-3 px-4 text-body">{c.purpose}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -181,12 +181,12 @@ export function CookiePolicyPage() {
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   <ShieldCheck size={22} className="text-[#FF5F56]" /> Guidance for Merchant Storefront Owners
                 </h2>
-                <p className="text-white/70 text-sm leading-relaxed">
+                <p className="text-body text-sm leading-relaxed">
                   If you run an e-commerce store on Nexus selling to buyers in the European Union, United Kingdom, or California, you are required by law to display a compliant Cookie Consent Banner.
                 </p>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs">
                   <span className="text-[#FFBD2E] font-bold block">Consent on your storefront</span>
-                  <p className="text-white/60">
+                  <p className="text-secondary">
                     Nexus does not yet ship a consent banner for merchant storefronts. If
                     you add marketing or analytics scripts to your storefront, you are
                     responsible for collecting the consent your jurisdiction requires

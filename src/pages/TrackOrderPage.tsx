@@ -38,7 +38,7 @@ export function TrackOrderPage() {
       <main id="main" className="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6 sm:pt-32">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Track your order</h1>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/50">
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
             Enter your order number and the email address you used at checkout.
             You don&apos;t need an account.
           </p>
@@ -85,7 +85,7 @@ export function TrackOrderPage() {
 
           <div aria-live="polite" className="min-h-0">
             {track.isError && (
-              <p className="mt-4 rounded-xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 px-4 py-3 text-sm text-white/80">
+              <p className="mt-4 rounded-xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 px-4 py-3 text-sm text-strong">
                 {(track.error as Error)?.message ||
                   'No order matches that order number and email address.'}
               </p>
@@ -99,7 +99,7 @@ export function TrackOrderPage() {
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-mono text-lg font-bold text-[#FFBD2E]">{order.orderNumber}</p>
-                  <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-white/50">
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted">
                     <Store size={13} aria-hidden="true" />
                     {order.storeName}
                   </p>
@@ -128,9 +128,9 @@ export function TrackOrderPage() {
                   <li key={item.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-white">{item.productTitle}</p>
-                      <p className="mt-0.5 text-xs text-white/40">Qty {item.quantity}</p>
+                      <p className="mt-0.5 text-xs text-muted">Qty {item.quantity}</p>
                     </div>
-                    <span className="flex-shrink-0 font-mono text-sm text-white/80">
+                    <span className="flex-shrink-0 font-mono text-sm text-strong">
                       {formatMoney(item.price * item.quantity, order.currency)}
                     </span>
                   </li>
@@ -145,7 +145,7 @@ export function TrackOrderPage() {
             {order.shippingAddress && (
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
                 <h2 className="mb-3 text-sm font-semibold text-white">Delivery address</h2>
-                <address className="text-sm not-italic leading-relaxed text-white/60">
+                <address className="text-sm not-italic leading-relaxed text-secondary">
                   {order.shippingAddress.firstName} {order.shippingAddress.lastName}<br />
                   {order.shippingAddress.address1}<br />
                   {order.shippingAddress.address2 && <>{order.shippingAddress.address2}<br /></>}
@@ -160,12 +160,12 @@ export function TrackOrderPage() {
         )}
 
         {!order && !track.isPending && (
-          <p className="mt-10 text-center text-sm text-white/40">
+          <p className="mt-10 text-center text-sm text-muted">
             <Package size={16} className="mx-auto mb-2 opacity-60" aria-hidden="true" />
             Have a Nexus account?{' '}
             <Link
               to="/account/orders"
-              className="rounded text-white/70 underline underline-offset-2 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+              className="rounded text-body underline underline-offset-2 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
             >
               See all your orders
             </Link>

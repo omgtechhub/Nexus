@@ -6,8 +6,8 @@ const DOT = {
   done: 'bg-[#27C93F] text-black border-[#27C93F]',
   active: 'bg-[#FFBD2E] text-black border-[#FFBD2E]',
   failed: 'bg-[#FF5F56] text-white border-[#FF5F56]',
-  cancelled: 'bg-white/5 text-white/30 border-white/15',
-  pending: 'bg-white/5 text-white/30 border-white/15',
+  cancelled: 'bg-white/5 text-muted border-white/15',
+  pending: 'bg-white/5 text-muted border-white/15',
 } as const;
 
 function StepIcon({ state }: { state: ProgressStep['state'] }) {
@@ -48,7 +48,7 @@ export function OrderProgress({ steps }: { steps: ProgressStep[] }) {
               <p
                 className={cn(
                   'text-sm font-semibold',
-                  step.state === 'pending' || step.state === 'cancelled' ? 'text-white/40' : 'text-white'
+                  step.state === 'pending' || step.state === 'cancelled' ? 'text-muted' : 'text-white'
                 )}
               >
                 {step.label}
@@ -63,7 +63,7 @@ export function OrderProgress({ steps }: { steps: ProgressStep[] }) {
                         : 'not started'}
                 </span>
               </p>
-              {step.detail && <p className="mt-0.5 text-xs text-white/50">{step.detail}</p>}
+              {step.detail && <p className="mt-0.5 text-xs text-muted">{step.detail}</p>}
             </div>
           </li>
         );
@@ -86,7 +86,7 @@ export function TrackingDetails({
     <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
       <Truck size={16} className="mt-0.5 flex-shrink-0 text-[#27C93F]" aria-hidden="true" />
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
           {carrier || 'Carrier'}
         </p>
         {trackingNumber && (

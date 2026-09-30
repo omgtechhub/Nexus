@@ -137,9 +137,9 @@ export function AdminPlans() {
           </div>
 
           <fieldset className="mt-5">
-            <legend className="mb-2 text-sm font-medium text-white/70">Capabilities</legend>
+            <legend className="mb-2 text-sm font-medium text-body">Capabilities</legend>
             <div className="space-y-2.5">
-              <label className="flex items-center gap-2.5 text-sm text-white/70">
+              <label className="flex items-center gap-2.5 text-sm text-body">
                 <input
                   type="checkbox"
                   checked={form.customDomainAllowed}
@@ -148,7 +148,7 @@ export function AdminPlans() {
                 />
                 Custom domains
               </label>
-              <label className="flex items-center gap-2.5 text-sm text-white/70">
+              <label className="flex items-center gap-2.5 text-sm text-body">
                 <input
                   type="checkbox"
                   checked={form.advancedAnalyticsAllowed}
@@ -171,8 +171,8 @@ export function AdminPlans() {
 
       {plans.length === 0 && !showForm ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-          <Layers size={20} className="mx-auto mb-3 text-white/30" aria-hidden="true" />
-          <p className="text-sm text-white/60">
+          <Layers size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
+          <p className="text-sm text-secondary">
             No plans yet. Merchants cannot subscribe until at least one exists.
           </p>
         </div>
@@ -189,7 +189,7 @@ export function AdminPlans() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 font-mono text-[11px] uppercase text-[#FFBD2E]">{plan.code}</p>
-                  <p className="mt-2 text-sm text-white/50">{plan.description}</p>
+                  <p className="mt-2 text-sm text-muted">{plan.description}</p>
                 </div>
                 <Button
                   variant="secondary"
@@ -203,8 +203,8 @@ export function AdminPlans() {
 
               <div className="mt-4 flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-white">{money(plan.monthlyPrice)}</span>
-                <span className="text-xs text-white/40">per month</span>
-                <span className="ml-auto text-xs text-white/40">{money(plan.annualPrice)} annually</span>
+                <span className="text-xs text-muted">per month</span>
+                <span className="ml-auto text-xs text-muted">{money(plan.annualPrice)} annually</span>
               </div>
 
               <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-white/10 pt-4 text-xs">
@@ -229,14 +229,14 @@ export function AdminPlans() {
 function Limit({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <dt className="text-white/40">{label}</dt>
-      <dd className="mt-0.5 font-mono text-sm text-white/80">{value}</dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className="mt-0.5 font-mono text-sm text-strong">{value}</dd>
     </div>
   );
 }
 
 function Capability({ children }: { children: React.ReactNode }) {
   return (
-    <li className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-white/60">{children}</li>
+    <li className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-secondary">{children}</li>
   );
 }

@@ -139,7 +139,7 @@ export function PricingPage() {
             <Zap size={16} />
             <span>Transparent Merchant Pricing</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#27C93F]" />
-            <span className="text-white/60">No hidden transaction fees</span>
+            <span className="text-secondary">No hidden transaction fees</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6">
@@ -147,27 +147,27 @@ export function PricingPage() {
             <span className="text-gradient">every stage of e-commerce.</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg sm:text-xl text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
             Start free for 14 days. Scale as your sales volume grows. All plans include global CDN, free SSL certificates, and NexusIQ AI integration.
           </p>
 
           <div className="inline-flex items-center gap-3 p-1.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition ${
                 billingCycle === 'monthly'
                   ? 'bg-white/20 text-white shadow-md'
-                  : 'text-white/60 hover:text-white'
+                  : 'text-secondary hover:text-white'
               }`}
             >
               Monthly Billing
             </button>
             <button
               onClick={() => setBillingCycle('annual')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition ${
                 billingCycle === 'annual'
                   ? 'bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-black shadow-md font-bold'
-                  : 'text-white/60 hover:text-white'
+                  : 'text-secondary hover:text-white'
               }`}
             >
               <span>Annual Billing</span>
@@ -191,7 +191,7 @@ export function PricingPage() {
               return (
                 <div
                   key={plan.id}
-                  className={`glass rounded-3xl p-8 border transition-all flex flex-col justify-between relative ${
+                  className={`glass rounded-3xl p-8 border transition flex flex-col justify-between relative ${
                     plan.highlighted
                       ? 'border-[#FFBD2E]/60 shadow-2xl bg-gradient-to-b from-[#FFBD2E]/10 via-[#090b16] to-[#090b16] scale-[1.03]'
                       : 'border-white/10 hover:border-white/25'
@@ -205,7 +205,7 @@ export function PricingPage() {
 
                   <div>
                     <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                    <p className="text-xs text-white/50 mb-6 min-h-[36px]">{plan.description}</p>
+                    <p className="text-xs text-muted mb-6 min-h-[36px]">{plan.description}</p>
 
                     <div className="mb-6 pb-6 border-b border-white/10">
                       <div className="flex items-baseline gap-1">
@@ -213,7 +213,7 @@ export function PricingPage() {
                           {typeof price === 'number' ? `$${price}` : price}
                         </span>
                         {typeof price === 'number' && (
-                          <span className="text-xs text-white/40">/ month</span>
+                          <span className="text-xs text-muted">/ month</span>
                         )}
                       </div>
                       {billingCycle === 'annual' && typeof price === 'number' && (
@@ -223,7 +223,7 @@ export function PricingPage() {
                       )}
                     </div>
 
-                    <ul className="space-y-3 mb-8 text-xs text-white/80">
+                    <ul className="space-y-3 mb-8 text-xs text-strong">
                       {plan.features.map((feat, idx) => (
                         <li key={idx} className="flex items-center gap-2.5">
                           <CheckCircle2 size={16} className="text-[#27C93F] shrink-0" />
@@ -257,7 +257,7 @@ export function PricingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Interactive Merchant Plan Recommender
             </h2>
-            <p className="text-white/60 max-w-2xl mx-auto text-sm sm:text-base">
+            <p className="text-secondary max-w-2xl mx-auto text-sm sm:text-base">
               Slide your estimated monthly sales volume and team size to find your optimal merchant tier.
             </p>
           </div>
@@ -267,13 +267,14 @@ export function PricingPage() {
               <div className="md:col-span-7 space-y-6">
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-semibold text-white/80">Estimated Monthly Store Sales (GMV):</label>
+                    <label className="text-sm font-semibold text-strong">Estimated Monthly Store Sales (GMV):</label>
                     <span className="text-xl font-bold text-[#FFBD2E]">
                       ${gmv.toLocaleString()} / mo
                     </span>
                   </div>
                   <input
                     type="range"
+                    aria-label="Monthly sales volume"
                     min={2000}
                     max={300000}
                     step={5000}
@@ -285,13 +286,14 @@ export function PricingPage() {
 
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-semibold text-white/80">Staff Team Accounts Needed:</label>
+                    <label className="text-sm font-semibold text-strong">Staff Team Accounts Needed:</label>
                     <span className="text-xl font-bold text-[#27C93F]">
                       {staffSeats} accounts
                     </span>
                   </div>
                   <input
                     type="range"
+                    aria-label="Staff accounts"
                     min={1}
                     max={30}
                     step={1}
@@ -303,7 +305,7 @@ export function PricingPage() {
               </div>
 
               <div className="md:col-span-5 glass rounded-2xl p-6 border border-[#FFBD2E]/40 bg-[#090b16] text-center">
-                <div className="text-xs text-white/40 uppercase font-mono mb-1">Recommended Merchant Plan</div>
+                <div className="text-xs text-muted uppercase font-mono mb-1">Recommended Merchant Plan</div>
                 <div className="text-3xl font-extrabold text-white mb-2">{recommended} Plan</div>
                 <div className="text-xs text-[#27C93F] font-semibold mb-4">
                   Fits your ${gmv.toLocaleString()} GMV & {staffSeats} staff seats.
@@ -329,7 +331,7 @@ export function PricingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-white/60 text-sm sm:text-base">
+            <p className="text-secondary text-sm sm:text-base">
               Got questions about merchant billing or store plans? We’ve got answers.
             </p>
           </div>
@@ -338,7 +340,7 @@ export function PricingPage() {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="glass rounded-2xl border border-white/10 overflow-hidden transition-all"
+                className="glass rounded-2xl border border-white/10 overflow-hidden transition-colors"
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
@@ -348,11 +350,11 @@ export function PricingPage() {
                   {openFaq === idx ? (
                     <ChevronUp size={20} className="text-[#FFBD2E] shrink-0" />
                   ) : (
-                    <ChevronDown size={20} className="text-white/40 shrink-0" />
+                    <ChevronDown size={20} className="text-muted shrink-0" />
                   )}
                 </button>
                 {openFaq === idx && (
-                  <div className="px-6 pb-6 text-sm text-white/60 leading-relaxed border-t border-white/5 pt-4">
+                  <div className="px-6 pb-6 text-sm text-secondary leading-relaxed border-t border-white/5 pt-4">
                     {faq.a}
                   </div>
                 )}
@@ -369,7 +371,7 @@ export function PricingPage() {
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">
             Start your 14-day free store trial
           </h2>
-          <p className="text-white/60 text-lg mb-8 max-w-xl mx-auto">
+          <p className="text-secondary text-lg mb-8 max-w-xl mx-auto">
             Experience the full power of Nexus with zero risk and no credit card required.
           </p>
           <Button

@@ -6,6 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { useCustomersQuery } from '../../hooks/useQueries';
 import toast from 'react-hot-toast';
 
+import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
@@ -48,6 +49,10 @@ export function Customers() {
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useDismissOnEscape(Boolean(selectedCustomer), () => setSelectedCustomer(null));
+  useDismissOnEscape(showAddCustomerModal, () => setShowAddCustomerModal(false));
+  useDismissOnEscape(showComposeEmailModal, () => setShowComposeEmailModal(false));
 
   const handleCreateCustomer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +113,7 @@ export function Customers() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <p className="text-white/40 text-sm">{customersList.length} customers</p>
+        <p className="text-muted text-sm">{customersList.length} customers</p>
         <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setShowAddCustomerModal(true)}>
           Add customer
         </Button>
@@ -116,11 +121,11 @@ export function Customers() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-        <input
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input aria-label="Search customers"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search customers..."
+          placeholder="Search customers…"
           className="form-input pl-9 h-9 text-sm"
         />
       </div>
@@ -145,7 +150,7 @@ export function Customers() {
             <button
               key={customer.id}
               onClick={() => setSelectedCustomer(customer)}
-              className="stat-card p-5 text-left hover:border-[#FFBD2E]/30 transition-all cursor-pointer"
+              className="stat-card p-5 text-left hover:border-[#FFBD2E]/30 transition-colors cursor-pointer"
             >
               <div className="flex items-start gap-3 mb-4">
                 <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColors[index % avatarColors.length]} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md`}>
@@ -153,9 +158,9 @@ export function Customers() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold text-white truncate">{customer.name}</h3>
-                  <p className="text-xs text-white/40 truncate">{customer.email}</p>
+                  <p className="text-xs text-muted truncate">{customer.email}</p>
                   {customer.location && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-white/30">
+                    <div className="flex items-center gap-1 mt-1 text-xs text-muted">
                       <MapPin size={10} />
                       {customer.location}
                     </div>
@@ -169,19 +174,19 @@ export function Customers() {
                     <ShoppingBag size={12} />
                   </div>
                   <div className="text-sm font-bold text-white">{customer.totalOrders}</div>
-                  <div className="text-[10px] text-white/30">Orders</div>
+                  <div className="text-[10px] text-muted">Orders</div>
                 </div>
                 <div className="bg-white/5 rounded-xl p-2.5 text-center">
                   <div className="flex items-center justify-center gap-1 text-[#27C93F] mb-1">
                     <DollarSign size={12} />
                   </div>
                   <div className="text-sm font-bold text-white">{formatCurrency(customer.totalSpent)}</div>
-                  <div className="text-[10px] text-white/30">Spent</div>
+                  <div className="text-[10px] text-muted">Spent</div>
                 </div>
               </div>
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                <span className="text-[10px] text-white/25">
+                <span className="text-[10px] text-muted">
                   Customer since {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </span>
                 {customer.totalSpent > 1000 && (
@@ -196,11 +201,11 @@ export function Customers() {
       {/* Customer detail modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedCustomer(null)} />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedCustomer(null)} aria-hidden="true" />
           <div className="relative bg-[#121528] border border-white/20 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Customer Profile</h2>
-              <button onClick={() => setSelectedCustomer(null)} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">✕</button>
+              <button onClick={() => setSelectedCustomer(null)} className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors">✕</button>
             </div>
             <div className="p-6 space-y-5">
               <div className="flex items-center gap-4">
@@ -218,19 +223,19 @@ export function Customers() {
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm text-white/60">
-                  <Mail size={14} className="text-white/30 flex-shrink-0" />
+                <div className="flex items-center gap-3 text-sm text-secondary">
+                  <Mail size={14} className="text-muted flex-shrink-0" />
                   {selectedCustomer.email}
                 </div>
                 {selectedCustomer.phone && (
-                  <div className="flex items-center gap-3 text-sm text-white/60">
-                    <Phone size={14} className="text-white/30 flex-shrink-0" />
+                  <div className="flex items-center gap-3 text-sm text-secondary">
+                    <Phone size={14} className="text-muted flex-shrink-0" />
                     {selectedCustomer.phone}
                   </div>
                 )}
                 {selectedCustomer.location && (
-                  <div className="flex items-center gap-3 text-sm text-white/60">
-                    <MapPin size={14} className="text-white/30 flex-shrink-0" />
+                  <div className="flex items-center gap-3 text-sm text-secondary">
+                    <MapPin size={14} className="text-muted flex-shrink-0" />
                     {selectedCustomer.location}
                   </div>
                 )}
@@ -239,11 +244,11 @@ export function Customers() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="glass rounded-xl p-4 text-center border border-white/5">
                   <div className="text-xl font-bold text-white">{selectedCustomer.totalOrders}</div>
-                  <div className="text-xs text-white/40 mt-0.5">Total Orders</div>
+                  <div className="text-xs text-muted mt-0.5">Total Orders</div>
                 </div>
                 <div className="glass rounded-xl p-4 text-center border border-white/5">
                   <div className="text-xl font-bold text-[#27C93F]">{formatCurrency(selectedCustomer.totalSpent)}</div>
-                  <div className="text-xs text-white/40 mt-0.5">Total Spent</div>
+                  <div className="text-xs text-muted mt-0.5">Total Spent</div>
                 </div>
               </div>
 
@@ -274,15 +279,15 @@ export function Customers() {
       {/* Add Customer Modal */}
       {showAddCustomerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAddCustomerModal(false)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAddCustomerModal(false)} aria-hidden="true" />
           <div className="relative z-10 w-full max-w-md bg-[#121528] border border-white/20 p-6 rounded-2xl shadow-2xl space-y-4">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <UserPlus className="text-[#FFBD2E]" size={20} /> Add New Customer
             </h3>
             <form onSubmit={handleCreateCustomer} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Full Name</label>
-                <input
+                <label className="block text-xs font-semibold text-body mb-1">Full Name</label>
+                <input aria-label="e.g. Jane Doe"
                   required
                   className="form-input bg-[#121528] text-white"
                   placeholder="e.g. Jane Doe"
@@ -291,8 +296,8 @@ export function Customers() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Email Address</label>
-                <input
+                <label className="block text-xs font-semibold text-body mb-1">Email Address</label>
+                <input aria-label="jane@example.com"
                   required
                   type="email"
                   className="form-input bg-[#121528] text-white"
@@ -302,8 +307,8 @@ export function Customers() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Phone Number</label>
-                <input
+                <label className="block text-xs font-semibold text-body mb-1">Phone Number</label>
+                <input aria-label="+1 (555) 000-0000"
                   type="tel"
                   className="form-input bg-[#121528] text-white"
                   placeholder="+1 (555) 000-0000"
@@ -312,8 +317,8 @@ export function Customers() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Location</label>
-                <input
+                <label className="block text-xs font-semibold text-body mb-1">Location</label>
+                <input aria-label="e.g. San Francisco, US"
                   className="form-input bg-[#121528] text-white"
                   placeholder="e.g. San Francisco, US"
                   value={location}
@@ -322,7 +327,7 @@ export function Customers() {
               </div>
               <div className="flex gap-2 pt-3">
                 <Button type="submit" variant="primary" size="md" fullWidth disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving customer...' : 'Save Customer'}
+                  {isSubmitting ? 'Saving customer…' : 'Save Customer'}
                 </Button>
                 <Button type="button" variant="ghost" size="md" onClick={() => setShowAddCustomerModal(false)}>Cancel</Button>
               </div>
@@ -334,16 +339,16 @@ export function Customers() {
       {/* Compose Email Modal */}
       {showComposeEmailModal && selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowComposeEmailModal(false)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowComposeEmailModal(false)} aria-hidden="true" />
           <div className="relative z-10 w-full max-w-lg bg-[#121528] border border-white/20 p-6 rounded-2xl shadow-2xl space-y-4">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Mail className="text-[#FFBD2E]" size={20} /> Email {selectedCustomer.name}
             </h3>
-            <p className="text-xs text-white/40">Recipient: {selectedCustomer.email}</p>
+            <p className="text-xs text-muted">Recipient: {selectedCustomer.email}</p>
             <form onSubmit={handleSendEmail} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Subject</label>
-                <input
+                <label className="block text-xs font-semibold text-body mb-1">Subject</label>
+                <input aria-label="e.g. Special offer for your next order!"
                   required
                   className="form-input bg-[#121528] text-white"
                   placeholder="e.g. Special offer for your next order!"
@@ -352,12 +357,12 @@ export function Customers() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Message Body</label>
-                <textarea
+                <label htmlFor="customers-message-body-2" className="block text-xs font-semibold text-body mb-1">Message Body</label>
+                <textarea id="customers-message-body-2"
                   required
                   rows={4}
                   className="form-input bg-[#121528] text-white resize-none"
-                  placeholder="Write your email message..."
+                  placeholder="Write your email message…"
                   value={emailBody}
                   onChange={e => setEmailBody(e.target.value)}
                 />

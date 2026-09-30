@@ -91,7 +91,7 @@ export function CustomerAddresses() {
             <Input label="Country" id="addr-country" value={form.country} onChange={set('country')} autoComplete="country-name" required />
           </div>
 
-          <label className="mt-4 flex items-center gap-2.5 text-sm text-white/70">
+          <label className="mt-4 flex items-center gap-2.5 text-sm text-body">
             <input
               type="checkbox"
               checked={form.isDefault}
@@ -140,7 +140,7 @@ export function CustomerAddresses() {
                   <Star size={10} aria-hidden="true" /> Default
                 </span>
               )}
-              <address className="text-sm not-italic leading-relaxed text-white/70">
+              <address className="text-sm not-italic leading-relaxed text-body">
                 <span className="font-medium text-white">
                   {address.firstName} {address.lastName}
                 </span><br />
@@ -154,7 +154,7 @@ export function CustomerAddresses() {
                 type="button"
                 onClick={() => handleDelete(address.id)}
                 aria-label={`Remove address for ${address.firstName} ${address.lastName}`}
-                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-[#FF5F56]/10 hover:text-[#FF5F56] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5F56]"
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-[#FF5F56]/10 hover:text-[#FF5F56] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5F56]"
               >
                 <Trash2 size={15} aria-hidden="true" />
               </button>

@@ -31,7 +31,7 @@ export function AdminInvoices() {
                   <span className="font-mono text-sm font-semibold text-[#FFBD2E]">{inv.invoiceNumber}</span>
                   <Badge variant={statusTone(inv.status)} size="sm">{titleCase(inv.status)}</Badge>
                 </div>
-                <p className="mt-1 text-xs text-white/40">
+                <p className="mt-1 text-xs text-muted">
                   {shortDate(inv.periodStart)} – {shortDate(inv.periodEnd)}
                   {inv.paidAt && ` · paid ${shortDate(inv.paidAt)}`}
                 </p>
@@ -69,29 +69,29 @@ export function AdminTransactions() {
               <caption className="sr-only">Billing transactions across all stores</caption>
               <thead className="bg-white/5">
                 <tr>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Store</th>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Type</th>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Provider</th>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Reference</th>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Status</th>
-                  <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-white/40">Amount</th>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-white/40">Date</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Store</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Type</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Provider</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Reference</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Status</th>
+                  <th scope="col" className="p-4 text-right text-xs font-semibold uppercase tracking-wider text-muted">Amount</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map(tx => (
                   <tr key={tx.id} className="border-t border-white/5 hover:bg-white/[0.03]">
-                    <td className="p-4 text-sm text-white/80">{tx.store?.name ?? '—'}</td>
-                    <td className="p-4 text-xs text-white/60">{titleCase(tx.type)}</td>
-                    <td className="p-4 text-xs text-white/60">{titleCase(tx.provider)}</td>
-                    <td className="p-4 font-mono text-[11px] text-white/40">{tx.providerReference}</td>
+                    <td className="p-4 text-sm text-strong">{tx.store?.name ?? '—'}</td>
+                    <td className="p-4 text-xs text-secondary">{titleCase(tx.type)}</td>
+                    <td className="p-4 text-xs text-secondary">{titleCase(tx.provider)}</td>
+                    <td className="p-4 font-mono text-[11px] text-muted">{tx.providerReference}</td>
                     <td className="p-4">
                       <Badge variant={statusTone(tx.status)} size="sm">{titleCase(tx.status)}</Badge>
                     </td>
                     <td className="p-4 text-right font-mono text-sm text-white">
                       {money(tx.amount, tx.currency)}
                     </td>
-                    <td className="p-4 text-xs text-white/50">{shortDate(tx.createdAt)}</td>
+                    <td className="p-4 text-xs text-muted">{shortDate(tx.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -106,8 +106,8 @@ export function AdminTransactions() {
 function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-      <div className="mx-auto mb-3 text-white/30">{icon}</div>
-      <p className="text-sm text-white/60">{text}</p>
+      <div className="mx-auto mb-3 text-muted">{icon}</div>
+      <p className="text-sm text-secondary">{text}</p>
     </div>
   );
 }

@@ -40,15 +40,15 @@ export function AdminLoginPage() {
             <Shield size={28} />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">Nexus App Owner Portal</h1>
-          <p className="text-xs text-white/50">Restricted Platform SuperAdmin System Administration</p>
+          <p className="text-xs text-muted">Restricted Platform SuperAdmin System Administration</p>
         </div>
 
         <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
           <div>
-            <label className="block font-bold text-white/70 mb-1">App Owner Admin Username / Email</label>
+            <label className="block font-bold text-body mb-1">App Owner Admin Username / Email</label>
             <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-              <input
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input aria-label="admin@nexus.io"
                 type="email"
                 required
                 value={email}
@@ -60,10 +60,10 @@ export function AdminLoginPage() {
           </div>
 
           <div>
-            <label className="block font-bold text-white/70 mb-1">Admin Password</label>
+            <label className="block font-bold text-body mb-1">Admin Password</label>
             <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-              <input
+              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input aria-label="••••••••••••"
                 type="password"
                 required
                 value={password}
@@ -95,7 +95,7 @@ export function AdminLoginPage() {
         <div className="text-center pt-2 border-t border-white/10">
           <button
             onClick={() => navigate('marketing')}
-            className="text-xs text-white/40 hover:text-white transition-colors"
+            className="text-xs text-muted hover:text-white transition-colors"
           >
             ← Back to Public Marketplace
           </button>

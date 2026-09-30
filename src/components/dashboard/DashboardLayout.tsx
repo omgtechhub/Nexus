@@ -53,14 +53,14 @@ export function DashboardLayout() {
       case 'notifications':
         return (
           <div className="space-y-3">
-            <p className="text-white/40 text-sm">Notification center</p>
+            <p className="text-muted text-sm">Notification center</p>
             {/* Inline notifications view */}
             <div className="stat-card p-4">
               <div className="flex items-center gap-3 mb-4">
-                <Bell size={18} className="text-white/50" />
+                <Bell size={18} className="text-muted" />
                 <h3 className="text-sm font-semibold text-white">All Notifications</h3>
               </div>
-              <p className="text-sm text-white/40 text-center py-8">Notification center — check the bell icon in the top bar for real-time updates.</p>
+              <p className="text-sm text-muted text-center py-8">Notification center — check the bell icon in the top bar for real-time updates.</p>
             </div>
           </div>
         );
@@ -77,7 +77,7 @@ export function DashboardLayout() {
 
       {/* Main content */}
       <main className={cn(
-        'transition-all duration-300 pt-16 min-h-screen',
+        'transition-colors duration-300 pt-16 min-h-screen',
         sidebarOpen ? 'ml-0 md:ml-56' : 'ml-0 md:ml-16'
       )}>
         <div className="p-3 sm:p-5 lg:p-6 max-w-full overflow-hidden">

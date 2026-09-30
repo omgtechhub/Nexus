@@ -25,7 +25,7 @@ export function AccessDenied({ message, returnTo }: { message?: string; returnTo
           <ShieldAlert size={28} aria-hidden="true" />
         </div>
         <h1 className="text-2xl font-black text-white">Access denied</h1>
-        <p className="text-xs text-white/60 leading-relaxed">
+        <p className="text-xs text-secondary leading-relaxed">
           {message || `You do not have permission to open "${location.pathname}".`}
         </p>
         <Button

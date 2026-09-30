@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass border border-white/10 rounded-xl p-3 shadow-xl">
-        <p className="text-xs text-white/50 mb-2">{label}</p>
+        <p className="text-xs text-muted mb-2">{label}</p>
         {payload.map((entry: any) => (
           <p key={entry.name} className="text-sm font-semibold" style={{ color: entry.color }}>
             {entry.name === 'revenue' ? formatCurrency(entry.value) : entry.value.toLocaleString()}
@@ -67,15 +67,16 @@ export function Analytics() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Store Analytics & Financial Metrics</h2>
-          <p className="text-xs text-white/50">Real PostgreSQL database metrics calculated live</p>
+          <p className="text-xs text-muted">Real PostgreSQL database metrics calculated live</p>
         </div>
         <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-lg border border-white/10 text-xs">
           <Calendar size={14} className="text-[#FFBD2E]" />
-          <span className="text-white/60">Range:</span>
+          <span className="text-secondary">Range:</span>
           <select
+            aria-label="Date range"
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+            className="bg-transparent text-white font-semibold cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
           >
             <option value="today" className="bg-[#15182b] text-white">Today</option>
             <option value="yesterday" className="bg-[#15182b] text-white">Yesterday</option>
@@ -91,7 +92,7 @@ export function Analytics() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(kpi => (
           <div key={kpi.label} className="stat-card p-4">
-            <p className="text-xs text-white/40 mb-2">{kpi.label}</p>
+            <p className="text-xs text-muted mb-2">{kpi.label}</p>
             <div className="text-2xl font-bold text-white mb-1">{kpi.value}</div>
             <div className={`flex items-center gap-1 text-xs font-medium ${kpi.positive ? 'text-[#27C93F]' : 'text-[#FF5F56]'}`}>
               {kpi.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -106,11 +107,11 @@ export function Analytics() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="text-sm font-semibold text-white">Revenue & Orders Trend</h3>
-            <p className="text-xs text-white/30">Net sales minus discounts & refunds</p>
+            <p className="text-xs text-muted">Net sales minus discounts & refunds</p>
           </div>
           <div className="flex items-center gap-4 text-xs">
-            <span className="flex items-center gap-1.5 text-white/50"><span className="w-3 h-0.5 bg-[#FFBD2E] rounded-full inline-block" />Revenue</span>
-            <span className="flex items-center gap-1.5 text-white/50"><span className="w-3 h-0.5 bg-[#FF5F56] rounded-full inline-block" />Orders</span>
+            <span className="flex items-center gap-1.5 text-muted"><span className="w-3 h-0.5 bg-[#FFBD2E] rounded-full inline-block" />Revenue</span>
+            <span className="flex items-center gap-1.5 text-muted"><span className="w-3 h-0.5 bg-[#FF5F56] rounded-full inline-block" />Orders</span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={280}>
@@ -153,7 +154,7 @@ export function Analytics() {
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                    <span className="text-xs text-white/60">{item.name}</span>
+                    <span className="text-xs text-secondary">{item.name}</span>
                   </div>
                   <span className="text-xs font-semibold text-white">{item.value}%</span>
                 </div>
@@ -173,7 +174,7 @@ export function Analytics() {
                 return (
                   <div key={product.id}>
                     <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-white/70 truncate max-w-[160px]">{product.title}</span>
+                      <span className="text-body truncate max-w-[160px]">{product.title}</span>
                       <span className="text-white font-semibold">{formatCurrency(product.revenue)}</span>
                     </div>
                     <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -190,7 +191,7 @@ export function Analytics() {
                 );
               })
             ) : (
-              <div className="text-xs text-white/40 p-4">No product sales recorded in selected period.</div>
+              <div className="text-xs text-muted p-4">No product sales recorded in selected period.</div>
             )}
           </div>
         </div>
