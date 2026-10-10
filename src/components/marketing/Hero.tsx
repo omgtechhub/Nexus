@@ -5,35 +5,155 @@ import {
 } from 'lucide-react';
 import gsap from 'gsap';
 import { useApp } from '../../context/AppContext';
+import { cn } from '../../utils/cn';
 import { Button } from '../ui/Button';
 import { GsapMorphBg } from './GsapMorphBg';
 import { getAssetUrl } from '../../utils/assetPath';
 
 import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
+
+/**
+ * Whether this visitor should be spared the background video entirely.
+ *
+ * The `prefers-reduced-motion` block in `index.css` collapses animation and
+ * transition durations, but a `<video>` is not an animation: no CSS can stop
+ * the element fetching 6.45MB and looping it. The preference was therefore
+ * honoured everywhere on this page *except* the single heaviest thing on it.
+ *
+ * Save-Data and the slow end of the Network Information API are folded into
+ * the same check, because a muted decorative loop is never worth a metered
+ * connection. In every one of these cases the poster frame is the whole
+ * experience, which is what the slide already renders while loading.
+ */
+function prefersLightMedia(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+
+  const conn = (navigator as any).connection;
+  if (!conn) return false;
+  return Boolean(conn.saveData) || ['slow-2g', '2g', '3g'].includes(conn.effectiveType);
+}
+
+/**
+ * The hero's video slide.
+ *
+ * The previous version set `autoPlay` unconditionally and gave no `preload`
+ * hint, so the 6.8MB file was fetched and fully decoded the moment the hero
+ * mounted — while the *image* slide was still showing. Measured: the element
+ * reported `paused: true` with `readyState: 4` and 17 seconds buffered before
+ * the video slide had ever appeared. All of that decode competed with the
+ * first paint of the page.
+ *
+ * Now the source is attached only once the slide is about to be shown, and
+ * playback is driven entirely by `isActive` rather than by the autoplay
+ * attribute. A paused, off-screen or hidden-tab video does no work, and a
+ * visitor who asked for reduced motion or less data never downloads it.
+ */
 function HeroVideo({ src, poster, isActive }: { src: string; poster?: string; isActive: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [lightMedia, setLightMedia] = useState(prefersLightMedia);
+  // Once true, the <source> exists. It never goes back to false, so returning
+  // to the slide does not re-download.
+  const [shouldLoad, setShouldLoad] = useState(() => isActive && !prefersLightMedia());
+
+  // The OS setting can be toggled while the page is open.
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => setLightMedia(prefersLightMedia());
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  /**
+   * Warm the buffer once the browser is idle, rather than at mount or at the
+   * moment the slide appears.
+   *
+   * Both extremes cost a visible hitch. `autoPlay` at mount (the original)
+   * fetched and decoded 6.8MB while the *image* slide was on screen, competing
+   * with first paint. Waiting until the slide activates moved the stall to the
+   * transition itself — measured as a 100ms frame exactly when the video slides
+   * in. The image slide runs for eight seconds, so there is plenty of room to
+   * load in the gap between the two.
+   */
+  useEffect(() => {
+    // Poster only. Nothing below should put the file on the wire.
+    if (lightMedia) return;
+
+    if (isActive) {
+      setShouldLoad(true);
+      return;
+    }
+
+    const idle = (window as any).requestIdleCallback as
+      | ((cb: () => void, opts?: { timeout?: number }) => number)
+      | undefined;
+
+    if (idle) {
+      const handle = idle(() => setShouldLoad(true), { timeout: 3000 });
+      return () => (window as any).cancelIdleCallback?.(handle);
+    }
+
+    // Safari has no requestIdleCallback; a timer past first paint is close
+    // enough and still well ahead of the slide change.
+    const timer = setTimeout(() => setShouldLoad(true), 2500);
+    return () => clearTimeout(timer);
+  }, [isActive, lightMedia]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (isActive) {
-      video.play().catch(() => {});
-    } else {
+    // Toggled mid-session: stop decoding and fall back to the poster.
+    if (lightMedia) {
       video.pause();
+      return;
     }
-  }, [isActive]);
+
+    if (!shouldLoad) return;
+
+    let cancelled = false;
+
+    const play = () => {
+      if (cancelled || document.hidden) return;
+      video.play().catch(() => {
+        /* A blocked autoplay is not an error worth surfacing. */
+      });
+    };
+
+    if (isActive) play();
+    else video.pause();
+
+    // A hidden tab should not be decoding video frames.
+    const onVisibility = () => {
+      if (document.hidden) video.pause();
+      else if (isActive) play();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisibility);
+      video.pause();
+    };
+  }, [isActive, shouldLoad, lightMedia]);
+
+  const attach = shouldLoad && !lightMedia;
 
   return (
     <div className="relative w-full h-full overflow-hidden">
       <video
         ref={videoRef}
-        src={src}
+        src={attach ? src : undefined}
         poster={poster}
-        autoPlay
+        // No `autoPlay`: the effect above owns playback, and the attribute is
+        // what made an inactive slide download and decode the whole file.
         loop
         muted
         playsInline
+        preload={attach ? 'auto' : 'none'}
+        disablePictureInPicture
+        tabIndex={-1}
+        aria-hidden="true"
         className="w-full h-full object-cover"
       />
     </div>
@@ -97,6 +217,7 @@ const heroSlides: HeroSlide[] = [
 export function Hero() {
   const { navigate } = useApp();
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [videoOpen, setVideoOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
@@ -154,7 +275,6 @@ export function Hero() {
   // Autonomous Carousel Auto-Advance
   useEffect(() => {
     const duration = heroSlides[activeSlide].duration;
-    const startTime = Date.now();
 
     setSubIndex(0);
 
@@ -162,22 +282,25 @@ export function Hero() {
       setActiveSlide(next => (next + 1) % heroSlides.length);
     }, duration);
 
-    const progressInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      if (activeSlide === 1) {
-        if (elapsed < 7000) {
-          setSubIndex(0);
-        } else if (elapsed < 14000) {
-          setSubIndex(1);
-        } else {
-          setSubIndex(2);
-        }
-      }
-    }, 100);
+    /**
+     * Two timeouts, not a poll.
+     *
+     * This used to be a `setInterval` firing every 100ms that recomputed the
+     * elapsed time and called `setSubIndex` on every tick — around 200 wake-ups
+     * per slide to perform two transitions, each one re-entering React only to
+     * be discarded by the bailout on an unchanged value.
+     */
+    const subTimers =
+      activeSlide === 1
+        ? [
+            setTimeout(() => setSubIndex(1), 7000),
+            setTimeout(() => setSubIndex(2), 14000),
+          ]
+        : [];
 
     return () => {
       clearTimeout(slideTimer);
-      clearInterval(progressInterval);
+      subTimers.forEach(clearTimeout);
     };
   }, [activeSlide]);
 
@@ -192,9 +315,13 @@ export function Hero() {
   // GSAP Morph Transition when currentPhrase or currentDescription updates
   useEffect(() => {
     if (phraseRef.current) {
+      // No `filter: blur()` here any more. Animating a blur forces a full
+      // repaint plus a GPU blur pass every frame, and this runs on the largest
+      // text on the page (`text-8xl`) every time the phrase changes. Opacity
+      // and transform give the same impression on the compositor alone.
       gsap.fromTo(phraseRef.current,
-        { opacity: 0, scale: 0.88, y: 18, filter: 'blur(10px)' },
-        { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 0.55, ease: 'back.out(1.6)' }
+        { opacity: 0, scale: 0.88, y: 18 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: 'back.out(1.6)' }
       );
     }
     if (descRef.current) {
@@ -205,9 +332,26 @@ export function Hero() {
     }
   }, [currentPhrase, currentDescription]);
 
+  /**
+   * Submitting with an empty or malformed address used to do nothing at all --
+   * no navigation and no message -- so the button looked broken. It now says
+   * what is wrong instead of silently swallowing the click.
+   */
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) navigate('signup');
+    const value = email.trim();
+
+    if (!value) {
+      setEmailError('Enter your email address to start your free trial.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+      setEmailError('That does not look like an email address.');
+      return;
+    }
+
+    setEmailError('');
+    navigate('signup');
   };
 
   return (
@@ -288,13 +432,21 @@ export function Hero() {
           </p>
 
           {/* GSAP Email CTA Form */}
-          <form ref={heroFormRef} onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-6">
+          <form ref={heroFormRef} onSubmit={handleEmailSubmit} noValidate className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-2">
             <input aria-label="Enter your email address"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError('');
+              }}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? 'hero-email-error' : undefined}
               placeholder="Enter your email address"
-              className="flex-1 form-input text-base h-14 rounded-xl"
+              className={cn(
+                'flex-1 form-input text-base h-14 rounded-xl',
+                emailError && 'border-[#FF5F56] focus:border-[#FF5F56]'
+              )}
             />
             <Button
               type="submit"
@@ -307,6 +459,18 @@ export function Hero() {
               Start free trial
             </Button>
           </form>
+
+          {/* role=alert so the message is announced the moment it appears. */}
+          <p
+            id="hero-email-error"
+            role="alert"
+            className={cn(
+              'text-sm font-medium text-[#FF5F56] mb-2 min-h-5',
+              !emailError && 'sr-only'
+            )}
+          >
+            {emailError}
+          </p>
 
           <p className="text-xs text-muted mb-8">
             14-day free trial · No credit card required · Cancel anytime
