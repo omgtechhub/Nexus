@@ -29,6 +29,17 @@ export default defineConfig({
     },
   },
   server: {
+    // Bind every interface, not just the default localhost.
+    //
+    // Vite otherwise listened on [::1] alone, so anything dialling
+    // 127.0.0.1 — a tunnel agent, another container, a phone on the LAN —
+    // got a refused connection rather than the dev server.
+    host: true,
+    // Vite 5.4.12+ rejects any request whose Host header it does not
+    // recognise (403 "Blocked request. This host is not allowed."), which
+    // is what a VS Code dev tunnel URL hits. Allow the tunnel domains we
+    // actually share links from; the check stays on for everything else.
+    allowedHosts: [".devtunnels.ms", ".ngrok-free.app", ".trycloudflare.com"],
     proxy: {
       "/api": {
         target: "http://localhost:5000",
