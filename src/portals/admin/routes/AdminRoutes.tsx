@@ -7,6 +7,7 @@ import { AdminOverview } from '../pages/AdminOverview';
 import { AdminMerchants } from '../pages/AdminMerchants';
 import { AdminPlans } from '../pages/AdminPlans';
 import { AdminInvoices, AdminTransactions } from '../pages/AdminBilling';
+import { AdminMonitor } from '../pages/AdminMonitor';
 
 export function AdminRoutes() {
   const { isAdmin } = useApp();
@@ -21,6 +22,7 @@ export function AdminRoutes() {
       <Route element={<RequirePlatformAdmin><AdminLayout /></RequirePlatformAdmin>}>
         <Route path="dashboard" element={<AdminOverview />} />
         <Route path="merchants" element={<AdminMerchants />} />
+        <Route path="monitoring" element={<AdminMonitor />} />
         <Route path="plans" element={<AdminPlans />} />
         <Route path="invoices" element={<AdminInvoices />} />
         <Route path="transactions" element={<AdminTransactions />} />

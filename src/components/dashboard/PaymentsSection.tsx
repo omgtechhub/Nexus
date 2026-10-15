@@ -1,27 +1,26 @@
 import { useState } from 'react';
 import { 
-  CreditCard, ShieldCheck, ArrowUpRight, ToggleLeft, ToggleRight, Building2, Download
+  CreditCard, ShieldCheck, ArrowUpRight, Building2, Download
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { usePaymentsQuery } from '../../hooks/usePayments';
 import toast from 'react-hot-toast';
 
+/**
+ * The providers the platform actually integrates.
+ *
+ * Kept beside the component rather than fetched: it mirrors
+ * `server/src/services/payments/payment.factory.ts`, which is a deployment
+ * fact rather than per-seller data. If a third provider is added there, it
+ * belongs here too.
+ */
+const ACTIVE_PROVIDERS = [
+  { name: 'Paystack', methods: 'Cards, bank transfer, USSD and mobile money' },
+  { name: 'Flutterwave', methods: 'Cards, bank transfer and wallet payments' },
+];
+
 export function PaymentsSection() {
   const { data: realPayments = [] } = usePaymentsQuery();
-  const [gateways, setGateways] = useState({
-    paystack: true,
-    flutterwave: true,
-    crypto: false,
-    shopPay: true,
-    applePay: true,
-    googlePay: true,
-    klarna: true,
-  });
-
-  const toggleGateway = (key: keyof typeof gateways) => {
-    setGateways(prev => ({ ...prev, [key]: !prev[key] }));
-    toast.success('Payment provider preference updated!');
-  };
 
   const [payoutLoading, setPayoutLoading] = useState(false);
 
@@ -89,8 +88,8 @@ export function PaymentsSection() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <CreditCard className="text-[#27C93F]" size={22} /> Nexus Payments & Gateways
+          <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+            <CreditCard className="text-[var(--brand-green-ink)]" size={22} /> Nexus Payments & Gateways
           </h2>
           <p className="text-xs text-muted">Manage payment processing rates, settlement bank accounts, and active payment methods.</p>
         </div>
@@ -104,96 +103,84 @@ export function PaymentsSection() {
         <div className="stat-card p-5 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted block">Available Payout Balance</span>
-            {realPayments.length > 0 && <span className="text-[10px] bg-[#27C93F]/10 text-[#27C93F] px-1.5 py-0.5 rounded font-mono font-bold">Live DB</span>}
+            {realPayments.length > 0 && <span className="text-[10px] bg-[#27C93F]/10 text-[var(--brand-green-ink)] px-1.5 py-0.5 rounded font-mono font-bold">Live DB</span>}
           </div>
-          <span className="text-2xl font-extrabold text-[#27C93F] block">{availableBalanceStr}</span>
+          <span className="text-2xl font-extrabold text-[var(--brand-green-ink)] block">{availableBalanceStr}</span>
           <span className="text-[11px] text-muted">Scheduled payout: Tomorrow at 8:00 AM</span>
         </div>
 
         <div className="stat-card p-5 space-y-1">
           <span className="text-xs text-muted block">Processing Rate</span>
-          <span className="text-2xl font-extrabold text-[#FFBD2E] block">2.1% + $0.30</span>
-          <span className="text-[11px] text-[#27C93F] font-semibold">0% Nexus platform transaction fee</span>
+          <span className="text-2xl font-extrabold text-[var(--brand-yellow-ink)] block">2.1% + $0.30</span>
+          <span className="text-[11px] text-[var(--brand-green-ink)] font-semibold">0% Nexus platform transaction fee</span>
         </div>
 
         <div className="stat-card p-5 space-y-1">
           <span className="text-xs text-muted block">Settlement Account</span>
-          <span className="text-sm font-bold text-white block flex items-center gap-1.5 pt-1">
-            <Building2 size={16} className="text-[#FF5F56]" /> Chase Business ****4821
+          <span className="text-sm font-bold text-primary block flex items-center gap-1.5 pt-1">
+            <Building2 size={16} className="text-[var(--brand-red-ink)]" /> Chase Business ****4821
           </span>
-          <span className="text-[11px] text-[#27C93F] font-semibold">Verified Direct Deposit</span>
+          <span className="text-[11px] text-[var(--brand-green-ink)] font-semibold">Verified Direct Deposit</span>
         </div>
       </div>
 
-      {/* Payment Gateway Toggles */}
+      {/*
+        * Which gateways are live — and why this is a statement, not a control.
+        *
+        * It used to be seven toggles: Shop Pay, Apple Pay, Google Pay, Klarna
+        * and crypto alongside Paystack and Flutterwave. Two problems with
+        * that. The platform only integrates Paystack and Flutterwave
+        * (`server/src/services/payments/payment.factory.ts`), so five of them
+        * named nothing. And the toggles wrote to local component state and
+        * toasted "preference updated!", so even the two real ones were a
+        * control that changed nothing and said it had.
+        *
+        * On a marketplace it should not be a seller control in the first
+        * place: Nexus runs one checkout for every seller, so which providers
+        * accept money is a platform decision. Saying so is more use to a
+        * seller than a switch they cannot action.
+        */}
       <div className="stat-card p-6 space-y-4">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <ShieldCheck size={16} className="text-[#FFBD2E]" /> Active Payment Gateways & Tender Methods
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-            <div>
-              <span className="font-bold text-white block">Shop Pay 1-Click</span>
-              <span className="text-[11px] text-muted">Accelerated buyer checkout</span>
-            </div>
-            <button onClick={() => toggleGateway('shopPay')} className="text-[#27C93F] cursor-pointer">
-              {gateways.shopPay ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
-            </button>
-          </div>
-
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-            <div>
-              <span className="font-bold text-white block">Apple Pay</span>
-              <span className="text-[11px] text-muted">Biometric mobile checkout</span>
-            </div>
-            <button onClick={() => toggleGateway('applePay')} className="text-[#27C93F] cursor-pointer">
-              {gateways.applePay ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
-            </button>
-          </div>
-
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-            <div>
-              <span className="font-bold text-white block">Google Pay</span>
-              <span className="text-[11px] text-muted">Android & Chrome 1-tap</span>
-            </div>
-            <button onClick={() => toggleGateway('googlePay')} className="text-[#27C93F] cursor-pointer">
-              {gateways.googlePay ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
-            </button>
-          </div>
-
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-            <div>
-              <span className="font-bold text-white block">Klarna Buy Now Pay Later</span>
-              <span className="text-[11px] text-muted">4 interest-free installments</span>
-            </div>
-            <button onClick={() => toggleGateway('klarna')} className="text-[#27C93F] cursor-pointer">
-              {gateways.klarna ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
-            </button>
-          </div>
-
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-            <div>
-              <span className="font-bold text-white block">Crypto Payments (USDC / BTC)</span>
-              <span className="text-[11px] text-muted">Web3 decentralized checkout</span>
-            </div>
-            <button onClick={() => toggleGateway('crypto')} className="text-[#27C93F] cursor-pointer">
-              {gateways.crypto ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-muted" />}
-            </button>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+            <ShieldCheck size={16} className="text-[var(--brand-yellow-ink)]" aria-hidden="true" />
+            How buyers pay you
+          </h3>
+          <p className="mt-1 text-[11px] text-muted">
+            Nexus runs the checkout for every seller, so there is no gateway for you to register or
+            maintain. These are the providers currently settling your orders.
+          </p>
         </div>
+
+        <ul className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
+          {ACTIVE_PROVIDERS.map(provider => (
+            <li
+              key={provider.name}
+              className="flex items-center justify-between gap-3 rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 p-4"
+            >
+              <div className="min-w-0">
+                <span className="block font-bold text-primary">{provider.name}</span>
+                <span className="block text-[11px] text-muted">{provider.methods}</span>
+              </div>
+              <span className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[#27C93F]/10 px-2 py-1 text-[10px] font-bold text-[var(--brand-green-ink)]">
+                <ShieldCheck size={11} aria-hidden="true" />
+                Live
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Transaction Log Table */}
       <div className="stat-card overflow-hidden space-y-4 p-5">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Recent Payment Transactions</h3>
+          <h3 className="text-sm font-bold text-primary">Recent Payment Transactions</h3>
           <Button variant="ghost" size="sm" icon={<Download size={14} />} onClick={handleExportTransactions}>Export CSV</Button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-strong">
-            <thead className="bg-white/5 text-muted uppercase tracking-wider text-[10px]">
+            <thead className="bg-[var(--ink)]/5 text-muted uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3 px-4 rounded-l-lg">Tx ID</th>
                 <th className="py-3 px-4">Order</th>
@@ -205,19 +192,19 @@ export function PaymentsSection() {
                 <th className="py-3 px-4 rounded-r-lg">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-[var(--ink)]/5">
               {transactions.map(t => (
-                <tr key={t.id} className="hover:bg-white/5">
-                  <td className="py-3.5 px-4 font-mono text-[#FFBD2E]">{t.id}</td>
-                  <td className="py-3.5 px-4 font-bold text-white">{t.order}</td>
+                <tr key={t.id} className="hover:bg-[var(--ink)]/5">
+                  <td className="py-3.5 px-4 font-mono text-[var(--brand-yellow-ink)]">{t.id}</td>
+                  <td className="py-3.5 px-4 font-bold text-primary">{t.order}</td>
                   <td className="py-3.5 px-4 text-body">{t.customer}</td>
                   <td className="py-3.5 px-4 text-muted">{t.method}</td>
-                  <td className="py-3.5 px-4 font-bold text-white">{t.amount}</td>
+                  <td className="py-3.5 px-4 font-bold text-primary">{t.amount}</td>
                   <td className="py-3.5 px-4 text-muted">{t.fee}</td>
-                  <td className="py-3.5 px-4 font-bold text-[#27C93F]">{t.net}</td>
+                  <td className="py-3.5 px-4 font-bold text-[var(--brand-green-ink)]">{t.net}</td>
                   <td className="py-3.5 px-4">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      t.status === 'Settled' ? 'bg-[#27C93F]/10 text-[#27C93F]' : 'bg-[#FFBD2E]/10 text-[#FFBD2E]'
+                      t.status === 'Settled' ? 'bg-[#27C93F]/10 text-[var(--brand-green-ink)]' : 'bg-[#FFBD2E]/10 text-[var(--brand-yellow-ink)]'
                     }`}>
                       {t.status}
                     </span>

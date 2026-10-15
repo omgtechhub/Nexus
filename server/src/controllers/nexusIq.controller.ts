@@ -4,12 +4,7 @@ import { prisma } from '../prisma.js';
 import { AiInsightStatus, AiMessageRole, AiUsageKind } from '@prisma/client';
 import { getAiProvider } from '../services/ai/index.js';
 import { regenerateInsights, buildStoreContext } from '../services/ai/insights.service.js';
-import {
-  getUsage,
-  recordUsage,
-  assertWithinAllowance,
-  UsageExceededError,
-} from '../services/ai/usage.service.js';
+import { getUsage, recordUsage } from '../services/ai/usage.service.js';
 
 const messageSchema = z.object({
   content: z.string().min(1, 'A message is required').max(4000),
@@ -40,8 +35,6 @@ export async function listInsights(req: Request, res: Response, next: NextFuncti
 export async function refreshInsights(req: Request, res: Response, next: NextFunction) {
   try {
     const storeId = req.store!.id;
-    await assertWithinAllowance(storeId);
-
     const count = await regenerateInsights(storeId);
     const insights = await prisma.aiInsight.findMany({
       where: { storeId, status: AiInsightStatus.READY },
@@ -55,10 +48,6 @@ export async function refreshInsights(req: Request, res: Response, next: NextFun
       meta: providerInfo(),
     });
   } catch (err) {
-    if (err instanceof UsageExceededError) {
-      res.status(429).json({ success: false, error: err.message, data: err.usage });
-      return;
-    }
     next(err);
   }
 }
@@ -165,9 +154,6 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    // Checked before the question is stored, so a refused turn leaves no trace.
-    await assertWithinAllowance(storeId);
-
     const provider = getAiProvider();
     const system = await buildStoreContext(storeId);
 
@@ -224,10 +210,6 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
       meta: providerInfo(),
     });
   } catch (err) {
-    if (err instanceof UsageExceededError) {
-      res.status(429).json({ success: false, error: err.message, data: err.usage });
-      return;
-    }
     next(err);
   }
 }

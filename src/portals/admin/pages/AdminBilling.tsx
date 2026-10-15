@@ -24,11 +24,11 @@ export function AdminInvoices() {
           {invoices.map(inv => (
             <li
               key={inv.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-sm font-semibold text-[#FFBD2E]">{inv.invoiceNumber}</span>
+                  <span className="font-mono text-sm font-semibold text-[var(--brand-yellow-ink)]">{inv.invoiceNumber}</span>
                   <Badge variant={statusTone(inv.status)} size="sm">{titleCase(inv.status)}</Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted">
@@ -36,7 +36,7 @@ export function AdminInvoices() {
                   {inv.paidAt && ` · paid ${shortDate(inv.paidAt)}`}
                 </p>
               </div>
-              <span className="font-mono text-sm font-bold text-white">
+              <span className="font-mono text-sm font-bold text-primary">
                 {money(inv.total, inv.currency)}
               </span>
             </li>
@@ -63,11 +63,11 @@ export function AdminTransactions() {
       {transactions.length === 0 ? (
         <Empty icon={<CreditCard size={20} aria-hidden="true" />} text="No billing transactions recorded yet." />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/10">
+        <div className="overflow-hidden rounded-2xl border border-[var(--ink)]/10">
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[720px] text-left">
               <caption className="sr-only">Billing transactions across all stores</caption>
-              <thead className="bg-white/5">
+              <thead className="bg-[var(--ink)]/5">
                 <tr>
                   <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Store</th>
                   <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Type</th>
@@ -80,7 +80,7 @@ export function AdminTransactions() {
               </thead>
               <tbody>
                 {transactions.map(tx => (
-                  <tr key={tx.id} className="border-t border-white/5 hover:bg-white/[0.03]">
+                  <tr key={tx.id} className="border-t border-[var(--ink)]/5 hover:bg-[var(--ink)]/[0.03]">
                     <td className="p-4 text-sm text-strong">{tx.store?.name ?? '—'}</td>
                     <td className="p-4 text-xs text-secondary">{titleCase(tx.type)}</td>
                     <td className="p-4 text-xs text-secondary">{titleCase(tx.provider)}</td>
@@ -88,7 +88,7 @@ export function AdminTransactions() {
                     <td className="p-4">
                       <Badge variant={statusTone(tx.status)} size="sm">{titleCase(tx.status)}</Badge>
                     </td>
-                    <td className="p-4 text-right font-mono text-sm text-white">
+                    <td className="p-4 text-right font-mono text-sm text-primary">
                       {money(tx.amount, tx.currency)}
                     </td>
                     <td className="p-4 text-xs text-muted">{shortDate(tx.createdAt)}</td>
@@ -105,7 +105,7 @@ export function AdminTransactions() {
 
 function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+    <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
       <div className="mx-auto mb-3 text-muted">{icon}</div>
       <p className="text-sm text-secondary">{text}</p>
     </div>

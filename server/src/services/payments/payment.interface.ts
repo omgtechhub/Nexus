@@ -14,6 +14,8 @@ export interface InitializePaymentResult {
   reference: string;
   accessCode?: string;
   providerData?: any;
+  /** True when no real gateway was involved. Must reach the UI. */
+  simulated?: boolean;
 }
 
 export interface VerifyPaymentResult {
@@ -24,6 +26,14 @@ export interface VerifyPaymentResult {
   status: 'SUCCESS' | 'FAILED' | 'PENDING' | 'CANCELLED';
   gatewayResponse?: string;
   rawResponse?: any;
+  /**
+   * True when this verdict came from a simulation rather than a gateway.
+   *
+   * The UI must never present a simulated result as a confirmed payment. This
+   * mirrors `provider.isLive` in the Nexus IQ service, for the same reason:
+   * stub output that reads as real output is worse than no output.
+   */
+  simulated?: boolean;
 }
 
 export interface RefundParams {
@@ -43,6 +53,11 @@ export interface RefundResult {
 
 export interface IPaymentProvider {
   readonly name: 'PAYSTACK' | 'FLUTTERWAVE';
+  /**
+   * False when this provider cannot move money — an explicit sandbox.
+   * Every response it produces carries `simulated: true`.
+   */
+  readonly isLive: boolean;
   
   initializePayment(params: InitializePaymentParams): Promise<InitializePaymentResult>;
   verifyPayment(reference: string): Promise<VerifyPaymentResult>;

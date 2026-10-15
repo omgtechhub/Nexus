@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  User, Notification, Product, Order, Customer, DiscountCode, 
+  User, Notification, Product, Order, Customer,
   StoreSettings, ActivityItem, Store
 } from '../types';
 import { AuthService } from '../services/authService';
@@ -18,9 +18,6 @@ import {
   useOrdersQuery,
   useCreateOrderMutation,
   useUpdateOrderMutation,
-  useDiscountsQuery,
-  useCreateDiscountMutation,
-  useDeleteDiscountMutation,
   useNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
@@ -45,9 +42,9 @@ interface AppContextType {
   isCustomer: boolean;
   isSeller: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string, targetPortal?: 'seller' | 'customer' | 'admin') => Promise<{ success: boolean; error?: string }>;
-  loginWithOAuth: (provider: 'google' | 'github', tokens: { idToken?: string; accessToken?: string }, targetPortal?: 'seller' | 'customer' | 'admin') => Promise<{ success: boolean; error?: string }>;
-  signup: (name: string, email: string, password: string, storeName?: string, userType?: 'CUSTOMER' | 'SELLER', targetPortal?: 'seller' | 'customer' | 'admin') => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string, targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
+  loginWithOAuth: (provider: 'google' | 'github', tokens: { idToken?: string; accessToken?: string }, targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
+  signup: (name: string, email: string, password: string, storeName?: string, userType?: 'CUSTOMER' | 'SELLER', targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateUser: (fields: Partial<User>) => void;
   
@@ -66,7 +63,6 @@ interface AppContextType {
   products: Product[];
   orders: Order[];
   customers: Customer[];
-  discounts: DiscountCode[];
   activities: ActivityItem[];
   storeSettings: StoreSettings;
 
@@ -81,8 +77,6 @@ interface AppContextType {
   addCustomer: (customer: Partial<Customer>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
   updateCustomer: (id: string, updates: Partial<Customer>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
 
-  addDiscount: (discount: Partial<DiscountCode>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
-  deleteDiscount: (id: string, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
 
   updateStoreSettings: (settings: Partial<StoreSettings>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
   addActivity: (message: string, type?: 'order' | 'customer' | 'product' | 'payment', icon?: string) => void;
@@ -225,13 +219,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [meQuery.isError]);
 
   const isAuthenticated = !!user;
-  const isServerAuthenticated = isAuthenticated && Boolean(meQuery.data?.user);
+  const resolvedAccountType = meQuery.data?.accountType ?? accountType;
+  /**
+   * The datasets below are the *merchant's* store data, and every one of their
+   * endpoints requires store membership. Running them for any signed-in user
+   * meant a customer browsing the shop fired six requests that could only ever
+   * come back 403 — so they are gated on a verified seller session, not merely
+   * on being signed in.
+   */
+  const isServerAuthenticated =
+    isAuthenticated && Boolean(meQuery.data?.user) && resolvedAccountType === 'SELLER';
 
   // 2. TanStack Query server data
   const productsQuery = useProductsQuery(isServerAuthenticated);
   const customersQuery = useCustomersQuery(isServerAuthenticated);
   const ordersQuery = useOrdersQuery(isServerAuthenticated);
-  const discountsQuery = useDiscountsQuery(isServerAuthenticated);
   const notificationsQuery = useNotificationsQuery(isServerAuthenticated);
   const settingsQuery = useStoreSettingsQuery(isServerAuthenticated);
 
@@ -246,9 +248,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const createOrderMut = useCreateOrderMutation();
   const updateOrderMut = useUpdateOrderMutation();
 
-  const createDiscountMut = useCreateDiscountMutation();
-  const deleteDiscountMut = useDeleteDiscountMutation();
-
   const markReadMut = useMarkNotificationReadMutation();
   const markAllReadMut = useMarkAllNotificationsReadMutation();
 
@@ -258,7 +257,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const products = productsQuery.data || [];
   const customers = customersQuery.data || [];
   const orders = ordersQuery.data || [];
-  const discounts = discountsQuery.data || [];
   const storeSettings = settingsQuery.data || defaultStoreSettings;
   const activities: ActivityItem[] = [];
   const notificationsData = notificationsQuery.data;
@@ -321,14 +319,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateOrderMut.mutate({ id, updates }, options);
   }, [updateOrderMut]);
 
-  const addDiscount = useCallback((d: Partial<DiscountCode>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
-    createDiscountMut.mutate(d, options);
-  }, [createDiscountMut]);
-
-  const deleteDiscount = useCallback((id: string, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
-    deleteDiscountMut.mutate(id, options);
-  }, [deleteDiscountMut]);
-
   const updateStoreSettings = useCallback((settings: Partial<StoreSettings>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
     updateSettingsMut.mutate(settings, options);
   }, [updateSettingsMut]);
@@ -337,9 +327,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * Adopt a verified server session. The portal a user lands in is decided by
    * the server-reported accountType, not by guessing from `plan` or `store`.
    */
+  /**
+   * A post-authentication destination the caller asked for, honoured only when
+   * the *verified* account type is allowed to open it.
+   *
+   * This is how a guest who hit checkout gets back to checkout instead of
+   * being dropped on a dashboard. It is a redirect, so it is also an open-
+   * redirect surface: only an in-app absolute path is accepted, and anything
+   * protocol-relative or cross-origin is discarded rather than followed.
+   */
+  const safeReturnPath = useCallback((
+    returnTo: string | null | undefined,
+    resolved: 'CUSTOMER' | 'SELLER' | 'ADMIN'
+  ): string | null => {
+    if (!returnTo) return null;
+    if (!returnTo.startsWith('/') || returnTo.startsWith('//')) return null;
+
+    const prefix = returnTo.split('?')[0].split('/')[1] || '';
+    // A portal path is only a valid destination for that portal's account type.
+    if (prefix === 'seller' && resolved !== 'SELLER') return null;
+    if (prefix === 'admin' && resolved !== 'ADMIN') return null;
+    if (prefix === 'account' && resolved !== 'CUSTOMER') return null;
+    // Checkout belongs to a customer; nobody else can complete one.
+    if (prefix === 'checkout' && resolved !== 'CUSTOMER') return null;
+
+    return returnTo;
+  }, []);
+
   const applySession = useCallback((
     result: { user?: User; store?: Store | null; accountType?: 'CUSTOMER' | 'SELLER' | 'ADMIN' },
-    requestedPortal: 'seller' | 'customer' | 'admin'
+    requestedPortal: 'seller' | 'customer' | 'admin',
+    returnTo?: string | null
   ) => {
     if (!result.user) return;
 
@@ -365,19 +383,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast(`Signed in to your ${resolved.toLowerCase()} account.`);
     }
 
-    routerNavigate(getUrlForView(targetView));
-  }, [meQuery, routerNavigate]);
+    routerNavigate(safeReturnPath(returnTo, resolved) ?? getUrlForView(targetView));
+  }, [meQuery, routerNavigate, safeReturnPath]);
 
   const login = useCallback(async (
     email: string,
     password: string,
-    targetPortal: 'seller' | 'customer' | 'admin' = 'seller'
+    targetPortal: 'seller' | 'customer' | 'admin' = 'seller',
+    returnTo?: string | null
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
       const result = await AuthService.login(email, password);
       if (result.success && result.user) {
-        applySession(result, targetPortal);
+        applySession(result, targetPortal, returnTo);
       }
       return { success: result.success, error: result.error };
     } finally {
@@ -388,7 +407,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loginWithOAuth = useCallback(async (
     provider: 'google' | 'github',
     tokens: { idToken?: string; accessToken?: string },
-    targetPortal: 'seller' | 'customer' | 'admin' = 'seller'
+    targetPortal: 'seller' | 'customer' | 'admin' = 'seller',
+    returnTo?: string | null
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
@@ -398,7 +418,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         targetPortal === 'customer' ? 'CUSTOMER' : 'SELLER'
       );
       if (result.success && result.user) {
-        applySession(result, targetPortal);
+        applySession(result, targetPortal, returnTo);
       }
       return { success: result.success, error: result.error };
     } finally {
@@ -412,13 +432,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     password: string,
     storeName?: string,
     userType: 'CUSTOMER' | 'SELLER' = 'SELLER',
-    targetPortal: 'seller' | 'customer' | 'admin' = 'seller'
+    targetPortal: 'seller' | 'customer' | 'admin' = 'seller',
+    returnTo?: string | null
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
       const result = await AuthService.register(name, email, password, storeName, userType);
       if (result.success && result.user) {
-        applySession(result, userType === 'CUSTOMER' ? 'customer' : targetPortal);
+        applySession(result, userType === 'CUSTOMER' ? 'customer' : targetPortal, returnTo);
       }
       return { success: result.success, error: result.error };
     } finally {
@@ -448,10 +469,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(prev => prev ? { ...prev, ...fields } : null);
   }, []);
 
+  // Scrolling is not done here. `<ScrollRestoration />` handles every
+  // navigation, including the <Link> clicks this helper does not cover, so
+  // doing it again would start a smooth scroll that the router-level jump then
+  // cuts short.
   const navigate = useCallback((view: PortalView | string, section?: string) => {
     const targetUrl = getUrlForView(view, section);
     setMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     routerNavigate(targetUrl);
   }, [routerNavigate]);
 
@@ -488,7 +512,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       products,
       orders,
       customers,
-      discounts,
       activities,
       storeSettings,
       addProduct,
@@ -498,8 +521,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateOrder,
       addCustomer,
       updateCustomer,
-      addDiscount,
-      deleteDiscount,
       updateStoreSettings,
       addActivity,
       sidebarOpen,

@@ -51,9 +51,9 @@ describe('Nexus IQ: insights, chat and metering', () => {
     });
     expect(empty.status).toBe(201);
 
-    // Store A gets a subscription with headroom. Without one it falls back to
-    // the small unsubscribed allowance, and these tests would be measuring that
-    // rather than the behaviour they are about; metering has its own store below.
+    // Store A gets a subscription so the usage summary has a plan name to
+    // report. It buys no headroom — nothing caps Nexus IQ — but a subscribed
+    // store is the ordinary case and the suite should exercise it.
     const plan = await prisma.subscriptionPlan.create({
       data: {
         code: `iq-test-${stamp}`,
@@ -272,56 +272,55 @@ describe('Nexus IQ: insights, chat and metering', () => {
       const res = await request.get('/api/iq/usage').set('Cookie', [cookieM]);
       expect(res.status).toBe(200);
       expect(res.body.data.tokensUsed).toBe(0);
-      expect(res.body.data.exceeded).toBe(false);
       expect(res.body.data.periodStart).toBeTruthy();
       expect(res.body.data.periodEnd).toBeTruthy();
     });
 
-    it('gives an unsubscribed store a bounded allowance, not unlimited access', async () => {
+    it('does not cap an unsubscribed store', async () => {
       const res = await request.get('/api/iq/usage').set('Cookie', [cookieM]);
-      expect(res.body.data.tokensAllowed).not.toBeNull();
-      expect(res.body.data.tokensAllowed).toBeGreaterThan(0);
+      expect(res.status).toBe(200);
+      // The cap is gone, so the summary has no allowance to report at all.
+      expect(res.body.data.tokensAllowed).toBeUndefined();
+      expect(res.body.data.remaining).toBeUndefined();
+      expect(res.body.data.exceeded).toBeUndefined();
     });
 
     it('counts what the work actually spent', async () => {
       await request.post('/api/iq/insights/refresh').set('Cookie', [cookieM]);
       const res = await request.get('/api/iq/usage').set('Cookie', [cookieM]);
       expect(res.body.data.tokensUsed).toBeGreaterThan(0);
-      expect(res.body.data.remaining).toBe(
-        res.body.data.tokensAllowed - res.body.data.tokensUsed
-      );
     });
 
-    it('refuses work once the allowance is spent, and stores nothing for the refused turn', async () => {
-      const usage = await request.get('/api/iq/usage').set('Cookie', [cookieM]);
+    it('keeps answering however much the store has already spent', async () => {
+      // Far more than any tier ever allowed. Nexus IQ is metered, not rationed,
+      // so this must change nothing about whether a question is answered.
       await prisma.aiUsageEvent.create({
         data: {
           storeId: storeMId,
           kind: 'CHAT',
           provider: 'stub',
           model: 'stub-v1',
-          tokensIn: usage.body.data.remaining,
+          tokensIn: 5_000_000,
           tokensOut: 0,
         },
       });
 
       const convo = await request.post('/api/iq/conversations').set('Cookie', [cookieM]);
-      const blocked = await request
+      const answered = await request
         .post(`/api/iq/conversations/${convo.body.data.id}/messages`)
         .set('Cookie', [cookieM])
         .send({ content: 'How many orders do I have?' });
 
-      expect(blocked.status).toBe(429);
-      expect(blocked.body.data.exceeded).toBe(true);
+      expect(answered.status).toBe(201);
+      expect(answered.body.data.assistantMessage.content).toBeTruthy();
 
-      // A refused turn must leave no trace in the thread.
       const after = await request
         .get(`/api/iq/conversations/${convo.body.data.id}`)
         .set('Cookie', [cookieM]);
-      expect(after.body.data.messages).toHaveLength(0);
+      expect(after.body.data.messages).toHaveLength(2);
 
       const refresh = await request.post('/api/iq/insights/refresh').set('Cookie', [cookieM]);
-      expect(refresh.status).toBe(429);
+      expect(refresh.status).toBe(200);
     });
   });
 });

@@ -3,6 +3,7 @@ import { AiInsightKind, AiInsightStatus, AiUsageKind, OrderStatus, PaymentStatus
 import { getAiProvider, InsightDraft } from './index.js';
 import { recordUsage } from './usage.service.js';
 import { logger } from '../../utils/logger.js';
+import { buildMarginContext } from './margins.service.js';
 
 const WINDOW_DAYS = 30;
 
@@ -217,6 +218,10 @@ export async function buildStoreContext(storeId: string): Promise<string> {
     `- total customers: ${customerCount}`,
   ];
 
+  // Margin and price position, which the insight drafts do not cover. A
+  // merchant asking "am I making money" is asking about cost, not revenue.
+  lines.push(...(await buildMarginContext(storeId)));
+
   for (const draft of drafts) {
     const e = draft.evidence as Record<string, any>;
     switch (draft.kind) {
@@ -243,7 +248,10 @@ export async function buildStoreContext(storeId: string): Promise<string> {
 
   return (
     `You are Nexus IQ, an assistant for the merchant who runs this store. ` +
-    `Answer only from the figures below. If the answer is not there, say so.\n\n` +
+    `Answer only from the figures below. If the answer is not there, say so.\n` +
+    `When you quote a profit figure that does not cover all of the revenue, ` +
+    `say what it leaves out. When you compare a price, say the comparison is ` +
+    `against other Nexus stores, not the wider market.\n\n` +
     `Store data:\n${lines.join('\n')}`
   );
 }

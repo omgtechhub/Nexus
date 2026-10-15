@@ -166,6 +166,8 @@ model User {
   passwordResets     PasswordResetToken[]
   emailVerifications EmailVerificationToken[]
   aiConversations    AiConversation[]
+  productReviews     ProductReview[]
+  voiceProfiles      VoiceProfile[]
 
   @@index([accountType])
 }
@@ -251,6 +253,7 @@ model Store {
   aiInsights          AiInsight[]
   aiConversations     AiConversation[]
   aiUsageEvents       AiUsageEvent[]
+  productReviews      ProductReview[]
 }
 
 model StoreMember {
@@ -319,11 +322,19 @@ model Product {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  /// Rolling aggregate over PUBLISHED reviews, recomputed in the same
+  /// transaction as every review write. Denormalised because the catalogue
+  /// sorts and filters on it: computing it per row would be an aggregate
+  /// subquery on every marketplace listing.
+  ratingAverage   Float            @default(0)
+  ratingCount     Int              @default(0)
+
   images             ProductImage[]
   variants           ProductVariant[]
   inventoryItems     InventoryItem[]
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
+  reviews            ProductReview[]
 
   @@unique([storeId, slug])
   @@unique([storeId, sku])
@@ -492,6 +503,7 @@ model Order {
   payments      Payment[]
   refunds       Refund[]
   shipments     Shipment[]
+  reviews       ProductReview[]
 
   @@unique([storeId, orderNumber])
   @@index([storeId])
@@ -513,6 +525,8 @@ model OrderItem {
   price        Float
   total        Float
   createdAt    DateTime        @default(now())
+
+  review       ProductReview?
 
   @@index([orderId])
   @@index([productId])
@@ -1123,4 +1137,122 @@ model AiUsageEvent {
   createdAt DateTime    @default(now())
 
   @@index([storeId, createdAt])
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  /// Set by a platform admin when a review breaks the content rules. A
+  /// merchant deliberately cannot reach this: a seller who can hide its own
+  /// one-star reviews makes every rating on the marketplace worthless.
+  HIDDEN
+}
+
+/// A rating and comment left by a shopper who actually bought the product.
+///
+/// The verification is structural rather than a flag: every review points at
+/// the `OrderItem` that entitles it. There is no code path that writes a
+/// review without one, so "verified purchase" is not a claim the row makes
+/// about itself — it is the row's foreign key. That also makes the rule
+/// auditable after the fact: the purchase behind any review is one join away.
+///
+/// Nothing here is ever seeded. A product with no buyers has no reviews and a
+/// rating of zero, and the UI says so rather than inventing a number.
+model ProductReview {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Denormalised from the product so a merchant can list the reviews across
+  /// its own catalogue without joining through every product.
+  storeId   String
+  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The purchase that entitles this review. `Restrict` because deleting the
+  /// evidence would silently turn a verified review into an unverified one;
+  /// the review has to go first.
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderItemId String    @unique
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  /// 1-5. Enforced by a check constraint in the migration as well as by the
+  /// request validator, because the aggregate is only meaningful if the range
+  /// holds for rows written by any future code path.
+  rating Int
+  title  String?
+  body   String
+
+  status ReviewStatus @default(PUBLISHED)
+
+  /// A public answer from the merchant. One per review, and it cannot change
+  /// the rating.
+  merchantReply     String?
+  merchantRepliedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One review per shopper per product, however many times they bought it.
+  @@unique([productId, userId])
+  @@index([productId, status, createdAt])
+  @@index([storeId, status])
+  @@index([userId])
+}
+
+/// Which portal a voice profile was enrolled for.
+///
+/// One person can hold more than one Nexus account type, and the voice gate is
+/// per surface: enrolling as a seller must not silently unlock the admin
+/// console. The pair (userId, portal) is therefore the identity, not userId.
+enum VoicePortal {
+  SELLER
+  CUSTOMER
+  ADMIN
+}
+
+/// An enrolled voice, used to decide whether Nexus IQ answers at all.
+///
+/// **This is not a security boundary, and nothing may treat it as one.** A
+/// recording of the owner defeats it, and so will a good enough synthesis.
+/// What stands between a request and the data is the session cookie and the
+/// portal guards, exactly as it does for every other route; this only decides
+/// whether a spoken turn is acted on. Lifted from Jarvis, whose speaker module
+/// makes the same point: gate activation, never permissions.
+model VoiceProfile {
+  id     String      @id @default(uuid())
+  userId String
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portal VoicePortal
+
+  /// Mean of the enrolment embeddings, unit-normalised. 256 floats from
+  /// WeSpeaker ResNet34.
+  centroid Json
+  /// Per-condition means ("close", "across the room"). Verification scores
+  /// against the nearest of these rather than the centroid alone, so an
+  /// utterance from further away is compared with how this voice sounds from
+  /// further away.
+  anchors  Json @default("[]")
+
+  /// Measured at enrolment by leave-one-out, never hardcoded. Jarvis's first
+  /// version set the bar just under how alike the enrolment samples were,
+  /// which locked the owner out the moment they spoke from a doorway.
+  threshold   Float
+  /// Mean pairwise similarity of the enrolment samples: how consistent this
+  /// voice was with itself on the day.
+  consistency Float
+  sampleCount Int
+
+  embedder String
+  model    String
+  /// False when a non-neural fallback produced the vectors, so the UI can say
+  /// so rather than implying an accuracy it does not have.
+  isNeural Boolean @default(true)
+
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, portal])
+  @@index([userId])
 }

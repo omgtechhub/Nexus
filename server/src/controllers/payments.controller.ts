@@ -3,6 +3,7 @@ import { prisma } from '../prisma.js';
 import { z } from 'zod';
 import { PaymentStatus, PaymentProvider, OrderStatus, PaymentStatus as PrismaPaymentStatus, InventoryMovementType } from '@prisma/client';
 import { getPaymentProvider } from '../services/payments/payment.factory.js';
+import { PaymentGatewayError, PaymentNotConfiguredError } from '../services/payments/errors.js';
 
 const initializePaymentSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -39,6 +40,18 @@ export async function initializePayment(req: Request, res: Response, next: NextF
     const providerEnum = (provider as PaymentProvider) || PaymentProvider.PAYSTACK;
     const reference = `ref_${order.id.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8)}_${Date.now()}`;
 
+    // Resolve the provider before writing anything. An unconfigured gateway is
+    // a 503, not a PENDING payment row that can never be completed.
+    let paymentProvider;
+    try {
+      paymentProvider = getPaymentProvider(providerEnum);
+    } catch (err) {
+      if (err instanceof PaymentNotConfiguredError) {
+        return res.status(503).json({ success: false, error: err.message, code: err.code });
+      }
+      throw err;
+    }
+
     // Upsert Payment record in PENDING status
     const payment = await prisma.payment.create({
       data: {
@@ -56,17 +69,34 @@ export async function initializePayment(req: Request, res: Response, next: NextF
       },
     });
 
-    // Initialize with Payment Provider
-    const paymentProvider = getPaymentProvider(providerEnum);
-    const result = await paymentProvider.initializePayment({
-      amount: order.total,
-      currency: order.currency,
-      email: order.customerEmail,
-      reference,
-      callbackUrl: callbackUrl || `${req.headers.origin || 'http://localhost:5173'}/#storefront`,
-      customerName: order.customerName,
-      metadata: { orderId: order.id, storeId: order.storeId },
-    });
+    let result;
+    try {
+      result = await paymentProvider.initializePayment({
+        amount: order.total,
+        currency: order.currency,
+        email: order.customerEmail,
+        reference,
+        callbackUrl:
+          callbackUrl || `${req.headers.origin || 'http://localhost:5173'}/checkout/complete`,
+        customerName: order.customerName,
+        metadata: { orderId: order.id, storeId: order.storeId },
+      });
+    } catch (err) {
+      // The payment row is marked FAILED rather than left PENDING forever, and
+      // the order stays unpaid. Nothing here may report a success.
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: PaymentStatus.FAILED },
+      });
+
+      if (err instanceof PaymentNotConfiguredError) {
+        return res.status(503).json({ success: false, error: err.message, code: err.code });
+      }
+      if (err instanceof PaymentGatewayError) {
+        return res.status(502).json({ success: false, error: err.message, code: err.code });
+      }
+      throw err;
+    }
 
     return res.status(201).json({
       success: true,
@@ -77,6 +107,9 @@ export async function initializePayment(req: Request, res: Response, next: NextF
         accessCode: result.accessCode,
         amount: order.total,
         currency: order.currency,
+        // Carried all the way to the confirmation page, which must not present
+        // a simulated payment as a confirmed one.
+        simulated: paymentProvider.isLive === false,
       },
     });
   } catch (error) {
@@ -112,19 +145,48 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
           paymentStatus: payment.status,
           orderStatus: payment.order.status,
           orderNumber: payment.order.orderNumber,
+          simulated: (payment.metadata as any)?.simulated === true,
         },
       });
     }
 
-    const providerInstance = getPaymentProvider(payment.provider);
-    const verifyResult = await providerInstance.verifyPayment(reference);
+    let providerInstance;
+    let verifyResult;
+    try {
+      providerInstance = getPaymentProvider(payment.provider);
+      verifyResult = await providerInstance.verifyPayment(reference);
+    } catch (err) {
+      /**
+       * Not being able to ask the gateway is not the same as a payment having
+       * succeeded, and this endpoint is the authority for marking an order
+       * paid. The old provider swallowed exactly these errors and returned
+       * `status: 'SUCCESS'`, which is how an order reached "Payment confirmed"
+       * with no money taken.
+       */
+      if (err instanceof PaymentNotConfiguredError) {
+        return res.status(503).json({ success: false, error: err.message, code: err.code });
+      }
+      if (err instanceof PaymentGatewayError) {
+        return res.status(502).json({ success: false, error: err.message, code: err.code });
+      }
+      throw err;
+    }
+
+    const simulated = providerInstance.isLive === false;
 
     if (verifyResult.success && (verifyResult.status === 'SUCCESS' || (verifyResult.status as string) === 'PAID')) {
       // Transition Payment & Order to PAID/SUCCESS atomically
       await prisma.$transaction(async (tx) => {
         await tx.payment.update({
           where: { id: payment.id },
-          data: { status: PaymentStatus.SUCCESS },
+          data: {
+            status: PaymentStatus.SUCCESS,
+            metadata: {
+              ...((payment.metadata as any) || {}),
+              simulated,
+              verifiedAt: new Date().toISOString(),
+            },
+          },
         });
 
         await tx.order.update({
@@ -174,11 +236,35 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
 
       return res.json({
         success: true,
-        message: 'Payment verified and order confirmed',
+        message: simulated
+          ? 'Simulated payment recorded — no money was taken'
+          : 'Payment verified and order confirmed',
         data: {
           paymentStatus: 'SUCCESS',
           orderStatus: 'CONFIRMED',
           orderNumber: payment.order.orderNumber,
+          simulated,
+        },
+      });
+    } else if (verifyResult.status === 'PENDING') {
+      /**
+       * Still in flight. Nothing is mutated: the customer may well be on the
+       * gateway's card form right now.
+       *
+       * This branch did not exist — a PENDING verdict fell into the failure
+       * path below, which marks the order FAILED and increments every line's
+       * stock back. Polling an unfinished payment therefore released
+       * inventory that was still legitimately reserved, and a payment that
+       * completed a moment later landed on an order already marked failed.
+       */
+      return res.json({
+        success: true,
+        message: 'Payment is still pending with the provider',
+        data: {
+          paymentStatus: 'PENDING',
+          orderStatus: payment.order.status,
+          orderNumber: payment.order.orderNumber,
+          simulated,
         },
       });
     } else {
@@ -229,7 +315,13 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
       return res.status(400).json({
         success: false,
         error: 'Payment verification failed',
-        data: { paymentStatus: 'FAILED' },
+        data: {
+          paymentStatus: 'FAILED',
+          orderStatus: 'PENDING',
+          orderNumber: payment.order.orderNumber,
+          gatewayResponse: verifyResult.gatewayResponse,
+          simulated,
+        },
       });
     }
   } catch (error) {

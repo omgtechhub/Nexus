@@ -6,8 +6,8 @@ const DOT = {
   done: 'bg-[#27C93F] text-black border-[#27C93F]',
   active: 'bg-[#FFBD2E] text-black border-[#FFBD2E]',
   failed: 'bg-[#FF5F56] text-white border-[#FF5F56]',
-  cancelled: 'bg-white/5 text-muted border-white/15',
-  pending: 'bg-white/5 text-muted border-white/15',
+  cancelled: 'bg-[var(--ink)]/5 text-muted border-[var(--ink)]/15',
+  pending: 'bg-[var(--ink)]/5 text-muted border-[var(--ink)]/15',
 } as const;
 
 function StepIcon({ state }: { state: ProgressStep['state'] }) {
@@ -37,7 +37,7 @@ export function OrderProgress({ steps }: { steps: ProgressStep[] }) {
                 <span
                   className={cn(
                     'w-px flex-1 min-h-[28px]',
-                    step.state === 'done' ? 'bg-[#27C93F]/40' : 'bg-white/10'
+                    step.state === 'done' ? 'bg-[#27C93F]/40' : 'bg-[var(--ink)]/10'
                   )}
                   aria-hidden="true"
                 />
@@ -48,7 +48,7 @@ export function OrderProgress({ steps }: { steps: ProgressStep[] }) {
               <p
                 className={cn(
                   'text-sm font-semibold',
-                  step.state === 'pending' || step.state === 'cancelled' ? 'text-muted' : 'text-white'
+                  step.state === 'pending' || step.state === 'cancelled' ? 'text-muted' : 'text-primary'
                 )}
               >
                 {step.label}
@@ -83,14 +83,14 @@ export function TrackingDetails({
   if (!trackingNumber && !carrier) return null;
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-      <Truck size={16} className="mt-0.5 flex-shrink-0 text-[#27C93F]" aria-hidden="true" />
+    <div className="flex items-start gap-3 rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 p-4">
+      <Truck size={16} className="mt-0.5 flex-shrink-0 text-[var(--brand-green-ink)]" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted">
           {carrier || 'Carrier'}
         </p>
         {trackingNumber && (
-          <p className="mt-1 break-all font-mono text-sm text-white">{trackingNumber}</p>
+          <p className="mt-1 break-all font-mono text-sm text-primary">{trackingNumber}</p>
         )}
       </div>
     </div>

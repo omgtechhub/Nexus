@@ -30,7 +30,7 @@ export function CustomerDashboard() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+        <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl">
           {firstName ? `Welcome back, ${firstName}` : 'Your account'}
         </h1>
         <p className="mt-1 text-sm text-muted">
@@ -66,10 +66,10 @@ export function CustomerDashboard() {
 
           <section className="mb-8">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Recent orders</h2>
+              <h2 className="text-sm font-semibold text-primary">Recent orders</h2>
               <Link
                 to="/account/orders"
-                className="inline-flex items-center gap-1 rounded text-xs text-muted transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+                className="inline-flex items-center gap-1 rounded text-xs text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
               >
                 View all <ArrowRight size={12} aria-hidden="true" />
               </Link>
@@ -103,9 +103,9 @@ export function CustomerDashboard() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+    <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4">
       <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
-      <p className="mt-1.5 text-2xl font-bold text-white">{value}</p>
+      <p className="mt-1.5 text-2xl font-bold text-primary">{value}</p>
     </div>
   );
 }
@@ -116,13 +116,13 @@ function QuickLink({
   return (
     <Link
       to={to}
-      className="group flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+      className="group flex items-start gap-3 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4 transition-colors hover:border-[var(--ink)]/20 hover:bg-[var(--ink)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
     >
-      <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/5 text-[#27C93F]">
+      <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--ink)]/5 text-[var(--brand-green-ink)]">
         {icon}
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-white">{title}</span>
+        <span className="block text-sm font-semibold text-primary">{title}</span>
         <span className="mt-0.5 block text-xs leading-relaxed text-muted">{description}</span>
       </span>
     </Link>

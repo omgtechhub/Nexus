@@ -40,6 +40,13 @@ export interface StorefrontProduct {
   primaryImage?: string;
   inStock: boolean;
   availableStock: number;
+  /**
+   * Aggregate over this product's published reviews. Optional because an
+   * older cached payload may predate it; `count: 0` is the honest state for a
+   * product nobody has reviewed, and the UI renders that as "No reviews yet"
+   * rather than as zero stars.
+   */
+  rating?: { average: number; count: number };
   variants: StorefrontProductVariant[];
 }
 

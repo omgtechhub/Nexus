@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { z } from 'zod';
-import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, OrderAddressType, ProductStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, OrderAddressType, ProductStatus, StoreStatus } from '@prisma/client';
 
 const cartItemInputSchema = z.object({
   variantId: z.string().min(1),
@@ -37,6 +37,15 @@ const storefrontCheckoutSchema = z.object({
  * Helper to resolve store by ID, domain, storeUrl, or name slug
  */
 async function findStoreBySlug(storeSlug: string) {
+  const store = await resolveStoreBySlug(storeSlug);
+  // A suspended store must not serve a public storefront, quote a price or
+  // take an order. The lookup is the only place every public storefront route
+  // passes through, so the check belongs here rather than in eight handlers.
+  if (store && store.status === StoreStatus.SUSPENDED) return null;
+  return store;
+}
+
+async function resolveStoreBySlug(storeSlug: string) {
   if (!storeSlug) return null;
 
   // 1. Match by ID
@@ -205,6 +214,7 @@ export async function getStorefrontProducts(req: Request, res: Response, next: N
         primaryImage: primaryImg ? primaryImg.url : undefined,
         inStock: totalStock > 0 || p.inventoryPolicy === 'CONTINUE',
         availableStock: totalStock,
+        rating: { average: p.ratingAverage ?? 0, count: p.ratingCount ?? 0 },
         variants: p.variants.map(v => ({
           id: v.id,
           title: v.title,
@@ -281,6 +291,7 @@ export async function getStorefrontProductBySlug(req: Request, res: Response, ne
         primaryImage: primaryImg ? primaryImg.url : undefined,
         inStock: totalStock > 0 || product.inventoryPolicy === 'CONTINUE',
         availableStock: totalStock,
+        rating: { average: product.ratingAverage ?? 0, count: product.ratingCount ?? 0 },
         variants: product.variants.map(v => ({
           id: v.id,
           title: v.title,

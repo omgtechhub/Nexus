@@ -13,18 +13,39 @@ const HOME_FOR: Record<AccountType, string> = {
   CUSTOMER: '/account/dashboard',
 };
 
+/**
+ * The destination a visitor was heading for before they were asked to sign in.
+ *
+ * A guard stores it in history state; a link can pass it as `?next=`. Both the
+ * auth form and the portal's own "you are already signed in" redirect have to
+ * read it from the same place, or whichever renders first sends the customer to
+ * a dashboard and the checkout they were part-way through is lost.
+ *
+ * Only an in-app absolute path is returned. `applySession` checks it again
+ * against the verified account type before following it.
+ */
+export function useAuthReturnTo(): string | null {
+  const location = useLocation();
+  const state = location.state as { from?: string } | null;
+  const candidate = state?.from || new URLSearchParams(location.search).get('next');
+
+  if (!candidate) return null;
+  if (!candidate.startsWith('/') || candidate.startsWith('//')) return null;
+  return candidate;
+}
+
 export function AccessDenied({ message, returnTo }: { message?: string; returnTo?: string }) {
   const { accountType } = useApp();
   const location = useLocation();
   const home = returnTo || (accountType ? HOME_FOR[accountType] : '/');
 
   return (
-    <div className="min-h-screen bg-[#0B0D1B] text-white flex items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-[var(--surface-base)] text-primary flex items-center justify-center p-6 text-center">
       <div className="glass p-8 rounded-3xl border border-red-500/30 max-w-md w-full space-y-4 shadow-2xl">
         <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-500 mx-auto flex items-center justify-center">
           <ShieldAlert size={28} aria-hidden="true" />
         </div>
-        <h1 className="text-2xl font-black text-white">Access denied</h1>
+        <h1 className="text-2xl font-black text-primary">Access denied</h1>
         <p className="text-xs text-secondary leading-relaxed">
           {message || `You do not have permission to open "${location.pathname}".`}
         </p>
@@ -46,12 +67,12 @@ export function AccessDenied({ message, returnTo }: { message?: string; returnTo
 function AuthLoading() {
   return (
     <div
-      className="min-h-screen bg-[#0B0D1B] flex items-center justify-center"
+      className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center"
       role="status"
       aria-live="polite"
     >
       <span className="sr-only">Checking your session…</span>
-      <div className="w-8 h-8 rounded-full border-2 border-white/15 border-t-[#FFBD2E] animate-spin" aria-hidden="true" />
+      <div className="w-8 h-8 rounded-full border-2 border-[var(--ink)]/15 border-t-[#FFBD2E] animate-spin" aria-hidden="true" />
     </div>
   );
 }
@@ -81,7 +102,10 @@ function RequireAccountType({
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={loginPath} replace state={{ from: location.pathname }} />;
+    // The search string is part of the destination: `/checkout?store=<id>`
+    // without its query is a checkout with nothing to check out.
+    const from = `${location.pathname}${location.search}`;
+    return <Navigate to={loginPath} replace state={{ from }} />;
   }
 
   // Session exists but the portal hasn't been resolved yet.

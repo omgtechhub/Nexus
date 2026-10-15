@@ -16,7 +16,7 @@ export function Testimonials() {
     <section id="testimonials" className="py-24 relative overflow-hidden" ref={ref}>
       <div className="absolute inset-0">
         <img loading="lazy" decoding="async" src={getAssetUrl('/images/testimonial-bg.jpg')} alt="" className="w-full h-full object-cover opacity-5" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--surface-sunken)] via-transparent to-[var(--surface-sunken)]" />
       </div>
 
       <div className={cn(
@@ -25,11 +25,11 @@ export function Testimonials() {
       )}>
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FFBD2E]/30 bg-[#FFBD2E]/10 text-[#FFBD2E] text-xs font-medium mb-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FFBD2E]/30 bg-[#FFBD2E]/10 text-[var(--brand-yellow-ink)] text-xs font-medium mb-5">
             <Star size={12} fill="currentColor" />
             4.9/5 from 14,200+ reviews
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+          <h2 className="text-4xl sm:text-5xl font-bold text-primary mb-4">
             Real merchants,
             <span className="text-gradient"> real results</span>
           </h2>
@@ -40,22 +40,22 @@ export function Testimonials() {
 
         {/* Main testimonial spotlight */}
         <div className="relative max-w-4xl mx-auto mb-12">
-          <div className="glass rounded-3xl p-10 border border-white/10 relative overflow-hidden">
+          <div className="glass rounded-3xl p-10 border border-[var(--ink)]/10 relative overflow-hidden">
             {/* Decorative quote */}
             <div className="absolute top-6 right-8 opacity-10">
-              <Quote size={100} className="text-[#FFBD2E]" fill="currentColor" />
+              <Quote size={100} className="text-[var(--brand-yellow-ink)]" fill="currentColor" />
             </div>
 
             <div className="relative z-10">
               {/* Stars */}
               <div className="flex gap-1 mb-6">
                 {Array.from({ length: testimonials[activeIndex].stars }).map((_, i) => (
-                  <Star key={i} size={18} className="text-[#FFBD2E]" fill="currentColor" />
+                  <Star key={i} size={18} className="text-[var(--brand-yellow-ink)]" fill="currentColor" />
                 ))}
               </div>
 
               {/* Quote */}
-              <blockquote className="text-xl sm:text-2xl font-medium text-white leading-relaxed mb-8">
+              <blockquote className="text-xl sm:text-2xl font-medium text-primary leading-relaxed mb-8">
                 "{testimonials[activeIndex].quote}"
               </blockquote>
 
@@ -68,19 +68,19 @@ export function Testimonials() {
                       alt={testimonials[activeIndex].author}
                       className="w-14 h-14 rounded-full border-2 border-[#FF5F56]/40 object-cover"
                     />
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#27C93F] border-2 border-[#0B0D1B] flex items-center justify-center">
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#27C93F] border-2 border-[var(--surface-base)] flex items-center justify-center">
                       <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-white">{testimonials[activeIndex].author}</div>
+                    <div className="font-semibold text-primary">{testimonials[activeIndex].author}</div>
                     <div className="text-sm text-muted">{testimonials[activeIndex].title}</div>
-                    <div className="text-sm text-[#27C93F] font-medium">{testimonials[activeIndex].company}</div>
+                    <div className="text-sm text-[var(--brand-green-ink)] font-medium">{testimonials[activeIndex].company}</div>
                   </div>
                 </div>
-                <div className="glass-green rounded-xl px-4 py-2 text-sm font-semibold text-[#27C93F]">
+                <div className="glass-green rounded-xl px-4 py-2 text-sm font-semibold text-[var(--brand-green-ink)]">
                   {testimonials[activeIndex].revenue}
                 </div>
               </div>
@@ -91,7 +91,7 @@ export function Testimonials() {
           <div className="flex items-center justify-center gap-4 mt-6">
             <button aria-label="Previous"
               onClick={prev}
-              className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted hover:text-white hover:border-[#FFBD2E]/40 transition-colors"
+              className="w-10 h-10 rounded-full glass border border-[var(--ink)]/10 flex items-center justify-center text-muted hover:text-primary hover:border-[#FFBD2E]/40 transition-colors"
             >
               <ChevronLeft size={18} />
             </button>
@@ -104,14 +104,14 @@ export function Testimonials() {
                     'rounded-full transition-colors duration-300',
                     i === activeIndex
                       ? 'w-6 h-2 bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F]'
-                      : 'w-2 h-2 bg-white/20 hover:bg-white/40'
+                      : 'w-2 h-2 bg-[var(--ink)]/20 hover:bg-[var(--ink)]/40'
                   )}
                 />
               ))}
             </div>
             <button aria-label="Next"
               onClick={next}
-              className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-muted hover:text-white hover:border-[#FFBD2E]/40 transition-colors"
+              className="w-10 h-10 rounded-full glass border border-[var(--ink)]/10 flex items-center justify-center text-muted hover:text-primary hover:border-[#FFBD2E]/40 transition-colors"
             >
               <ChevronRight size={18} />
             </button>
@@ -128,19 +128,19 @@ export function Testimonials() {
                 'p-4 rounded-xl border text-left transition-colors',
                 i === activeIndex
                   ? 'glass-green border-[#27C93F]/40'
-                  : 'glass border-white/5 hover:border-white/10'
+                  : 'glass border-[var(--ink)]/5 hover:border-[var(--ink)]/10'
               )}
             >
               <div className="flex items-center gap-3 mb-2">
                 <img loading="lazy" decoding="async" src={t.avatar} alt={t.author} className="w-9 h-9 rounded-full object-cover" />
                 <div>
-                  <div className="text-xs font-semibold text-white">{t.author}</div>
+                  <div className="text-xs font-semibold text-primary">{t.author}</div>
                   <div className="text-xs text-muted">{t.company}</div>
                 </div>
               </div>
               <div className="flex gap-0.5">
                 {Array.from({ length: t.stars }).map((_, j) => (
-                  <Star key={j} size={10} className="text-[#FFBD2E]" fill="currentColor" />
+                  <Star key={j} size={10} className="text-[var(--brand-yellow-ink)]" fill="currentColor" />
                 ))}
               </div>
             </button>

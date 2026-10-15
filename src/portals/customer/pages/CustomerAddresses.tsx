@@ -73,9 +73,9 @@ export function CustomerAddresses() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6"
+          className="mb-6 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6"
         >
-          <h2 className="mb-5 text-sm font-semibold text-white">New address</h2>
+          <h2 className="mb-5 text-sm font-semibold text-primary">New address</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="First name" id="addr-first" value={form.firstName} onChange={set('firstName')} autoComplete="given-name" required />
             <Input label="Last name" id="addr-last" value={form.lastName} onChange={set('lastName')} autoComplete="family-name" required />
@@ -96,7 +96,7 @@ export function CustomerAddresses() {
               type="checkbox"
               checked={form.isDefault}
               onChange={e => setForm(prev => ({ ...prev, isDefault: e.target.checked }))}
-              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[#27C93F]"
+              className="h-4 w-4 rounded border-[var(--ink)]/20 bg-[var(--ink)]/5 accent-[#27C93F]"
             />
             Use this as my default delivery address
           </label>
@@ -133,15 +133,15 @@ export function CustomerAddresses() {
           {list.map(address => (
             <li
               key={address.id}
-              className="relative rounded-2xl border border-white/10 bg-white/[0.02] p-5"
+              className="relative rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5"
             >
               {address.isDefault && (
-                <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-[#27C93F]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#27C93F]">
+                <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-[#27C93F]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-green-ink)]">
                   <Star size={10} aria-hidden="true" /> Default
                 </span>
               )}
               <address className="text-sm not-italic leading-relaxed text-body">
-                <span className="font-medium text-white">
+                <span className="font-medium text-primary">
                   {address.firstName} {address.lastName}
                 </span><br />
                 {address.address1}<br />
@@ -154,7 +154,7 @@ export function CustomerAddresses() {
                 type="button"
                 onClick={() => handleDelete(address.id)}
                 aria-label={`Remove address for ${address.firstName} ${address.lastName}`}
-                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-[#FF5F56]/10 hover:text-[#FF5F56] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5F56]"
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-[#FF5F56]/10 hover:text-[var(--brand-red-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5F56]"
               >
                 <Trash2 size={15} aria-hidden="true" />
               </button>

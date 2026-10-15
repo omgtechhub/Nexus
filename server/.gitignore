@@ -4,3 +4,9 @@ dist
 .env.local
 .env.*.local
 *.log
+
+# Downloaded ML models. Whisper (transformers.js) caches here on first run, and
+# the WeSpeaker speaker-embedding model is fetched to the same place. Tens of
+# megabytes of redistributable binaries that every clone can re-fetch.
+.models/
+uploads/

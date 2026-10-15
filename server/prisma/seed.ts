@@ -1,5 +1,6 @@
 import { PrismaClient, Role, StoreStatus, ProductStatus, OrderStatus, PaymentStatus, FulfillmentStatus, DiscountType, DiscountStatus, NotificationType, InventoryMovementType, OrderAddressType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { applyCatalogue } from './catalogue.js';
 
 const prisma = new PrismaClient();
 
@@ -133,7 +134,7 @@ async function main() {
       tags: ['leather', 'bestseller', 'handbag'],
       images: {
         create: [
-          { url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80', isPrimary: true, position: 0 },
+          { url: '/images/products/bag-leather-tote.jpg', isPrimary: true, position: 0 },
         ],
       },
       variants: {
@@ -164,7 +165,7 @@ async function main() {
       tags: ['sustainable', 'apparel', 'unisex'],
       images: {
         create: [
-          { url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80', isPrimary: true, position: 0 },
+          { url: '/images/products/apparel-cotton-crewneck.jpg', isPrimary: true, position: 0 },
         ],
       },
       variants: {
@@ -196,7 +197,7 @@ async function main() {
       tags: ['accessories', 'luxury'],
       images: {
         create: [
-          { url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80', isPrimary: true, position: 0 },
+          { url: '/images/products/watch-chronograph.jpg', isPrimary: true, position: 0 },
         ],
       },
       variants: {
@@ -240,6 +241,11 @@ async function main() {
   }
 
   console.log('Seeded Products, Variants & Inventory items');
+
+  // The marketplace homepage lists every live store, so a fresh database needs
+  // breadth: several merchants across several categories, each product with a
+  // real photograph. See prisma/catalogue.ts.
+  await applyCatalogue(prisma, { demoStoreId: store.id, log: msg => console.log(msg) });
 
   // Seed Customers with Addresses
   const c1 = await prisma.customer.create({

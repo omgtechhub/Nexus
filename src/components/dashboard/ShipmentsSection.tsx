@@ -85,7 +85,7 @@ export function ShipmentsSection() {
   if (isError) {
     return (
       <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
-        <AlertTriangle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
+        <AlertTriangle size={20} className="mx-auto mb-3 text-[var(--brand-red-ink)]" aria-hidden="true" />
         <p className="text-sm text-strong">{(error as Error)?.message || 'Could not load shipments.'}</p>
         <div className="mt-4">
           <Button variant="secondary" size="sm" onClick={() => refetch()}>Try again</Button>
@@ -105,7 +105,7 @@ export function ShipmentsSection() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Tracking number, carrier or order"
             aria-label="Search shipments"
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
+            className="w-full rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 py-2.5 pl-10 pr-3 text-sm text-primary placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
           />
         </div>
 
@@ -120,7 +120,7 @@ export function ShipmentsSection() {
                 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                 filter === key
                   ? 'bg-[#FFBD2E] text-slate-950 font-semibold'
-                  : 'border border-white/10 bg-white/5 text-secondary hover:text-white'
+                  : 'border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-secondary hover:text-primary'
               )}
             >
               {key === 'all' ? 'All' : STATUS[key as ShipmentStatus].label} ({counts[key] ?? 0})
@@ -130,7 +130,7 @@ export function ShipmentsSection() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+        <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
           <Truck size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
           <p className="text-sm text-secondary">
             {shipments.length === 0
@@ -146,11 +146,11 @@ export function ShipmentsSection() {
             const events = shipment.trackingEvents ?? [];
 
             return (
-              <li key={shipment.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+              <li key={shipment.id} className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="font-mono text-sm font-semibold text-[#FFBD2E]">
+                      <span className="font-mono text-sm font-semibold text-[var(--brand-yellow-ink)]">
                         {shipment.order?.orderNumber || 'Order'}
                       </span>
                       <Badge variant={status.variant} size="sm">{status.label}</Badge>
@@ -176,7 +176,7 @@ export function ShipmentsSection() {
                       value={shipment.status}
                       onChange={e => handleStatusChange(shipment.id, e.target.value as ShipmentStatus)}
                       disabled={updateStatus.isPending}
-                      className="rounded-lg border border-white/10 bg-[#121528] px-3 py-2 text-xs text-white focus:border-[#FFBD2E]/50 focus:outline-none"
+                      className="rounded-lg border border-[var(--ink)]/10 bg-[var(--surface-overlay)] px-3 py-2 text-xs text-primary focus:border-[#FFBD2E]/50 focus:outline-none"
                     >
                       {ORDERED_STATUSES.map(s => (
                         <option key={s} value={s}>{STATUS[s].label}</option>
@@ -186,12 +186,12 @@ export function ShipmentsSection() {
                 </div>
 
                 {events.length > 0 && (
-                  <div className="mt-3 border-t border-white/5 pt-3">
+                  <div className="mt-3 border-t border-[var(--ink)]/5 pt-3">
                     <button
                       type="button"
                       onClick={() => setExpanded(isOpen ? null : shipment.id)}
                       aria-expanded={isOpen}
-                      className="text-xs font-medium text-muted transition-colors hover:text-white"
+                      className="text-xs font-medium text-muted transition-colors hover:text-primary"
                     >
                       {isOpen ? 'Hide' : 'Show'} tracking history ({events.length})
                     </button>

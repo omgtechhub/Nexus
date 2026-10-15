@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, BASE_URL } from './client';
 
 /**
  * Nexus IQ.
@@ -57,14 +57,14 @@ export interface AiConversation extends AiConversationSummary {
   messages: AiMessage[];
 }
 
+/**
+ * What Nexus IQ has cost this month. Reporting only — there is no cap on the
+ * seller side, so there is nothing here to be "over".
+ */
 export interface AiUsage {
   periodStart: string;
   periodEnd: string;
   tokensUsed: number;
-  /** Null means unlimited. */
-  tokensAllowed: number | null;
-  remaining: number | null;
-  exceeded: boolean;
   planName: string | null;
 }
 
@@ -124,4 +124,128 @@ export async function sendMessageApi(
 export async function getIqUsageApi(): Promise<AiUsage> {
   const res = await apiClient<{ data: AiUsage }>('/iq/usage');
   return res.data;
+}
+
+/* ----------------------------------------------------------------- voice */
+
+export interface VoiceEngine {
+  name: string;
+  model: string;
+  /** False when a non-neural fallback produced the profile. */
+  isNeural: boolean;
+  available: boolean;
+  unavailableReason: string | null;
+}
+
+export interface VoiceProfileSummary {
+  threshold: number;
+  consistency: number;
+  sampleCount: number;
+  isNeural: boolean;
+  embedder: string;
+  model: string;
+  createdAt: string;
+  lastVerifiedAt: string | null;
+}
+
+export interface VoiceStatus {
+  enrolled: boolean;
+  profile: VoiceProfileSummary | null;
+  engine: VoiceEngine;
+  requiredSamples: number;
+  minimumSamples: number;
+  transcriber: { engine: string; model: string; local: boolean };
+}
+
+export interface EnrolProgress {
+  collected: number;
+  needed: number;
+}
+
+export interface EnrolResult {
+  threshold: number;
+  consistency: number;
+  samples: number;
+  weakestHeldOut: number | null;
+  isNeural: boolean;
+  embedder: string;
+  model: string;
+}
+
+export interface VoiceVerification {
+  accepted: boolean;
+  similarity: number;
+  threshold: number;
+  undetermined: string | null;
+}
+
+export interface VoiceCommandResult {
+  conversationId: string;
+  transcript: string;
+  answer: string;
+  verification: VoiceVerification;
+}
+
+export async function getVoiceStatusApi(): Promise<VoiceStatus> {
+  const res = await apiClient<{ success: boolean; data: VoiceStatus }>('/iq/voice/status');
+  return res.data;
+}
+
+/**
+ * Send one enrolment clip.
+ *
+ * `fetch` directly rather than through `apiClient`, because the body is
+ * multipart: setting a JSON content type on a FormData body stops the browser
+ * writing the multipart boundary and the upload arrives unparseable.
+ */
+export async function sendEnrolSampleApi(
+  wav: Blob,
+  condition: string,
+  finish: boolean
+): Promise<EnrolProgress | EnrolResult> {
+  const form = new FormData();
+  form.append('audio', wav, 'sample.wav');
+  form.append('condition', condition);
+  form.append('finish', finish ? 'true' : 'false');
+
+  const response = await fetch(`${BASE_URL}/iq/voice/enrol`, {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body?.success) {
+    throw new Error(body?.error || 'That recording could not be used.');
+  }
+  return body.data;
+}
+
+export async function deleteVoiceProfileApi(): Promise<void> {
+  await apiClient('/iq/voice/enrol', { method: 'DELETE' });
+}
+
+export async function sendVoiceCommandApi(
+  wav: Blob,
+  conversationId?: string
+): Promise<VoiceCommandResult> {
+  const form = new FormData();
+  form.append('audio', wav, 'command.wav');
+  if (conversationId) form.append('conversationId', conversationId);
+
+  const response = await fetch(`${BASE_URL}/iq/voice/command`, {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok || !body?.success) {
+    // A refused voice carries a spoken line of its own, so the console can
+    // answer out loud rather than only showing a red box.
+    const error: any = new Error(body?.error || 'That command could not be handled.');
+    error.spoken = body?.data?.spoken;
+    error.verification = body?.data?.verification;
+    throw error;
+  }
+  return body.data;
 }

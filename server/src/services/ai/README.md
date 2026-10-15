@@ -1,8 +1,9 @@
 # Nexus IQ providers
 
 Everything in Nexus IQ except the wording is real: insights are computed from the
-store's own tables, usage is metered against the plan's allowance, conversations
-are persisted. The provider only turns already-established facts into sentences.
+store's own tables, every turn's token spend is recorded, conversations are
+persisted. Nothing is rationed — the ledger reports cost, it does not refuse
+work. The provider only turns already-established facts into sentences.
 
 `StubAiProvider` is what runs today. It fills templates from the evidence the
 pipeline computed and declines questions it cannot look up, so nothing it says is

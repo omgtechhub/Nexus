@@ -1,30 +1,112 @@
 @import "tailwindcss";
 
+/*
+ * Rebind `dark:` to the app's own switch.
+ *
+ * Out of the box it keys off `prefers-color-scheme`, which is the OS setting —
+ * so a `dark:` utility would fire on a machine set to dark even while the user
+ * had explicitly chosen light in the app. Pointing it at `data-theme` makes the
+ * variant mean what it reads as. Almost nothing needs it, because the tokens
+ * cover both themes, but it is the right escape hatch for the cases that do.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * THEME
+ * =====
+ *
+ * Both themes are driven from one set of tokens, so a component never names a
+ * colour. Dark is the default and its values are exactly what shipped before
+ * this file gained a light theme, so nothing about dark mode moved.
+ *
+ * The important token is `--ink`: the neutral a translucent overlay is mixed
+ * from. The UI is built almost entirely out of `bg-[var(--ink)]/5`,
+ * `border-[var(--ink)]/10` and friends, which used to be `bg-white/5` and
+ * `border-white/10`. Rebasing that one variable from white to near-black
+ * inverts every tint, hairline and divider in the app at once, at whatever
+ * alpha each site already used — there is no per-step mapping to keep in sync.
+ *
+ * Brand colour comes in two forms, and the difference matters:
+ *   --brand-*      the hue itself, for fills, dots, borders and glows. The
+ *                  same in both themes: a 15%-alpha amber chip reads correctly
+ *                  on white and on near-black.
+ *   --brand-*-ink  the same colour as *text*. #FFBD2E on white measures 1.6:1,
+ *                  so light mode substitutes a darkened equivalent. Every ink
+ *                  token below clears 4.5:1 on its own theme's surfaces.
+ */
 @layer base {
-  :root {
+  /*
+   * `[data-theme]` is matched on its own as well as on :root so a *subtree* can
+   * pin its own theme. The marketing hero uses that: it stays dark in light
+   * mode, because its text sits on a dark video and would be unreadable if the
+   * overlay went white. Custom properties inherit from the nearest declaring
+   * ancestor, so a dark island inside a light page just works.
+   */
+  :root,
+  [data-theme='dark'] {
     color-scheme: dark;
 
-    --nexus-red: #FF5F56;
-    --nexus-yellow: #FFBD2E;
-    --nexus-green: #27C93F;
-    --nexus-dark: #0B0D1B;
-    --nexus-surface: #131629;
-    --nexus-border: #222642;
+    /* The neutral every translucent surface, border and divider mixes from. */
+    --ink: #ffffff;
+
+    /* Brand hues — fills, dots, borders, glows. Theme-independent. */
+    --brand-red: #FF5F56;
+    --brand-yellow: #FFBD2E;
+    --brand-green: #27C93F;
+
+    /* The same brand colours as readable text. */
+    --brand-red-ink: #FF5F56;
+    --brand-yellow-ink: #FFBD2E;
+    --brand-green-ink: #27C93F;
+
+    /* Gradient stops: display text, then the heavier set used behind white
+       button labels. */
+    --grad-1: #FF5F56;
+    --grad-2: #FFBD2E;
+    --grad-3: #27C93F;
+    --grad-btn-1: #FF5F56;
+    --grad-btn-2: #FFBD2E;
+    --grad-btn-3: #27C93F;
+
+    /*
+     * Surfaces, flattest to nearest. `base` is the page; `1` is a card; `2` is
+     * app chrome (sidebar, top bar); `3` is a card's raised edge; `overlay` is
+     * a modal or popover; `inverse` is a tooltip, which flips in both themes.
+     */
+    --surface-deep: #060813;
+    --surface-sunken: #0a0a0a;
+    --surface-base: #0B0D1B;
+    --surface-1: #131629;
+    --surface-2: #0D0F1F;
+    --surface-3: #181C33;
+    --surface-overlay: #121528;
+    --surface-inverse: #1a1a1a;
+    /* The one non-neutral surface: the violet cast behind the closing CTA. */
+    --surface-accent: #1E122C;
+
+    /* Opaque borders. The translucent ones are `border-[var(--ink)]/N`. */
+    --line: #222642;
+    --line-subtle: #1E2238;
+
+    /* Frosted panels, form fields, the backdrop behind a modal. */
+    --glass-bg: rgb(19 22 41 / 0.6);
+    --glass-border: rgb(255 255 255 / 0.08);
+    --input-bg: #131629;
+    --scrim: rgb(0 0 0 / 0.7);
+    --card-shadow: 0 8px 32px rgb(0 0 0 / 0.4);
+    --card-shadow-hover: 0 20px 60px rgb(0 0 0 / 0.5), 0 0 20px rgb(255 95 86 / 0.15);
 
     /*
      * Text scale.
      *
-     * The app is white text on near-black, so a colour is just an alpha. These
-     * five steps replace the ad-hoc `text-white/20..90` that was scattered
-     * through the UI, where everything at 40% and below failed WCAG AA: on the
-     * darkest surface, 40% measures 3.8:1 and 30% measures 2.7:1 against the
-     * 4.5:1 body-text minimum.
+     * Five steps, each an alpha over `--ink`, replacing the ad-hoc
+     * `text-white/20..90` that was scattered through the UI — where everything
+     * at 40% and below failed WCAG AA: on the darkest surface, 40% measured
+     * 3.8:1 and 30% measured 2.7:1 against the 4.5:1 body-text minimum.
      *
-     * Every step below is >= 4.5:1 on all five app surfaces, so no text built
-     * from them can fail. Measured on #0a0a0a / #0B0D1B / #0D0F1F / #060813 /
-     * #121528 with a bg-white/5 card overlay.
+     * Ratios below are the WORST case across every surface in the theme, not
+     * the best, so no text built from them can fail.
      */
-    /* Ratios are the WORST case across all five surfaces, not the best. */
     --text-primary: rgb(255 255 255);            /* 16.0:1 — headings, key figures */
     --text-strong: rgb(255 255 255 / 0.87);      /* 12.3:1 — emphasised body */
     --text-body: rgb(255 255 255 / 0.74);        /*  9.3:1 — default body */
@@ -34,7 +116,73 @@
     /* Decorative only: never carries meaning, so contrast rules do not apply. */
     --text-decorative: rgb(255 255 255 / 0.38);  /* 3.5:1 */
 
-    --focus-ring: var(--nexus-yellow);
+    --focus-ring: var(--brand-yellow);
+  }
+
+  /*
+   * LIGHT THEME
+   *
+   * Set by `data-theme` on <html>, which the inline script in index.html writes
+   * before first paint so the page never flashes the wrong theme.
+   *
+   * Surfaces are warm greys rather than pure white so cards have something to
+   * sit on, and cards carry a soft shadow because a hairline border alone is
+   * not enough separation once the background is light.
+   */
+  :root[data-theme='light'],
+  [data-theme='light'] {
+    color-scheme: light;
+
+    --ink: #0B0D1B;
+
+    --brand-red: #FF5F56;
+    --brand-yellow: #FFBD2E;
+    --brand-green: #27C93F;
+
+    /* Darkened to clear 4.5:1 on white: 5.2:1, 6.4:1 and 5.4:1 respectively. */
+    --brand-red-ink: #C9372C;
+    --brand-yellow-ink: #8A5200;
+    --brand-green-ink: #117B2B;
+
+    --grad-1: #E8453A;
+    --grad-2: #C97A00;
+    --grad-3: #1B9138;
+    /* Heavier still: these sit behind white button labels, where the amber
+       stop has to carry 4.5:1 on its own. */
+    --grad-btn-1: #D93B2F;
+    --grad-btn-2: #A85F00;
+    --grad-btn-3: #157A2E;
+
+    --surface-deep: #E9ECF3;
+    --surface-sunken: #EEF1F6;
+    --surface-base: #F6F7FA;
+    --surface-1: #FFFFFF;
+    --surface-2: #FFFFFF;
+    --surface-3: #F2F4F8;
+    --surface-overlay: #FFFFFF;
+    --surface-inverse: #0B0D1B;
+    --surface-accent: #F3F0F8;
+
+    --line: rgb(11 13 27 / 0.12);
+    --line-subtle: rgb(11 13 27 / 0.08);
+
+    --glass-bg: rgb(255 255 255 / 0.72);
+    --glass-border: rgb(11 13 27 / 0.08);
+    --input-bg: #FFFFFF;
+    --scrim: rgb(11 13 27 / 0.45);
+    --card-shadow: 0 1px 2px rgb(11 13 27 / 0.06), 0 8px 24px rgb(11 13 27 / 0.06);
+    --card-shadow-hover: 0 2px 4px rgb(11 13 27 / 0.08), 0 16px 40px rgb(11 13 27 / 0.10);
+
+    /* Alphas retuned for a dark ink on light surfaces. Worst case is the
+       quietest step on --surface-base, which measures 4.7:1. */
+    --text-primary: rgb(11 13 27);               /* 17.4:1 */
+    --text-strong: rgb(11 13 27 / 0.90);         /* 14.1:1 */
+    --text-body: rgb(11 13 27 / 0.78);           /*  9.6:1 */
+    --text-secondary: rgb(11 13 27 / 0.68);      /*  6.6:1 */
+    --text-muted: rgb(11 13 27 / 0.60);          /*  5.1:1 */
+    --text-decorative: rgb(11 13 27 / 0.42);     /*  3.1:1 */
+
+    --focus-ring: #8A5200;
   }
 
   * {
@@ -50,11 +198,14 @@
 
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #0B0D1B;
-    color: #ffffff;
+    background-color: var(--surface-base);
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    /* Only the colours transition, so switching themes does not animate layout.
+       Suppressed under prefers-reduced-motion by the block at the end. */
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Removes the 300ms double-tap delay on touch devices. */
@@ -68,8 +219,8 @@
   }
 
   ::selection {
-    background-color: #FF5F56;
-    color: white;
+    background-color: var(--brand-red);
+    color: #ffffff;
   }
 
   ::-webkit-scrollbar {
@@ -77,52 +228,52 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0B0D1B;
+    background: var(--surface-base);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #222642;
+    background: var(--line);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #FF5F56;
+    background: var(--brand-red);
   }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #FF5F56 0%, #FFBD2E 50%, #27C93F 100%);
+    background: linear-gradient(135deg, var(--grad-1) 0%, var(--grad-2) 50%, var(--grad-3) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-red-yellow {
-    background: linear-gradient(135deg, #FF5F56 0%, #FFBD2E 100%);
+    background: linear-gradient(135deg, var(--grad-1) 0%, var(--grad-2) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-yellow-green {
-    background: linear-gradient(135deg, #FFBD2E 0%, #27C93F 100%);
+    background: linear-gradient(135deg, var(--grad-2) 0%, var(--grad-3) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-green {
-    background: linear-gradient(135deg, #27C93F 0%, #FFBD2E 100%);
+    background: linear-gradient(135deg, var(--grad-3) 0%, var(--grad-2) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .bg-grid {
-    background-image: 
-      linear-gradient(rgba(255, 95, 86, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(39, 201, 63, 0.05) 1px, transparent 1px);
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--brand-red) 8%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--brand-green) 8%, transparent) 1px, transparent 1px);
     background-size: 50px 50px;
   }
 
@@ -131,10 +282,10 @@
   }
 
   .glass {
-    background: rgba(19, 22, 41, 0.6);
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
   }
 
   .glass-red {
@@ -164,7 +315,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #FF5F56 0%, #FFBD2E 50%, #27C93F 100%);
+    background: linear-gradient(135deg, var(--grad-btn-1) 0%, var(--grad-btn-2) 50%, var(--grad-btn-3) 100%);
     color: white;
     font-weight: 600;
     border-radius: 8px;
@@ -201,8 +352,8 @@
 
   .card-hover:hover {
     transform: translateY(-4px);
-    border-color: rgba(255, 189, 46, 0.4) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 95, 86, 0.15);
+    border-color: color-mix(in oklab, var(--brand-yellow) 40%, transparent) !important;
+    box-shadow: var(--card-shadow-hover);
   }
 
   .animate-float {
@@ -220,9 +371,9 @@
   .animate-shimmer {
     background: linear-gradient(
       90deg,
-      rgba(255,255,255,0) 0%,
-      rgba(255,255,255,0.05) 50%,
-      rgba(255,255,255,0) 100%
+      transparent 0%,
+      color-mix(in oklab, var(--ink) 7%, transparent) 50%,
+      transparent 100%
     );
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
@@ -267,6 +418,30 @@
   animation: marquee 30s linear infinite;
 }
 
+/* Slide-over drawer, used by the admin nav at tablet and phone widths.
+   Keyframes rather than a transition so the animation runs on mount, which
+   lets the panel be unmounted while closed instead of sitting in the DOM.
+   The prefers-reduced-motion block at the end of this file collapses
+   `animation-duration` globally, so both of these snap instantly for a
+   visitor who asked for less motion. */
+@keyframes drawer-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-drawer-left {
+  animation: drawer-in-left 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.animate-overlay-in {
+  animation: overlay-in 0.28s ease-out;
+}
+
 @keyframes border-glow {
   0%, 100% { border-color: rgba(255, 95, 86, 0.2); }
   50% { border-color: rgba(39, 201, 63, 0.6); }
@@ -284,48 +459,64 @@
 
 /* Dashboard styles */
 .dashboard-sidebar {
-  background: #0D0F1F;
-  border-right: 1px solid #1E2238;
+  background: var(--surface-2);
+  border-right: 1px solid var(--line-subtle);
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #131629 0%, #181C33 100%);
-  border: 1px solid #222642;
+  background: linear-gradient(135deg, var(--surface-1) 0%, var(--surface-3) 100%);
+  border: 1px solid var(--line);
   border-radius: 16px;
   transition: all 0.3s ease;
 }
 
+/* Light mode needs a shadow: a hairline alone is not enough separation once
+   the card and the page are both pale. */
+:root[data-theme='light'] .stat-card {
+  box-shadow: var(--card-shadow);
+}
+
 .stat-card:hover {
-  border-color: rgba(255, 189, 46, 0.4);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-color: color-mix(in oklab, var(--brand-yellow) 40%, transparent);
+  box-shadow: var(--card-shadow);
 }
 
-/* Form styles */
-.form-input {
-  background: #131629;
-  border: 1px solid #222642;
-  border-radius: 8px;
-  color: white;
-  transition: all 0.2s ease;
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 14px;
-  outline: none;
+/* Form styles.
+
+   These live in the components layer on purpose. Unlayered CSS outbids every
+   Tailwind layer, so an unlayered `.form-input` silently beat the `pl-10` that
+   fields with a leading icon pass alongside it, and the placeholder ran
+   straight through the icon. In the components layer the utility wins, which
+   is the whole point of pairing the two. */
+@layer components {
+  .form-input {
+    background: var(--input-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .form-input:focus {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--focus-ring) 18%, transparent);
+  }
+
+  .form-input::placeholder {
+    color: var(--text-decorative);
+  }
 }
 
+/* Native select popups ignore the cascade in most engines, so these stay
+   unlayered and important. */
 select, select option, .form-input option {
-  background-color: #0D0F1F !important;
-  color: #ffffff !important;
+  background-color: var(--surface-2) !important;
+  color: var(--text-primary) !important;
   opacity: 1 !important;
-}
-
-.form-input:focus {
-  border-color: #FFBD2E;
-  box-shadow: 0 0 0 3px rgba(255, 189, 46, 0.15);
-}
-
-.form-input::placeholder {
-  color: #64748b;
 }
 
 /* Notification styles */
@@ -333,8 +524,8 @@ select, select option, .form-input option {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #FF5F56;
-  color: white;
+  background: var(--brand-red);
+  color: #ffffff;
   font-size: 10px;
   width: 18px;
   height: 18px;
@@ -343,12 +534,12 @@ select, select option, .form-input option {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  border: 2px solid #0D0F1F;
+  border: 2px solid var(--surface-2);
 }
 
 /* Progress bar */
 .progress-bar {
-  background: linear-gradient(90deg, #FF5F56, #FFBD2E, #27C93F);
+  background: linear-gradient(90deg, var(--grad-1), var(--grad-2), var(--grad-3));
   border-radius: 4px;
   height: 4px;
   transition: width 0.5s ease;
@@ -406,3 +597,56 @@ select, select option, .form-input option {
   /* Number columns only line up with tabular figures. */
   .tabular { font-variant-numeric: tabular-nums; }
 }
+
+/*
+ * The last of the hard-coded colour: a handful of Tailwind palette shades used
+ * as text. The 300–500 steps are tuned for a dark background and land between
+ * 2.5:1 and 3.5:1 on a light one, so light mode substitutes the 600–700 step
+ * of the same hue. Icons would pass at 3:1, but several of these carry meaning
+ * — form errors, destructive actions — so they are held to 4.5:1.
+ *
+ * Routed through variables rather than written as `[data-theme='light'] .text-red-400`,
+ * because a theme island breaks the scoped form: a dark hero inside a light page
+ * is still a descendant of the light root, and two descendant rules of equal
+ * specificity are settled by source order, not by which ancestor is nearer. A
+ * custom property has no such problem — it resolves against the closest
+ * declaring ancestor, which is exactly the rule wanted here.
+ */
+:root,
+[data-theme='dark'] {
+  --palette-red: oklch(0.704 0.191 22.216);
+  --palette-emerald: oklch(0.765 0.177 163.223);
+  --palette-amber: oklch(0.828 0.189 84.429);
+  --palette-cyan: oklch(0.789 0.154 211.53);
+  --palette-sky: oklch(0.746 0.16 232.661);
+  --palette-purple: oklch(0.714 0.203 305.504);
+  --palette-pink: oklch(0.718 0.202 349.761);
+  --palette-neutral: var(--text-secondary);
+  --palette-neutral-quiet: var(--text-muted);
+}
+
+:root[data-theme='light'],
+[data-theme='light'] {
+  --palette-red: #B42318;
+  --palette-emerald: #067647;
+  --palette-amber: #92400E;
+  --palette-cyan: #0E7490;
+  --palette-sky: #175CD3;
+  --palette-purple: #6941C6;
+  --palette-pink: #C11574;
+  --palette-neutral: var(--text-secondary);
+  --palette-neutral-quiet: var(--text-muted);
+}
+
+.text-red-300, .text-red-400, .text-red-500 { color: var(--palette-red); }
+.text-emerald-400, .text-emerald-300, .text-green-400 { color: var(--palette-emerald); }
+.text-amber-400, .text-amber-300, .text-yellow-400 { color: var(--palette-amber); }
+.text-cyan-400, .text-cyan-300 { color: var(--palette-cyan); }
+.text-sky-400, .text-sky-300, .text-blue-400 { color: var(--palette-sky); }
+.text-purple-400, .text-purple-300, .text-violet-400 { color: var(--palette-purple); }
+.text-pink-400, .text-pink-300, .text-rose-400 { color: var(--palette-pink); }
+.text-gray-400, .text-slate-400, .text-slate-300, .text-zinc-400 { color: var(--palette-neutral); }
+.text-slate-500, .text-gray-500 { color: var(--palette-neutral-quiet); }
+
+.hover\:text-red-400:hover { color: var(--palette-red); }
+.hover\:text-emerald-400:hover { color: var(--palette-emerald); }

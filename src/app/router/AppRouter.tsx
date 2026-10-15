@@ -1,15 +1,16 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, ComponentType } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MarketingPage } from '../../pages/MarketingPage';
 import { useApp } from '../../context/AppContext';
+import { RequireCustomer } from '../auth/guards';
 import { RouteFallback } from './RouteFallback';
 
 /**
  * Route-level code splitting.
  *
- * The homepage is the common entry point, so it stays in the entry chunk —
- * lazy-loading it would put a network round-trip in front of the first paint.
- * Everything else is fetched on navigation.
+ * The marketing homepage is the common entry point, so it stays in the entry
+ * chunk — lazy-loading it would put a network round-trip in front of the first
+ * paint. Everything else is fetched on navigation.
  *
  * The three portals are the reason this matters. Before this, a visitor reading
  * the marketing page downloaded the entire seller dashboard, the platform
@@ -20,58 +21,47 @@ import { RouteFallback } from './RouteFallback';
  * the `.then` unwrapping.
  */
 
-// Portals: the bulk of the application, all behind a login.
-const SellerRoutes = lazy(() =>
-  import('../../portals/seller/routes/SellerRoutes').then(m => ({ default: m.SellerRoutes }))
-);
-const CustomerRoutes = lazy(() =>
-  import('../../portals/customer/routes/CustomerRoutes').then(m => ({ default: m.CustomerRoutes }))
-);
-const AdminRoutes = lazy(() =>
-  import('../../portals/admin/routes/AdminRoutes').then(m => ({ default: m.AdminRoutes }))
-);
+/** Unwrap a named export into the default shape `React.lazy` expects. */
+function lazyNamed<T extends string>(
+  loader: () => Promise<Record<T, ComponentType<any>>>,
+  name: T
+) {
+  return lazy(() => loader().then(m => ({ default: m[name] })));
+}
 
-// Public storefront: a separate audience from the marketing site.
-const StorefrontView = lazy(() =>
-  import('../../components/storefront/StorefrontView').then(m => ({ default: m.StorefrontView }))
-);
+// Portals: the bulk of the application, all behind a login.
+const SellerRoutes = lazyNamed(() => import('../../portals/seller/routes/SellerRoutes'), 'SellerRoutes');
+const CustomerRoutes = lazyNamed(() => import('../../portals/customer/routes/CustomerRoutes'), 'CustomerRoutes');
+const AdminRoutes = lazyNamed(() => import('../../portals/admin/routes/AdminRoutes'), 'AdminRoutes');
+
+// The shop. Its own layout (search, categories, bag) wraps every shopping page.
+const MarketplaceLayout = lazyNamed(() => import('../../marketplace/layout/MarketplaceLayout'), 'MarketplaceLayout');
+const MarketplaceHome = lazyNamed(() => import('../../marketplace/pages/MarketplaceHome'), 'MarketplaceHome');
+const ProductsPage = lazyNamed(() => import('../../marketplace/pages/ProductsPage'), 'ProductsPage');
+const ProductDetailPage = lazyNamed(() => import('../../marketplace/pages/ProductDetailPage'), 'ProductDetailPage');
+const CartPage = lazyNamed(() => import('../../marketplace/pages/CartPage'), 'CartPage');
+const CheckoutPage = lazyNamed(() => import('../../marketplace/pages/CheckoutPage'), 'CheckoutPage');
+const CheckoutCompletePage = lazyNamed(() => import('../../marketplace/pages/CheckoutCompletePage'), 'CheckoutCompletePage');
+
+// A single merchant's own storefront: a separate audience from the marketplace.
+const StorefrontView = lazyNamed(() => import('../../components/storefront/StorefrontView'), 'StorefrontView');
 
 // Marketing pages past the homepage.
-const PricingPage = lazy(() =>
-  import('../../pages/PricingPage').then(m => ({ default: m.PricingPage }))
-);
-const ContactPage = lazy(() =>
-  import('../../pages/ContactPage').then(m => ({ default: m.ContactPage }))
-);
-const TrackOrderPage = lazy(() =>
-  import('../../pages/TrackOrderPage').then(m => ({ default: m.TrackOrderPage }))
-);
+const PricingPage = lazyNamed(() => import('../../pages/PricingPage'), 'PricingPage');
+const ContactPage = lazyNamed(() => import('../../pages/ContactPage'), 'ContactPage');
+const TrackOrderPage = lazyNamed(() => import('../../pages/TrackOrderPage'), 'TrackOrderPage');
 
 // Legal: rarely read, and never on the path to anything else.
-const PrivacyPolicyPage = lazy(() =>
-  import('../../pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage }))
-);
-const TermsOfServicePage = lazy(() =>
-  import('../../pages/TermsOfServicePage').then(m => ({ default: m.TermsOfServicePage }))
-);
-const CookiePolicyPage = lazy(() =>
-  import('../../pages/CookiePolicyPage').then(m => ({ default: m.CookiePolicyPage }))
-);
+const PrivacyPolicyPage = lazyNamed(() => import('../../pages/PrivacyPolicyPage'), 'PrivacyPolicyPage');
+const TermsOfServicePage = lazyNamed(() => import('../../pages/TermsOfServicePage'), 'TermsOfServicePage');
+const CookiePolicyPage = lazyNamed(() => import('../../pages/CookiePolicyPage'), 'CookiePolicyPage');
 
 // Account recovery: reached from an emailed link, once.
-const ForgotPasswordPage = lazy(() =>
-  import('../../pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
-);
-const ResetPasswordPage = lazy(() =>
-  import('../../pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
-);
-const VerifyEmailPage = lazy(() =>
-  import('../../pages/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage }))
-);
+const ForgotPasswordPage = lazyNamed(() => import('../../pages/ForgotPasswordPage'), 'ForgotPasswordPage');
+const ResetPasswordPage = lazyNamed(() => import('../../pages/ResetPasswordPage'), 'ResetPasswordPage');
+const VerifyEmailPage = lazyNamed(() => import('../../pages/VerifyEmailPage'), 'VerifyEmailPage');
 
-const AuthPage = lazy(() =>
-  import('../../components/auth/AuthPage').then(m => ({ default: m.AuthPage }))
-);
+const AuthPage = lazyNamed(() => import('../../components/auth/AuthPage'), 'AuthPage');
 
 export function AppRouter() {
   const { store } = useApp();
@@ -82,10 +72,44 @@ export function AppRouter() {
     // user sees.
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        {/* PUBLIC MARKETING — only pages backed by something that exists. */}
+        {/* PUBLIC MARKETING — only pages backed by something that exists.
+            The landing page is the root route; Shop, Pricing and Contact are
+            the whole of the public navigation. Anything else falls through to
+            the catch-all below. */}
         <Route path="/" element={<MarketingPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/contact" element={<ContactPage />} />
+
+        {/* THE SHOP.
+
+            `/products` is the storefront: a shopper browses, searches and fills
+            a bag here without an account, and only checkout asks who they are.
+            Every page below shares the shop's own header and footer. */}
+        <Route element={<MarketplaceLayout />}>
+          <Route path="/products" element={<MarketplaceHome />} />
+          {/* A static segment, so it is never confused with a store id — which
+              is why the detail route below needs two segments to match. */}
+          <Route path="/products/browse" element={<ProductsPage />} />
+          <Route path="/products/:storeId/:productSlug" element={<ProductDetailPage />} />
+          <Route path="/cart" element={<CartPage />} />
+
+          {/* Checkout is the first thing that needs an identity. The guard
+              sends a guest to the customer sign-in and carries this location,
+              so they come back here instead of to a dashboard. */}
+          <Route
+            path="/checkout"
+            element={
+              <RequireCustomer>
+                <CheckoutPage />
+              </RequireCustomer>
+            }
+          />
+          {/* Deliberately public: this is where the payment gateway returns the
+              customer, and a lapsed session must not hide the outcome of a
+              charge behind a login form. It verifies server-side and shows
+              only what the server reports. */}
+          <Route path="/checkout/complete" element={<CheckoutCompletePage />} />
+        </Route>
 
         {/* Order tracking is deliberately public: a guest checkout has no account,
             and the order number plus its email is what proves entitlement. */}
@@ -96,7 +120,7 @@ export function AppRouter() {
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/cookies" element={<CookiePolicyPage />} />
 
-        {/* PUBLIC STOREFRONT */}
+        {/* PUBLIC STOREFRONT — one merchant's own shop */}
         <Route path="/storefront" element={<StorefrontView storeSlug={store?.id} />} />
         <Route path="/storefront/:storeSlug" element={<StorefrontView />} />
 

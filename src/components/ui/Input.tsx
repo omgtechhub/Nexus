@@ -41,9 +41,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
           id={inputId}
           className={cn(
             'form-input',
+            // These clear the absolutely positioned adornments: the icon sits
+            // at left-3 and is 16px wide, the right element at right-2.
             icon && iconPosition === 'left' && 'pl-10',
             icon && iconPosition === 'right' && 'pr-10',
-            rightElement && 'pr-24',
+            rightElement && 'pr-11',
             error && 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20',
             className
           )}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Package, Store } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
@@ -19,7 +19,10 @@ import {
  * order identically.
  */
 export function TrackOrderPage() {
-  const [orderNumber, setOrderNumber] = useState('');
+  // A customer arriving from the checkout confirmation already has the order
+  // number; only the email is left to type.
+  const [searchParams] = useSearchParams();
+  const [orderNumber, setOrderNumber] = useState(searchParams.get('order') || '');
   const [email, setEmail] = useState('');
   const track = useTrackOrderMutation();
 
@@ -32,10 +35,10 @@ export function TrackOrderPage() {
   const order = track.data;
 
   return (
-    <div className="min-h-screen bg-[#0B0D1B] text-white">
+    <div className="min-h-screen bg-[var(--surface-base)] text-primary">
       <Navbar />
 
-      <main id="main" className="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6 sm:pt-32">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6 sm:pt-32">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Track your order</h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
@@ -46,7 +49,7 @@ export function TrackOrderPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="mx-auto mt-8 max-w-xl rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6"
+          className="mx-auto mt-8 max-w-xl rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
@@ -95,10 +98,10 @@ export function TrackOrderPage() {
 
         {order && (
           <section className="mt-8 space-y-6" aria-label={`Order ${order.orderNumber}`}>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+            <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6">
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-lg font-bold text-[#FFBD2E]">{order.orderNumber}</p>
+                  <p className="font-mono text-lg font-bold text-[var(--brand-yellow-ink)]">{order.orderNumber}</p>
                   <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted">
                     <Store size={13} aria-hidden="true" />
                     {order.storeName}
@@ -121,13 +124,13 @@ export function TrackOrderPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
-              <h2 className="mb-4 text-sm font-semibold text-white">Items</h2>
-              <ul className="divide-y divide-white/5">
+            <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6">
+              <h2 className="mb-4 text-sm font-semibold text-primary">Items</h2>
+              <ul className="divide-y divide-[var(--ink)]/5">
                 {order.items.map(item => (
                   <li key={item.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-white">{item.productTitle}</p>
+                      <p className="text-sm font-medium text-primary">{item.productTitle}</p>
                       <p className="mt-0.5 text-xs text-muted">Qty {item.quantity}</p>
                     </div>
                     <span className="flex-shrink-0 font-mono text-sm text-strong">
@@ -136,15 +139,15 @@ export function TrackOrderPage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4 text-base font-bold text-white">
+              <div className="mt-4 flex items-center justify-between border-t border-[var(--ink)]/10 pt-4 text-base font-bold text-primary">
                 <span>Total</span>
                 <span className="font-mono">{formatMoney(order.total, order.currency)}</span>
               </div>
             </div>
 
             {order.shippingAddress && (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
-                <h2 className="mb-3 text-sm font-semibold text-white">Delivery address</h2>
+              <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6">
+                <h2 className="mb-3 text-sm font-semibold text-primary">Delivery address</h2>
                 <address className="text-sm not-italic leading-relaxed text-secondary">
                   {order.shippingAddress.firstName} {order.shippingAddress.lastName}<br />
                   {order.shippingAddress.address1}<br />
@@ -165,7 +168,7 @@ export function TrackOrderPage() {
             Have a Nexus account?{' '}
             <Link
               to="/account/orders"
-              className="rounded text-body underline underline-offset-2 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+              className="rounded text-body underline underline-offset-2 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
             >
               See all your orders
             </Link>

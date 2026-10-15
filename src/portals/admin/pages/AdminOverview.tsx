@@ -39,17 +39,17 @@ export function AdminOverview() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Newest merchants</h2>
+          <h2 className="text-sm font-semibold text-primary">Newest merchants</h2>
           <Link
             to="/admin/merchants"
-            className="inline-flex items-center gap-1 rounded text-xs text-muted transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
+            className="inline-flex items-center gap-1 rounded text-xs text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
           >
             All merchants <ArrowRight size={12} aria-hidden="true" />
           </Link>
         </div>
 
         {recent.length === 0 ? (
-          <p className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-10 text-center text-sm text-muted">
+          <p className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-10 text-center text-sm text-muted">
             No merchant stores yet.
           </p>
         ) : (
@@ -57,10 +57,10 @@ export function AdminOverview() {
             {recent.map(m => (
               <li
                 key={m.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-white">{m.name}</p>
+                  <p className="text-sm font-medium text-primary">{m.name}</p>
                   <p className="mt-0.5 truncate text-xs text-muted">
                     {m.owner?.email} · joined{' '}
                     {new Date(m.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -93,12 +93,12 @@ function Metric({
   label, value, tone, small,
 }: { label: string; value: string; tone?: 'success' | 'accent'; small?: boolean }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+    <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4">
       <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
       <p
         className={
           (small ? 'mt-1.5 text-xl font-bold ' : 'mt-1.5 text-2xl font-bold ') +
-          (tone === 'success' ? 'text-[#27C93F]' : tone === 'accent' ? 'text-[#FFBD2E]' : 'text-white')
+          (tone === 'success' ? 'text-[var(--brand-green-ink)]' : tone === 'accent' ? 'text-[var(--brand-yellow-ink)]' : 'text-primary')
         }
       >
         {value}

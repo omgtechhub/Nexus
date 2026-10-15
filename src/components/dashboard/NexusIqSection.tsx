@@ -6,6 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
+import { VoiceConsole } from './VoiceConsole';
 import {
   useIqInsightsQuery,
   useRefreshInsightsMutation,
@@ -20,13 +21,13 @@ import {
 import type { AiInsight, InsightSeverity } from '../../api/nexusIq';
 
 const SEVERITY: Record<InsightSeverity, { icon: typeof Info; ring: string; text: string }> = {
-  CRITICAL: { icon: AlertTriangle, ring: 'border-[#FF5F56]/30 bg-[#FF5F56]/5', text: 'text-[#FF5F56]' },
-  WARNING: { icon: AlertCircle, ring: 'border-[#FFBD2E]/30 bg-[#FFBD2E]/5', text: 'text-[#FFBD2E]' },
-  INFO: { icon: Info, ring: 'border-white/10 bg-white/[0.02]', text: 'text-muted' },
+  CRITICAL: { icon: AlertTriangle, ring: 'border-[#FF5F56]/30 bg-[#FF5F56]/5', text: 'text-[var(--brand-red-ink)]' },
+  WARNING: { icon: AlertCircle, ring: 'border-[#FFBD2E]/30 bg-[#FFBD2E]/5', text: 'text-[var(--brand-yellow-ink)]' },
+  INFO: { icon: Info, ring: 'border-[var(--ink)]/10 bg-[var(--ink)]/[0.02]', text: 'text-muted' },
 };
 
 export function NexusIqSection() {
-  const [tab, setTab] = useState<'insights' | 'chat'>('insights');
+  const [tab, setTab] = useState<'insights' | 'chat' | 'voice'>('insights');
 
   return (
     <div className="space-y-5">
@@ -34,7 +35,7 @@ export function NexusIqSection() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5" role="tablist" aria-label="Nexus IQ">
-          {(['insights', 'chat'] as const).map(key => (
+          {(['insights', 'chat', 'voice'] as const).map(key => (
             <button
               key={key}
               type="button"
@@ -46,17 +47,17 @@ export function NexusIqSection() {
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]',
                 tab === key
                   ? 'bg-[#FFBD2E] font-semibold text-slate-950'
-                  : 'border border-white/10 bg-white/5 text-secondary hover:text-white'
+                  : 'border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-secondary hover:text-primary'
               )}
             >
-              {key === 'insights' ? 'Insights' : 'Ask Nexus IQ'}
+              {key === 'insights' ? 'Insights' : key === 'chat' ? 'Ask Nexus IQ' : 'Voice'}
             </button>
           ))}
         </div>
         <UsageMeter />
       </div>
 
-      {tab === 'insights' ? <InsightsFeed /> : <ChatPanel />}
+      {tab === 'insights' ? <InsightsFeed /> : tab === 'chat' ? <ChatPanel /> : <VoiceConsole />}
     </div>
   );
 }
@@ -71,9 +72,9 @@ function ProviderNotice() {
 
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-[#FFBD2E]/25 bg-[#FFBD2E]/5 p-4">
-      <Sparkles size={16} className="mt-0.5 flex-shrink-0 text-[#FFBD2E]" aria-hidden="true" />
+      <Sparkles size={16} className="mt-0.5 flex-shrink-0 text-[var(--brand-yellow-ink)]" aria-hidden="true" />
       <div className="text-sm">
-        <p className="font-semibold text-white">Running without a language model</p>
+        <p className="font-semibold text-primary">Running without a language model</p>
         <p className="mt-1 leading-relaxed text-secondary">
           Insights below are computed directly from your store's data and each one shows the
           figures behind it. Answers in Ask Nexus IQ are looked up from those same figures
@@ -84,42 +85,25 @@ function ProviderNotice() {
   );
 }
 
+/**
+ * Tokens spent this month. A meter, not a limit: nothing on the seller side
+ * refuses a question, so this is a running cost rather than a budget bar.
+ */
 function UsageMeter() {
   const { data: usage } = useIqUsageQuery();
   if (!usage) return null;
 
-  if (usage.tokensAllowed === null) {
-    return (
-      <p className="text-xs text-muted">
-        {usage.tokensUsed.toLocaleString()} tokens used · unlimited on {usage.planName}
-      </p>
-    );
-  }
-
-  const pct = Math.min(100, Math.round((usage.tokensUsed / usage.tokensAllowed) * 100));
+  const resets = new Date(usage.periodEnd).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
-    <div className="min-w-[200px]">
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="text-muted">
-          {usage.tokensUsed.toLocaleString()} / {usage.tokensAllowed.toLocaleString()} tokens
-        </span>
-        {usage.exceeded && <span className="font-semibold text-[#FF5F56]">Limit reached</span>}
-      </div>
-      <div
-        className="h-1.5 overflow-hidden rounded-full bg-white/10"
-        role="progressbar"
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Nexus IQ token usage this month"
-      >
-        <div
-          className={cn('h-full rounded-full', usage.exceeded ? 'bg-[#FF5F56]' : 'bg-[#27C93F]')}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
+    <p className="text-xs text-muted">
+      <span className="font-semibold text-secondary">{usage.tokensUsed.toLocaleString()}</span>{' '}
+      tokens used this month · unlimited{usage.planName ? ` on ${usage.planName}` : ''} · resets{' '}
+      {resets}
+    </p>
   );
 }
 
@@ -164,7 +148,7 @@ function InsightsFeed() {
       </div>
 
       {insights.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+        <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
           <Sparkles size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
           <p className="text-sm text-secondary">
             Nothing needs your attention right now.
@@ -205,7 +189,7 @@ function InsightCard({ insight, onDismiss }: { insight: AiInsight; onDismiss: ()
       <div className="flex items-start gap-3">
         <Icon size={16} className={cn('mt-0.5 flex-shrink-0', tone.text)} aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-white">{insight.title}</h3>
+          <h3 className="text-sm font-semibold text-primary">{insight.title}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-secondary">{insight.body}</p>
 
           {entries.length > 0 && (
@@ -214,7 +198,7 @@ function InsightCard({ insight, onDismiss }: { insight: AiInsight; onDismiss: ()
                 type="button"
                 onClick={() => setShowEvidence(v => !v)}
                 aria-expanded={showEvidence}
-                className="inline-flex items-center gap-1 rounded text-xs font-medium text-muted transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
+                className="inline-flex items-center gap-1 rounded text-xs font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
               >
                 <ChevronDown
                   size={12}
@@ -225,7 +209,7 @@ function InsightCard({ insight, onDismiss }: { insight: AiInsight; onDismiss: ()
               </button>
 
               {showEvidence && (
-                <dl className="mt-2 space-y-1 rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                <dl className="mt-2 space-y-1 rounded-xl border border-[var(--ink)]/10 bg-[var(--surface-3)] p-3 text-xs">
                   {entries.map(([key, value]) => (
                     <div key={key} className="flex justify-between gap-4">
                       <dt className="text-muted">{humanise(key)}</dt>
@@ -242,7 +226,7 @@ function InsightCard({ insight, onDismiss }: { insight: AiInsight; onDismiss: ()
           type="button"
           onClick={onDismiss}
           aria-label={`Dismiss: ${insight.title}`}
-          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-[var(--ink)]/5 hover:text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
         >
           <X size={14} aria-hidden="true" />
         </button>
@@ -317,8 +301,8 @@ function ChatPanel() {
                   'w-full rounded-lg px-3 py-2 pr-8 text-left text-xs transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]',
                   activeId === c.id
-                    ? 'bg-white/10 font-medium text-white'
-                    : 'text-muted hover:bg-white/5 hover:text-white'
+                    ? 'bg-[var(--ink)]/10 font-medium text-primary'
+                    : 'text-muted hover:bg-[var(--ink)]/5 hover:text-primary'
                 )}
               >
                 <span className="line-clamp-2">{c.title}</span>
@@ -334,7 +318,7 @@ function ChatPanel() {
                   })
                 }
                 aria-label={`Delete conversation: ${c.title}`}
-                className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-muted opacity-0 transition-opacity hover:text-[#FF5F56] focus-visible:opacity-100 group-hover:opacity-100"
+                className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-muted opacity-0 transition-opacity hover:text-[var(--brand-red-ink)] focus-visible:opacity-100 group-hover:opacity-100"
               >
                 <Trash2 size={12} aria-hidden="true" />
               </button>
@@ -343,7 +327,7 @@ function ChatPanel() {
         </ul>
       </aside>
 
-      <section className="flex min-h-[420px] flex-col rounded-2xl border border-white/10 bg-white/[0.02]">
+      <section className="flex min-h-[420px] flex-col rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02]">
         {!activeId ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
             <MessageSquare size={20} className="mb-3 text-muted" aria-hidden="true" />
@@ -377,7 +361,7 @@ function ChatPanel() {
                         'max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                         m.role === 'USER'
                           ? 'bg-[#FFBD2E] text-slate-950'
-                          : 'border border-white/10 bg-white/5 text-strong'
+                          : 'border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-strong'
                       )}
                     >
                       {m.content}
@@ -387,7 +371,7 @@ function ChatPanel() {
               )}
               {sendMessage.isPending && (
                 <div className="flex justify-start">
-                  <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-muted">
+                  <div className="inline-flex items-center gap-2 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 px-4 py-2.5 text-sm text-muted">
                     <Loader2 size={13} className="animate-spin" aria-hidden="true" />
                     Looking that up…
                   </div>
@@ -396,7 +380,7 @@ function ChatPanel() {
               <div ref={endRef} />
             </div>
 
-            <form onSubmit={handleSend} className="flex gap-2 border-t border-white/10 p-3">
+            <form onSubmit={handleSend} className="flex gap-2 border-t border-[var(--ink)]/10 p-3">
               <label htmlFor="iq-message" className="sr-only">
                 Ask Nexus IQ about your store
               </label>
@@ -406,7 +390,7 @@ function ChatPanel() {
                 onChange={e => setDraft(e.target.value)}
                 placeholder="Ask about stock, orders or revenue…"
                 disabled={sendMessage.isPending}
-                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none disabled:opacity-50"
+                className="flex-1 rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none disabled:opacity-50"
               />
               <Button
                 type="submit"
@@ -437,7 +421,7 @@ function Loading({ label }: { label: string }) {
 function ErrorBox({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
-      <AlertTriangle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
+      <AlertTriangle size={20} className="mx-auto mb-3 text-[var(--brand-red-ink)]" aria-hidden="true" />
       <p className="text-sm text-strong">{message}</p>
       <div className="mt-4">
         <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>

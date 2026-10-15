@@ -11,13 +11,13 @@
 export function RouteFallback() {
   return (
     <div
-      className="min-h-screen bg-[#0B0D1B] flex items-center justify-center"
+      className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center"
       role="status"
       aria-live="polite"
     >
       <span className="sr-only">Loading…</span>
       <div
-        className="w-8 h-8 rounded-full border-2 border-white/15 border-t-[#FFBD2E] animate-spin"
+        className="w-8 h-8 rounded-full border-2 border-[var(--ink)]/15 border-t-[#FFBD2E] animate-spin"
         aria-hidden="true"
       />
     </div>

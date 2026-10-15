@@ -4,22 +4,23 @@ import { AiUsageKind } from '@prisma/client';
 /**
  * Usage metering for Nexus IQ.
  *
- * The allowance comes from the store's subscription plan, which the pricing page
- * already commits to per tier. A store with no subscription gets the free
- * allowance below rather than unlimited access.
+ * Metering, not rationing. Nexus IQ is not capped on the seller side, which
+ * matches the shopping assistant and the platform console — neither of those
+ * counts a turn against an allowance either, and a merchant hitting a wall
+ * mid-question while a shopper on the same install asks freely was never
+ * defensible.
+ *
+ * What stays is the ledger: every turn still records what it spent, so the
+ * dashboard can show a merchant what their assistant is costing and the
+ * platform can bill or price against real numbers later. Nothing here refuses
+ * work.
  */
-
-/** What a store without a subscription may use each month. */
-const UNSUBSCRIBED_ALLOWANCE = 250;
 
 export interface UsageWindow {
   periodStart: Date;
   periodEnd: Date;
   tokensUsed: number;
-  /** Null means unlimited. */
-  tokensAllowed: number | null;
-  remaining: number | null;
-  exceeded: boolean;
+  /** The plan the store is on, for display. It no longer gates anything. */
   planName: string | null;
 }
 
@@ -44,20 +45,10 @@ export async function getUsage(storeId: string, now = new Date()): Promise<Usage
     }),
   ]);
 
-  const tokensUsed = (aggregate._sum.tokensIn ?? 0) + (aggregate._sum.tokensOut ?? 0);
-
-  // An unsubscribed store is not an unlimited store.
-  const tokensAllowed = subscription
-    ? subscription.plan.aiTokensPerMonth
-    : UNSUBSCRIBED_ALLOWANCE;
-
   return {
     periodStart: start,
     periodEnd: end,
-    tokensUsed,
-    tokensAllowed,
-    remaining: tokensAllowed === null ? null : Math.max(0, tokensAllowed - tokensUsed),
-    exceeded: tokensAllowed !== null && tokensUsed >= tokensAllowed,
+    tokensUsed: (aggregate._sum.tokensIn ?? 0) + (aggregate._sum.tokensOut ?? 0),
     planName: subscription?.plan.name ?? null,
   };
 }
@@ -71,23 +62,4 @@ export async function recordUsage(params: {
   tokensOut: number;
 }): Promise<void> {
   await prisma.aiUsageEvent.create({ data: params });
-}
-
-export class UsageExceededError extends Error {
-  readonly usage: UsageWindow;
-  constructor(usage: UsageWindow) {
-    super(
-      `This store has used its ${usage.tokensAllowed} Nexus IQ tokens for the month. ` +
-        `The allowance resets on ${usage.periodEnd.toISOString().slice(0, 10)}.`
-    );
-    this.name = 'UsageExceededError';
-    this.usage = usage;
-  }
-}
-
-/** Throws when the store is already over its allowance. */
-export async function assertWithinAllowance(storeId: string): Promise<UsageWindow> {
-  const usage = await getUsage(storeId);
-  if (usage.exceeded) throw new UsageExceededError(usage);
-  return usage;
 }

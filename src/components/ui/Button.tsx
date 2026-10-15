@@ -27,10 +27,10 @@ export function Button({
 
   const variants = {
     primary: 'bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] hover:brightness-110 text-white font-bold focus:ring-[#FF5F56] shadow-lg shadow-red-900/30 hover:shadow-yellow-500/20 active:scale-95',
-    secondary: 'bg-white/10 hover:bg-white/15 text-white border border-white/10 hover:border-white/20 focus:ring-white/30',
-    ghost: 'bg-transparent hover:bg-white/5 text-body hover:text-white focus:ring-white/20',
+    secondary: 'bg-[var(--ink)]/10 hover:bg-[var(--ink)]/15 text-primary border border-[var(--ink)]/10 hover:border-[var(--ink)]/20 focus:ring-[var(--ink)]/30',
+    ghost: 'bg-transparent hover:bg-[var(--ink)]/5 text-body hover:text-primary focus:ring-[var(--ink)]/20',
     danger: 'bg-[#FF5F56] hover:bg-red-500 text-white focus:ring-red-500 shadow-lg shadow-red-900/30',
-    outline: 'bg-transparent border border-[#FFBD2E] text-[#FFBD2E] hover:bg-[#FFBD2E]/10 focus:ring-[#FFBD2E]',
+    outline: 'bg-transparent border border-[#FFBD2E] text-[var(--brand-yellow-ink)] hover:bg-[#FFBD2E]/10 focus:ring-[#FFBD2E]',
   };
 
   const sizes = {

@@ -16,28 +16,47 @@ Nexus Commerce is a Shopify-like, multi-tenant SaaS commerce platform built with
 
 ## Quick Start (Development)
 
-### Backend
+### First run
+
 ```bash
-cd server
 npm install
-npx prisma db push
-npm run prisma:seed
+cd server && npm install && npx prisma db push && npm run prisma:seed && cd ..
+```
+
+### Every run
+
+```bash
 npm run dev
 ```
 
-### Frontend
+That starts **both** halves — the API on `http://localhost:5000` and the web app on
+`http://localhost:5173` — with their output interleaved and prefixed `[api]` / `[web]`.
+Stopping it with Ctrl-C stops both.
+
+The app needs both. Every page past the marketing site calls the API, and with nothing
+listening on port 5000 the browser reports a bare `Failed to fetch` with no status code
+and no server log — which reads like a bug in the page rather than a missing process.
+`npm run dev` checks both ports before it starts anything and tells you which one is
+occupied, rather than coming half up.
+
+To run one half on its own:
+
 ```bash
-npm install
-npm run dev
+npm run dev:web    # Vite only
+npm run dev:api    # API only
 ```
+
+> The API's CORS allow-list is pinned to `FRONTEND_URL` in `server/.env`
+> (`http://localhost:5173`). If the web app ends up on a different port, requests reach
+> the server and are rejected there — so the preflight treats a busy 5173 as fatal too
+> rather than letting Vite silently move to 5174.
 
 ---
 
 ## Running Tests
 
 ```bash
-cd server
-npm run test
+npm run test:api     # or: cd server && npm run test
 ```
 
 ## Production Build & Deployment

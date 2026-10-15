@@ -11,6 +11,7 @@ import { settingsRouter } from './settings.routes.js';
 import { inventoryRouter } from './inventory.routes.js';
 import { uploadRouter } from './upload.routes.js';
 import { storefrontRouter } from './storefront.routes.js';
+import { marketplaceRouter } from './marketplace.routes.js';
 import { paymentsRouter } from './payments.routes.js';
 import { webhooksRouter } from './webhooks.routes.js';
 import { shippingRouter } from './shipping.routes.js';
@@ -26,6 +27,11 @@ import { subscriptionsRouter } from './subscriptions.routes.js';
 import { saasWebhooksRouter } from './saasWebhooks.routes.js';
 import { platformAdminRouter } from './platformAdmin.routes.js';
 import { nexusIqRouter } from './nexusIq.routes.js';
+import { reviewsRouter } from './reviews.routes.js';
+import { shopVoiceRouter } from './shopVoice.routes.js';
+import { shopAssistantRouter } from './shopAssistant.routes.js';
+import { adminVoiceRouter } from './adminVoice.routes.js';
+import { publicAssistantRouter } from './publicAssistant.routes.js';
 
 export const apiRouter = Router();
 
@@ -37,6 +43,7 @@ apiRouter.use('/orders', ordersRouter);
 apiRouter.use('/inventory', inventoryRouter);
 apiRouter.use('/upload', uploadRouter);
 apiRouter.use('/storefront', storefrontRouter);
+apiRouter.use('/marketplace', marketplaceRouter);
 apiRouter.use('/payments', paymentsRouter);
 apiRouter.use('/webhooks', webhooksRouter);
 apiRouter.use('/shipping', shippingRouter);
@@ -54,5 +61,16 @@ apiRouter.use('/audit-logs', auditLogsRouter);
 apiRouter.use('/plans', plansRouter);
 apiRouter.use('/subscriptions', subscriptionsRouter);
 apiRouter.use('/saas-webhooks', saasWebhooksRouter);
+// Mounted before '/admin': Express matches prefixes in order, so the console
+// router would otherwise receive these requests, run its own guard against
+// them and only then fall through.
+apiRouter.use('/admin/voice', adminVoiceRouter);
 apiRouter.use('/admin', platformAdminRouter);
 apiRouter.use('/iq', nexusIqRouter);
+apiRouter.use('/reviews', reviewsRouter);
+apiRouter.use('/shop/voice', shopVoiceRouter);
+apiRouter.use('/shop/assistant', shopAssistantRouter);
+// Nexus IQ for signed-out visitors on the public pages. Unauthenticated by
+// design and scoped to published plans plus the public catalogue, so there is
+// no account behind it; '/iq' and '/shop/*' above remain the gated surfaces.
+apiRouter.use('/assistant', publicAssistantRouter);

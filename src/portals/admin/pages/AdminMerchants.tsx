@@ -38,25 +38,25 @@ export function AdminMerchants() {
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by store, domain or owner"
           aria-label="Search merchants"
-          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
+          className="w-full rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 py-2.5 pl-10 pr-3 text-sm text-primary placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
         />
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+        <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
           <Store size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
           <p className="text-sm text-secondary">
             {merchants.length === 0 ? 'No merchant stores yet.' : 'No merchants match that search.'}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/10">
+        <div className="overflow-hidden rounded-2xl border border-[var(--ink)]/10">
           {/* `relative` contains the sr-only caption, which is position:absolute
               and would otherwise widen the document at phone sizes. */}
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[760px] text-left">
               <caption className="sr-only">Merchant stores with owner, plan and activity</caption>
-              <thead className="bg-white/5">
+              <thead className="bg-[var(--ink)]/5">
                 <tr>
                   <Th>Store</Th>
                   <Th>Owner</Th>
@@ -70,9 +70,9 @@ export function AdminMerchants() {
               </thead>
               <tbody>
                 {visible.map(m => (
-                  <tr key={m.id} className="border-t border-white/5 hover:bg-white/[0.03]">
+                  <tr key={m.id} className="border-t border-[var(--ink)]/5 hover:bg-[var(--ink)]/[0.03]">
                     <td className="p-4">
-                      <p className="text-sm font-medium text-white">{m.name}</p>
+                      <p className="text-sm font-medium text-primary">{m.name}</p>
                       <p className="mt-0.5 font-mono text-[11px] text-muted">{m.domain}</p>
                     </td>
                     <td className="p-4">

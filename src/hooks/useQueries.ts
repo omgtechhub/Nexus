@@ -2,13 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProductsApi, createProductApi, updateProductApi, deleteProductApi } from '../api/products';
 import { getCustomersApi, createCustomerApi, updateCustomerApi, deleteCustomerApi } from '../api/customers';
 import { getOrdersApi, createOrderApi, updateOrderApi, cancelOrderApi } from '../api/orders';
-import { getDiscountsApi, createDiscountApi, deleteDiscountApi } from '../api/discounts';
 import { getAnalyticsApi } from '../api/analytics';
 import { getNotificationsApi, markNotificationReadApi, markAllNotificationsReadApi } from '../api/notifications';
 import { getStoreSettingsApi, updateStoreSettingsApi } from '../api/settings';
 import { getInventoryApi, adjustStockApi } from '../api/inventory';
 import { uploadImageApi } from '../api/upload';
-import { Product, Customer, Order, DiscountCode, StoreSettings } from '../types';
+import { Product, Customer, Order, StoreSettings } from '../types';
 
 export const queryKeys = {
   authMe: ['auth', 'me'] as const,
@@ -16,7 +15,6 @@ export const queryKeys = {
   customers: (params?: any) => ['customers', params] as const,
   orders: (params?: any) => ['orders', params] as const,
   inventory: ['inventory'] as const,
-  discounts: ['discounts'] as const,
   analytics: (range?: string, startDate?: string, endDate?: string) => ['analytics', range, startDate, endDate] as const,
   notifications: ['notifications'] as const,
   settings: ['settings'] as const,
@@ -186,35 +184,6 @@ export function useCancelOrderMutation() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
-    },
-  });
-}
-
-// Discounts Hooks
-export function useDiscountsQuery(enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.discounts,
-    queryFn: getDiscountsApi,
-    enabled,
-  });
-}
-
-export function useCreateDiscountMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (d: Partial<DiscountCode>) => createDiscountApi(d),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discounts'] });
-    },
-  });
-}
-
-export function useDeleteDiscountMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => deleteDiscountApi(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discounts'] });
     },
   });
 }

@@ -1,85 +1,93 @@
 import { useRef, useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 import {
-  Store, CreditCard, BarChart3, Globe, Smartphone, ShieldCheck,
-  Package, Zap, Users, Headphones, Palette, GitBranch
+  Package, CreditCard, Sparkles, Users, Truck, ShieldCheck,
+  Boxes, Zap, ShoppingBag, Headphones, Receipt, LineChart
 } from 'lucide-react';
 import gsap from 'gsap';
 import { cn } from '../../utils/cn';
-import { useApp } from '../../context/AppContext';
 import { getAssetUrl } from '../../utils/assetPath';
 
+/**
+ * Feature copy.
+ *
+ * Deliberately inert: each card used to navigate to a dedicated marketing page
+ * (/online-store, /payments, /pos and so on), and those pages are gone. Rather
+ * than leave cards that look clickable and land on the homepage, they are plain
+ * descriptive content — so no `target`, no onClick, and none of the hover
+ * affordances that imply a destination.
+ *
+ * The copy describes selling *on* Nexus, not building a shop with it. The
+ * earlier set sold a store builder: 150+ themes, point of sale, theme
+ * customisation, developer APIs. None of that exists in the product, and
+ * promising a seller their own shopfront is the opposite of what a marketplace
+ * offers them — the platform runs the shopfront, the checkout and the delivery,
+ * and the seller brings the products.
+ */
 const mainFeatures = [
   {
-    icon: <Store size={24} />,
-    title: 'Stunning Online Stores',
-    description: 'Design with AI or choose from 150+ premium themes. Every store is fast, beautiful, and built to convert.',
+    icon: <Package size={24} />,
+    title: 'List in Minutes',
+    description: 'Add a product, set your price, upload your photos. Your listing is live on the marketplace the moment you publish it.',
     color: 'emerald',
-    tag: 'Store Builder',
-    target: 'online-store' as const,
+    tag: 'Listings',
+  },
+  {
+    icon: <Users size={24} />,
+    title: 'An Audience Already Here',
+    description: 'No traffic to buy, no store to promote. Shoppers browsing Nexus find your products the day you list them.',
+    color: 'blue',
+    tag: 'Reach',
+  },
+  {
+    icon: <Sparkles size={24} />,
+    title: 'Nexus IQ',
+    description: 'Your own analyst. What to restock, what to price differently, and which listings are about to run dry.',
+    color: 'purple',
+    tag: 'Nexus IQ',
   },
   {
     icon: <CreditCard size={24} />,
-    title: 'Nexus Payments',
-    description: 'Accept every payment globally. Stripe, PayPal, crypto, BNPL — zero setup, lowest rates in the industry.',
-    color: 'blue',
-    tag: 'Payments',
-    target: 'payments' as const,
-  },
-  {
-    icon: <BarChart3 size={24} />,
-    title: 'AI Analytics & Insights',
-    description: 'Know exactly what\'s working. Real-time dashboards with AI predictions for inventory, pricing, and trends.',
-    color: 'purple',
-    tag: 'Analytics',
-    target: 'ai-assistant' as const,
-  },
-  {
-    icon: <Globe size={24} />,
-    title: 'Global Commerce',
-    description: 'Sell in 175+ countries with multi-currency, localized checkout, and automated tax compliance.',
+    title: 'Checkout We Run For You',
+    description: 'Cards, transfers and wallets, handled by the platform. You never touch a gateway — you just get paid out.',
     color: 'amber',
-    tag: 'International',
-    target: 'international' as const,
+    tag: 'Payments',
   },
   {
-    icon: <Smartphone size={24} />,
-    title: 'Point of Sale',
-    description: 'Unify online and in-store. Take your store anywhere with our sleek POS hardware and app.',
+    icon: <Truck size={24} />,
+    title: 'Fulfilment & Tracking',
+    description: 'Mark an order fulfilled and the buyer gets tracking automatically. Every shipment in one list.',
     color: 'pink',
-    tag: 'POS',
-    target: 'pos' as const,
+    tag: 'Fulfilment',
   },
   {
     icon: <ShieldCheck size={24} />,
-    title: 'Enterprise Security',
-    description: 'PCI DSS Level 1, SOC 2 Type II, and 99.99% uptime SLA. Your data, protected at every layer.',
+    title: 'Paid, and Protected',
+    description: 'PCI DSS Level 1 and SOC 2 Type II. Verified buyers, held funds on disputes, and payouts on a schedule you can plan around.',
     color: 'red',
-    tag: 'Security',
-    target: 'terms' as const,
+    tag: 'Trust',
   },
 ];
 
 const additionalFeatures = [
-  { icon: <Package size={18} />, title: 'Inventory Management', desc: 'Smart stock tracking and forecasting', target: 'shipping' as const },
-  { icon: <Zap size={18} />, title: 'Marketing Automation', desc: 'Email flows, SMS, and ad integrations', target: 'ai-assistant' as const },
-  { icon: <Users size={18} />, title: 'Customer Profiles', desc: 'Full CRM built-in, no extras needed', target: 'd2c' as const },
-  { icon: <Headphones size={18} />, title: '24/7 Support', desc: 'Expert help whenever you need it', target: 'help-center' as const },
-  { icon: <Palette size={18} />, title: 'Theme Customization', desc: 'Drag-and-drop or full code control', target: 'online-store' as const },
-  { icon: <GitBranch size={18} />, title: 'Developer APIs', desc: 'GraphQL & REST for any integration', target: 'docs' as const },
+  { icon: <Boxes size={18} />, title: 'Inventory Tracking', desc: 'Stock levels synced to every listing' },
+  { icon: <ShoppingBag size={18} />, title: 'Order Management', desc: 'Every order in one place' },
+  { icon: <Receipt size={18} />, title: 'Payout History', desc: 'See what cleared, and when' },
+  { icon: <LineChart size={18} />, title: 'Sales Reports', desc: 'Revenue, top products, trends' },
+  { icon: <Zap size={18} />, title: 'Low-Stock Alerts', desc: 'Know before a listing runs dry' },
+  { icon: <Headphones size={18} />, title: 'Seller Support', desc: 'Real help whenever you need it' },
 ];
 
 const colorMap: Record<string, string> = {
-  emerald: 'from-[#27C93F]/20 to-[#27C93F]/5 border-[#27C93F]/30 text-[#27C93F]',
+  emerald: 'from-[#27C93F]/20 to-[#27C93F]/5 border-[#27C93F]/30 text-[var(--brand-green-ink)]',
   blue: 'from-cyan-500/20 to-cyan-600/5 border-cyan-500/30 text-cyan-400',
   purple: 'from-purple-500/20 to-purple-600/5 border-purple-500/30 text-purple-400',
-  amber: 'from-[#FFBD2E]/20 to-[#FFBD2E]/5 border-[#FFBD2E]/30 text-[#FFBD2E]',
+  amber: 'from-[#FFBD2E]/20 to-[#FFBD2E]/5 border-[#FFBD2E]/30 text-[var(--brand-yellow-ink)]',
   pink: 'from-pink-500/20 to-pink-600/5 border-pink-500/30 text-pink-400',
-  red: 'from-[#FF5F56]/20 to-[#FF5F56]/5 border-[#FF5F56]/30 text-[#FF5F56]',
+  red: 'from-[#FF5F56]/20 to-[#FF5F56]/5 border-[#FF5F56]/30 text-[var(--brand-red-ink)]',
 };
 
 function FeatureCard({ feature, index }: { feature: typeof mainFeatures[0]; index: number }) {
-  const { navigate } = useApp();
   const cardRef = useRef<HTMLDivElement>(null);
   const { ref: inViewRef, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
   const colors = colorMap[feature.color];
@@ -94,28 +102,13 @@ function FeatureCard({ feature, index }: { feature: typeof mainFeatures[0]; inde
     }
   }, [inView, index]);
 
-  const handleMouseEnter = () => {
-    if (cardRef.current) {
-      gsap.to(cardRef.current, { scale: 1.03, y: -6, duration: 0.3, ease: 'power2.out' });
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (cardRef.current) {
-      gsap.to(cardRef.current, { scale: 1, y: 0, duration: 0.3, ease: 'power2.out' });
-    }
-  };
-
   return (
     <div
       ref={(el) => {
         cardRef.current = el;
         inViewRef(el);
       }}
-      onClick={() => navigate(feature.target)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className="glass rounded-2xl p-6 border border-white/5 cursor-pointer group transition-colors hover:border-[#FFBD2E]/40"
+      className="glass rounded-2xl p-6 border border-[var(--ink)]/5"
     >
       <div className={cn(
         'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 border',
@@ -124,14 +117,13 @@ function FeatureCard({ feature, index }: { feature: typeof mainFeatures[0]; inde
         {feature.icon}
       </div>
       <div className="text-xs font-medium text-muted uppercase tracking-wider mb-2">{feature.tag}</div>
-      <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#FFBD2E] transition-colors">{feature.title}</h3>
+      <h3 className="text-lg font-semibold text-primary mb-2">{feature.title}</h3>
       <p className="text-sm text-muted leading-relaxed">{feature.description}</p>
     </div>
   );
 }
 
 export function Features() {
-  const { navigate } = useApp();
   const { ref: headerRef, inView: headerInView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
   return (
@@ -146,42 +138,42 @@ export function Features() {
             headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           )}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FFBD2E]/30 bg-[#FFBD2E]/10 text-[#FFBD2E] text-xs font-medium mb-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FFBD2E]/30 bg-[#FFBD2E]/10 text-[var(--brand-yellow-ink)] text-xs font-medium mb-5">
             <Zap size={12} fill="currentColor" />
-            Everything you need
+            Everything you need to sell
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-5 leading-tight">
-            The complete commerce
-            <span className="text-gradient"> operating system</span>
+          <h2 className="text-4xl sm:text-5xl font-bold text-primary mb-5 leading-tight">
+            One marketplace,
+            <span className="text-gradient"> everything you need to sell</span>
           </h2>
           <p className="text-lg text-muted leading-relaxed">
-            One platform to build, manage, and scale your business. No duct tape. No missing features. Everything connected.
+            You bring the products. We bring the shoppers, the checkout, the payouts and the delivery. Nothing to set up, nothing to stitch together.
           </p>
         </div>
 
         {/* Feature image showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          <div className="relative rounded-2xl overflow-hidden border border-white/10 group">
+          <div className="relative rounded-2xl overflow-hidden border border-[var(--ink)]/10 group">
             <img loading="lazy" decoding="async" src={getAssetUrl('/images/feature-analytics.jpg')} alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface-base)] via-[var(--surface-base)]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5F56]/20 border border-[#FF5F56]/30 text-[#FF5F56] text-xs font-medium mb-2">
-                <BarChart3 size={12} /> NexusIQ Analytics
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5F56]/20 border border-[#FF5F56]/30 text-[var(--brand-red-ink)] text-xs font-medium mb-2">
+                <Sparkles size={12} /> Nexus IQ
               </div>
-              <h3 className="text-xl font-bold text-white group-hover:text-[#FFBD2E] transition-colors">AI-powered business intelligence</h3>
-              <p className="text-sm text-muted mt-1">Predict trends, optimize pricing, and find growth opportunities automatically.</p>
+              <h3 className="text-xl font-bold text-primary group-hover:text-[var(--brand-yellow-ink)] transition-colors">Know what to sell next</h3>
+              <p className="text-sm text-muted mt-1">Demand signals, pricing guidance and restock warnings, read off your own sales.</p>
             </div>
           </div>
 
-          <div className="relative rounded-2xl overflow-hidden border border-white/10 group">
+          <div className="relative rounded-2xl overflow-hidden border border-[var(--ink)]/10 group">
             <img loading="lazy" decoding="async" src={getAssetUrl('/images/feature-commerce.jpg')} alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D1B] via-[#0B0D1B]/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface-base)] via-[var(--surface-base)]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#27C93F]/20 border border-[#27C93F]/30 text-[#27C93F] text-xs font-medium mb-2">
-                <Store size={12} /> Store Builder
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#27C93F]/20 border border-[#27C93F]/30 text-[var(--brand-green-ink)] text-xs font-medium mb-2">
+                <CreditCard size={12} /> Marketplace Checkout
               </div>
-              <h3 className="text-xl font-bold text-white group-hover:text-[#FFBD2E] transition-colors">Checkout that converts up to 50% more</h3>
-              <p className="text-sm text-muted mt-1">World's fastest, most trusted checkout experience — Shop Pay included.</p>
+              <h3 className="text-xl font-bold text-primary group-hover:text-[var(--brand-yellow-ink)] transition-colors">One bag, one checkout, every seller</h3>
+              <p className="text-sm text-muted mt-1">Shoppers buy from several sellers at once. We split the order and pay each of you.</p>
             </div>
           </div>
         </div>
@@ -194,15 +186,15 @@ export function Features() {
         </div>
 
         {/* Additional features */}
-        <div className="glass rounded-2xl border border-white/5 p-8">
+        <div className="glass rounded-2xl border border-[var(--ink)]/5 p-8">
           <p className="text-center text-sm text-muted mb-6 font-medium uppercase tracking-wider">And much more</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {additionalFeatures.map(feat => (
-              <div key={feat.title} onClick={() => navigate(feat.target)} className="text-center group cursor-pointer">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3 text-muted group-hover:text-[#FFBD2E] group-hover:border-[#FFBD2E]/30 transition-colors">
+              <div key={feat.title} className="text-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--ink)]/5 border border-[var(--ink)]/10 flex items-center justify-center mx-auto mb-3 text-muted">
                   {feat.icon}
                 </div>
-                <p className="text-xs font-medium text-body group-hover:text-white transition-colors">{feat.title}</p>
+                <p className="text-xs font-medium text-body">{feat.title}</p>
                 <p className="text-xs text-muted mt-0.5">{feat.desc}</p>
               </div>
             ))}

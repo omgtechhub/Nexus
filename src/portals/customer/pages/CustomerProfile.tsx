@@ -39,7 +39,7 @@ export function CustomerProfile() {
       <PageHeading title="Profile" subtitle="How your name appears on orders you place." />
 
       <div className="max-w-lg space-y-6">
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6">
           <div className="space-y-5">
             <Input
               label="Name"
@@ -52,14 +52,14 @@ export function CustomerProfile() {
 
             <div>
               <span className="mb-1.5 block text-sm font-medium text-body">Email address</span>
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 px-3 py-2.5">
                 <span className="text-sm text-secondary">{profile.email}</span>
                 {profile.isVerified ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-[#27C93F]">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand-green-ink)]">
                     <CheckCircle2 size={12} aria-hidden="true" /> Verified
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-[#FFBD2E]">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand-yellow-ink)]">
                     <AlertCircle size={12} aria-hidden="true" /> Not verified
                   </span>
                 )}
@@ -84,8 +84,8 @@ export function CustomerProfile() {
           </div>
         </form>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-          <h2 className="text-sm font-semibold text-white">Account</h2>
+        <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5">
+          <h2 className="text-sm font-semibold text-primary">Account</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-muted">Member since</dt>

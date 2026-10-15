@@ -5,11 +5,11 @@ import {
 } from 'recharts';
 import { useAnalyticsQuery } from '../../hooks/useQueries';
 import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { useChartTheme } from './chartTheme';
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 
-const COLORS = ['#FF5F56', '#FFBD2E', '#27C93F', '#38BDF8', '#C084FC'];
 
 const trafficData = [
   { name: 'Organic Search', value: 42, color: '#27C93F' },
@@ -22,7 +22,7 @@ const trafficData = [
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="glass border border-white/10 rounded-xl p-3 shadow-xl">
+      <div className="glass border border-[var(--ink)]/10 rounded-xl p-3 shadow-xl">
         <p className="text-xs text-muted mb-2">{label}</p>
         {payload.map((entry: any) => (
           <p key={entry.name} className="text-sm font-semibold" style={{ color: entry.color }}>
@@ -36,6 +36,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function Analytics() {
+  const chart = useChartTheme();
   const [range, setRange] = useState<string>('30d');
   const analyticsQuery = useAnalyticsQuery(range);
 
@@ -66,24 +67,24 @@ export function Analytics() {
       {/* Header with Date Range Filter */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">Store Analytics & Financial Metrics</h2>
+          <h2 className="text-xl font-bold text-primary">Store Analytics & Financial Metrics</h2>
           <p className="text-xs text-muted">Real PostgreSQL database metrics calculated live</p>
         </div>
-        <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-lg border border-white/10 text-xs">
-          <Calendar size={14} className="text-[#FFBD2E]" />
+        <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-lg border border-[var(--ink)]/10 text-xs">
+          <Calendar size={14} className="text-[var(--brand-yellow-ink)]" />
           <span className="text-secondary">Range:</span>
           <select
             aria-label="Date range"
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="bg-transparent text-white font-semibold cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
+            className="bg-transparent text-primary font-semibold cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
           >
-            <option value="today" className="bg-[#15182b] text-white">Today</option>
-            <option value="yesterday" className="bg-[#15182b] text-white">Yesterday</option>
-            <option value="7d" className="bg-[#15182b] text-white">Last 7 Days</option>
-            <option value="30d" className="bg-[#15182b] text-white">Last 30 Days</option>
-            <option value="this_month" className="bg-[#15182b] text-white">This Month</option>
-            <option value="last_month" className="bg-[#15182b] text-white">Last Month</option>
+            <option value="today" className="bg-[var(--input-bg)] text-primary">Today</option>
+            <option value="yesterday" className="bg-[var(--input-bg)] text-primary">Yesterday</option>
+            <option value="7d" className="bg-[var(--input-bg)] text-primary">Last 7 Days</option>
+            <option value="30d" className="bg-[var(--input-bg)] text-primary">Last 30 Days</option>
+            <option value="this_month" className="bg-[var(--input-bg)] text-primary">This Month</option>
+            <option value="last_month" className="bg-[var(--input-bg)] text-primary">Last Month</option>
           </select>
         </div>
       </div>
@@ -93,8 +94,8 @@ export function Analytics() {
         {kpis.map(kpi => (
           <div key={kpi.label} className="stat-card p-4">
             <p className="text-xs text-muted mb-2">{kpi.label}</p>
-            <div className="text-2xl font-bold text-white mb-1">{kpi.value}</div>
-            <div className={`flex items-center gap-1 text-xs font-medium ${kpi.positive ? 'text-[#27C93F]' : 'text-[#FF5F56]'}`}>
+            <div className="text-2xl font-bold text-primary mb-1">{kpi.value}</div>
+            <div className={`flex items-center gap-1 text-xs font-medium ${kpi.positive ? 'text-[var(--brand-green-ink)]' : 'text-[var(--brand-red-ink)]'}`}>
               {kpi.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
               {Math.abs(kpi.change)}% for period
             </div>
@@ -106,7 +107,7 @@ export function Analytics() {
       <div className="stat-card p-5">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-sm font-semibold text-white">Revenue & Orders Trend</h3>
+            <h3 className="text-sm font-semibold text-primary">Revenue & Orders Trend</h3>
             <p className="text-xs text-muted">Net sales minus discounts & refunds</p>
           </div>
           <div className="flex items-center gap-4 text-xs">
@@ -116,13 +117,13 @@ export function Analytics() {
         </div>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={analytics.chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis yAxisId="left" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+            <XAxis dataKey="date" tick={chart.tick} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="left" tick={chart.tick} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+            <YAxis yAxisId="right" orientation="right" tick={chart.tick} axisLine={false} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
-            <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#FFBD2E" strokeWidth={2.5} dot={false} name="revenue" />
-            <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#FF5F56" strokeWidth={2} dot={false} strokeDasharray="4 4" name="orders" />
+            <Line yAxisId="left" type="monotone" dataKey="revenue" stroke={chart.revenue} strokeWidth={2.5} dot={false} name="revenue" />
+            <Line yAxisId="right" type="monotone" dataKey="orders" stroke={chart.orders} strokeWidth={2} dot={false} strokeDasharray="4 4" name="orders" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -130,7 +131,7 @@ export function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Traffic sources */}
         <div className="stat-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-5">Traffic Sources</h3>
+          <h3 className="text-sm font-semibold text-primary mb-5">Traffic Sources</h3>
           <div className="flex items-center gap-6">
             <ResponsiveContainer width={160} height={160}>
               <PieChart>
@@ -144,7 +145,7 @@ export function Analytics() {
                   dataKey="value"
                 >
                   {trafficData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={chart.categorical[index % chart.categorical.length]} />
                   ))}
                 </Pie>
               </PieChart>
@@ -156,7 +157,7 @@ export function Analytics() {
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
                     <span className="text-xs text-secondary">{item.name}</span>
                   </div>
-                  <span className="text-xs font-semibold text-white">{item.value}%</span>
+                  <span className="text-xs font-semibold text-primary">{item.value}%</span>
                 </div>
               ))}
             </div>
@@ -165,7 +166,7 @@ export function Analytics() {
 
         {/* Top products */}
         <div className="stat-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-5">Top Selling Products</h3>
+          <h3 className="text-sm font-semibold text-primary mb-5">Top Selling Products</h3>
           <div className="space-y-3">
             {analytics.topProducts && analytics.topProducts.length > 0 ? (
               analytics.topProducts.map((product, i) => {
@@ -175,14 +176,14 @@ export function Analytics() {
                   <div key={product.id}>
                     <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-body truncate max-w-[160px]">{product.title}</span>
-                      <span className="text-white font-semibold">{formatCurrency(product.revenue)}</span>
+                      <span className="text-primary font-semibold">{formatCurrency(product.revenue)}</span>
                     </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-[var(--ink)]/5 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
                           width: `${pct}%`,
-                          background: COLORS[i % COLORS.length],
+                          background: chart.categorical[i % chart.categorical.length],
                           transition: 'width 1s ease'
                         }}
                       />

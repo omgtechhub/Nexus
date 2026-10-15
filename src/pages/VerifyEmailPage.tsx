@@ -52,7 +52,7 @@ export function VerifyEmailPage() {
         : '/seller/dashboard';
 
   return (
-    <main className="min-h-screen bg-[#0B0D1B] text-white flex items-center justify-center p-6">
+    <main className="min-h-screen bg-[var(--surface-base)] text-primary flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link
           to="/"
@@ -65,13 +65,13 @@ export function VerifyEmailPage() {
         </Link>
 
         <div
-          className="bg-[#131629] border border-[#222642] rounded-2xl p-8 text-center space-y-4"
+          className="bg-[var(--surface-1)] border border-[var(--line)] rounded-2xl p-8 text-center space-y-4"
           role="status"
           aria-live="polite"
         >
           {status === 'verifying' && (
             <>
-              <div className="w-14 h-14 rounded-2xl bg-white/5 text-muted mx-auto flex items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--ink)]/5 text-muted mx-auto flex items-center justify-center">
                 <Loader2 size={26} className="animate-spin" aria-hidden="true" />
               </div>
               <h1 className="text-2xl font-bold">Confirming your email</h1>
@@ -82,7 +82,7 @@ export function VerifyEmailPage() {
           {status === 'success' && (
             <>
               <div
-                className="w-14 h-14 rounded-2xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[#27C93F] mx-auto flex items-center justify-center"
+                className="w-14 h-14 rounded-2xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[var(--brand-green-ink)] mx-auto flex items-center justify-center"
                 aria-hidden="true"
               >
                 <CheckCircle2 size={28} />
@@ -100,7 +100,7 @@ export function VerifyEmailPage() {
           {status === 'error' && (
             <>
               <div
-                className="w-14 h-14 rounded-2xl bg-[#FF5F56]/10 border border-[#FF5F56]/30 text-[#FF5F56] mx-auto flex items-center justify-center"
+                className="w-14 h-14 rounded-2xl bg-[#FF5F56]/10 border border-[#FF5F56]/30 text-[var(--brand-red-ink)] mx-auto flex items-center justify-center"
                 aria-hidden="true"
               >
                 <AlertCircle size={28} />

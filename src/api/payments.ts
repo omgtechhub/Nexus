@@ -15,6 +15,8 @@ export interface InitializePaymentResponse {
     accessCode?: string;
     amount: number;
     currency: string;
+    /** True when no real gateway is involved (an explicit sandbox). */
+    simulated?: boolean;
   };
 }
 
@@ -25,6 +27,13 @@ export interface VerifyPaymentResponse {
     paymentStatus: string;
     orderStatus: string;
     orderNumber: string;
+    gatewayResponse?: string;
+    /**
+     * True when the verdict came from the sandbox provider rather than a
+     * gateway. The confirmation page must say so instead of claiming a
+     * payment was taken.
+     */
+    simulated?: boolean;
   };
 }
 

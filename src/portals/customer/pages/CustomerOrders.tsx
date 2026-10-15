@@ -93,7 +93,7 @@ function OrderDetail({ id }: { id: string }) {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-mono text-xl font-bold text-[#FFBD2E] sm:text-2xl">
+          <h1 className="font-mono text-xl font-bold text-[var(--brand-yellow-ink)] sm:text-2xl">
             {order.orderNumber}
           </h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
@@ -118,13 +118,13 @@ function OrderDetail({ id }: { id: string }) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">Items</h2>
-            <ul className="divide-y divide-white/5">
+          <section className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5">
+            <h2 className="mb-4 text-sm font-semibold text-primary">Items</h2>
+            <ul className="divide-y divide-[var(--ink)]/5">
               {order.items.map(item => (
                 <li key={item.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white">{item.productTitle}</p>
+                    <p className="text-sm font-medium text-primary">{item.productTitle}</p>
                     {item.variantTitle && (
                       <p className="mt-0.5 text-xs text-muted">{item.variantTitle}</p>
                     )}
@@ -137,14 +137,14 @@ function OrderDetail({ id }: { id: string }) {
               ))}
             </ul>
 
-            <dl className="mt-5 space-y-2 border-t border-white/10 pt-4 text-sm">
+            <dl className="mt-5 space-y-2 border-t border-[var(--ink)]/10 pt-4 text-sm">
               <Row label="Subtotal" value={formatMoney(order.subtotal, order.currency)} />
               {order.discount > 0 && (
                 <Row label="Discount" value={`−${formatMoney(order.discount, order.currency)}`} />
               )}
               <Row label="Shipping" value={order.shipping === 0 ? 'Free' : formatMoney(order.shipping, order.currency)} />
               <Row label="Tax" value={formatMoney(order.tax, order.currency)} />
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-base font-bold text-white">
+              <div className="flex items-center justify-between border-t border-[var(--ink)]/10 pt-3 text-base font-bold text-primary">
                 <dt>Total</dt>
                 <dd className="font-mono">{formatMoney(order.total, order.currency)}</dd>
               </div>
@@ -152,8 +152,8 @@ function OrderDetail({ id }: { id: string }) {
           </section>
 
           {shipping && (
-            <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-              <h2 className="mb-3 text-sm font-semibold text-white">Delivery address</h2>
+            <section className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5">
+              <h2 className="mb-3 text-sm font-semibold text-primary">Delivery address</h2>
               <address className="text-sm not-italic leading-relaxed text-secondary">
                 {shipping.firstName} {shipping.lastName}<br />
                 {shipping.address1}<br />
@@ -166,13 +166,13 @@ function OrderDetail({ id }: { id: string }) {
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">Progress</h2>
+          <section className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5">
+            <h2 className="mb-4 text-sm font-semibold text-primary">Progress</h2>
             <OrderProgress steps={steps} />
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-            <h2 className="mb-2 text-sm font-semibold text-white">Payment</h2>
+          <section className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5">
+            <h2 className="mb-2 text-sm font-semibold text-primary">Payment</h2>
             <p className="text-sm text-secondary">{statusLabel(order.paymentStatus)}</p>
           </section>
         </aside>
@@ -194,7 +194,7 @@ function BackLink() {
   return (
     <Link
       to="/account/orders"
-      className="mb-5 inline-flex items-center gap-1.5 rounded text-sm text-muted transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
+      className="mb-5 inline-flex items-center gap-1.5 rounded text-sm text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F]"
     >
       <ArrowLeft size={14} aria-hidden="true" />
       All orders

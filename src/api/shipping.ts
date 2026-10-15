@@ -1,33 +1,5 @@
 import { apiClient } from './client';
 
-export interface ShippingMethod {
-  id: string;
-  name: string;
-  description?: string;
-  rateType: string;
-  price: number;
-  freeThreshold?: number;
-  estimatedDays?: string;
-}
-
-export interface ShippingZone {
-  id: string;
-  storeId: string;
-  name: string;
-  countries: string[];
-  methods: ShippingMethod[];
-  createdAt: string;
-}
-
-export interface CalculatedRate {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  estimatedDays?: string;
-  isFree: boolean;
-}
-
 export interface FulfillOrderParams {
   carrier: string;
   trackingNumber: string;
@@ -54,38 +26,6 @@ export interface ShipmentRecord {
     description: string;
     timestamp: string;
   }>;
-}
-
-export async function getShippingZonesApi(): Promise<ShippingZone[]> {
-  const res = await apiClient<{ success: boolean; data: ShippingZone[] }>('/shipping/zones');
-  return res.data;
-}
-
-export async function createShippingZoneApi(zone: Partial<ShippingZone>): Promise<ShippingZone> {
-  const res = await apiClient<{ success: boolean; data: ShippingZone }>('/shipping/zones', {
-    method: 'POST',
-    body: JSON.stringify(zone),
-  });
-  return res.data;
-}
-
-export async function deleteShippingZoneApi(id: string): Promise<void> {
-  await apiClient(`/shipping/zones/${id}`, { method: 'DELETE' });
-}
-
-export async function calculateShippingRatesApi(
-  storeSlug: string,
-  country: string,
-  subtotal: number
-): Promise<{ zoneName: string; rates: CalculatedRate[] }> {
-  const res = await apiClient<{ success: boolean; data: { zoneName: string; rates: CalculatedRate[] } }>(
-    `/shipping/rates/${storeSlug}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ country, subtotal }),
-    }
-  );
-  return res.data;
 }
 
 export async function fulfillOrderApi(orderId: string, data: FulfillOrderParams): Promise<ShipmentRecord> {

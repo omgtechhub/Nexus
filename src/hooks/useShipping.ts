@@ -1,9 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getShippingZonesApi,
-  createShippingZoneApi,
-  deleteShippingZoneApi,
-  calculateShippingRatesApi,
   fulfillOrderApi,
   getShipmentsApi,
   getOrderShipmentApi,
@@ -12,48 +8,18 @@ import {
   ShipmentStatus,
 } from '../api/shipping';
 
+/**
+ * Fulfilment only.
+ *
+ * Shipping zones and rate quoting lived here for the seller-facing shipping
+ * editor, which assumed each seller sets their own delivery rules. The
+ * marketplace sets them centrally, so what a seller needs is the ability to
+ * fulfil an order and track the shipment.
+ */
 export const shippingQueryKeys = {
-  zones: ['shipping', 'zones'] as const,
   shipments: ['shipments'] as const,
-  rates: (storeSlug: string, country: string, subtotal: number) => ['shipping', 'rates', storeSlug, country, subtotal] as const,
   orderShipment: (orderId: string) => ['shipments', 'order', orderId] as const,
 };
-
-export function useShippingZonesQuery(enabled = true) {
-  return useQuery({
-    queryKey: shippingQueryKeys.zones,
-    queryFn: getShippingZonesApi,
-    enabled,
-  });
-}
-
-export function useCreateShippingZoneMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (zone: any) => createShippingZoneApi(zone),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipping', 'zones'] });
-    },
-  });
-}
-
-export function useDeleteShippingZoneMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => deleteShippingZoneApi(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shipping', 'zones'] });
-    },
-  });
-}
-
-export function useCalculateShippingRatesQuery(storeSlug: string, country: string, subtotal: number, enabled = true) {
-  return useQuery({
-    queryKey: shippingQueryKeys.rates(storeSlug, country, subtotal),
-    queryFn: () => calculateShippingRatesApi(storeSlug, country, subtotal),
-    enabled: Boolean(storeSlug) && enabled,
-  });
-}
 
 export function useFulfillOrderMutation() {
   const queryClient = useQueryClient();

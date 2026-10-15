@@ -22,12 +22,12 @@ export function NotificationPanel() {
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={() => setNotificationPanelOpen(false)} aria-hidden="true" />
-      <div className="fixed top-16 right-4 w-80 bg-[#0D0F1F] border border-white/20 rounded-2xl shadow-2xl z-40 overflow-hidden">
+      <div className="fixed top-16 right-4 w-80 bg-[var(--surface-2)] border border-[var(--ink)]/20 rounded-2xl shadow-2xl z-40 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--ink)]/10">
           <div className="flex items-center gap-2">
             <Bell size={16} className="text-secondary" />
-            <h3 className="text-sm font-semibold text-white">Notifications</h3>
+            <h3 className="text-sm font-semibold text-primary">Notifications</h3>
             {unreadCount > 0 && (
               <span className="text-xs bg-[#FF5F56] text-white px-1.5 py-0.5 rounded-full font-bold">
                 {unreadCount}
@@ -38,7 +38,7 @@ export function NotificationPanel() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="flex items-center gap-1 text-xs text-[#FFBD2E] hover:text-[#27C93F] transition-colors"
+                className="flex items-center gap-1 text-xs text-[var(--brand-yellow-ink)] hover:text-[var(--brand-green-ink)] transition-colors"
               >
                 <CheckCheck size={12} />
                 Mark all read
@@ -46,7 +46,7 @@ export function NotificationPanel() {
             )}
             <button aria-label="Close notifications"
               onClick={() => setNotificationPanelOpen(false)}
-              className="p-1 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1 rounded-lg text-muted hover:text-primary hover:bg-[var(--ink)]/10 transition-colors"
             >
               <X size={14} />
             </button>
@@ -65,7 +65,7 @@ export function NotificationPanel() {
                 key={notification.id}
                 onClick={() => markNotificationRead(notification.id)}
                 className={cn(
-                  'p-4 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors',
+                  'p-4 border-b border-[var(--ink)]/5 cursor-pointer hover:bg-[var(--ink)]/5 transition-colors',
                   !notification.read && 'bg-[#FFBD2E]/5'
                 )}
               >
@@ -76,7 +76,7 @@ export function NotificationPanel() {
                   {notification.read && <div className="w-2 flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs font-semibold text-white truncate">
+                      <span className="text-xs font-semibold text-primary truncate">
                         {notification.title}
                       </span>
                       <Badge variant={typeToVariant(notification.type)} size="sm">
@@ -93,10 +93,10 @@ export function NotificationPanel() {
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-[var(--ink)]/10">
           <button
             onClick={() => { setNotificationPanelOpen(false); }}
-            className="w-full text-xs text-center text-[#FFBD2E] hover:text-[#27C93F] py-1 transition-colors"
+            className="w-full text-xs text-center text-[var(--brand-yellow-ink)] hover:text-[var(--brand-green-ink)] py-1 transition-colors"
           >
             View all notifications →
           </button>

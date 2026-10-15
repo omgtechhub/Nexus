@@ -15,11 +15,11 @@ export function OrderCard({ order }: { order: AccountOrder }) {
   return (
     <Link
       to={`/account/orders/${order.id}`}
-      className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F] sm:p-5"
+      className="group flex items-center gap-4 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4 transition-colors hover:border-[var(--ink)]/20 hover:bg-[var(--ink)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F] sm:p-5"
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-mono text-sm font-semibold text-[#FFBD2E]">
+          <span className="font-mono text-sm font-semibold text-[var(--brand-yellow-ink)]">
             {order.orderNumber}
           </span>
           <Badge variant={statusVariant(order.status)} size="sm">
@@ -46,7 +46,7 @@ export function OrderCard({ order }: { order: AccountOrder }) {
       </div>
 
       <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4">
-        <span className="font-mono text-sm font-bold text-white">
+        <span className="font-mono text-sm font-bold text-primary">
           {formatMoney(order.total, order.currency)}
         </span>
         <ChevronRight

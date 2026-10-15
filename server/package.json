@@ -11,9 +11,11 @@
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:seed": "npx tsx prisma/seed.ts",
-    "test": "npx vitest run"
+    "test": "npx vitest run",
+    "voice:fetch-model": "node scripts/fetch-voice-model.mjs"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.3.1",
     "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
@@ -23,6 +25,7 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "multer": "^1.4.5-lts.1",
+    "onnxruntime-node": "^1.30.0",
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "zod": "^3.24.2"

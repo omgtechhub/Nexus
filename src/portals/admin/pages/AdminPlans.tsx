@@ -109,8 +109,8 @@ export function AdminPlans() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
-          <h2 className="mb-5 text-sm font-semibold text-white">
+        <form onSubmit={handleSubmit} className="mb-6 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5 sm:p-6">
+          <h2 className="mb-5 text-sm font-semibold text-primary">
             {editing ? `Edit ${editing.name}` : 'New subscription plan'}
           </h2>
 
@@ -144,7 +144,7 @@ export function AdminPlans() {
                   type="checkbox"
                   checked={form.customDomainAllowed}
                   onChange={e => setForm(prev => ({ ...prev, customDomainAllowed: e.target.checked }))}
-                  className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[#FFBD2E]"
+                  className="h-4 w-4 rounded border-[var(--ink)]/20 bg-[var(--ink)]/5 accent-[#FFBD2E]"
                 />
                 Custom domains
               </label>
@@ -153,7 +153,7 @@ export function AdminPlans() {
                   type="checkbox"
                   checked={form.advancedAnalyticsAllowed}
                   onChange={e => setForm(prev => ({ ...prev, advancedAnalyticsAllowed: e.target.checked }))}
-                  className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[#FFBD2E]"
+                  className="h-4 w-4 rounded border-[var(--ink)]/20 bg-[var(--ink)]/5 accent-[#FFBD2E]"
                 />
                 Advanced analytics
               </label>
@@ -170,7 +170,7 @@ export function AdminPlans() {
       )}
 
       {plans.length === 0 && !showForm ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+        <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
           <Layers size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
           <p className="text-sm text-secondary">
             No plans yet. Merchants cannot subscribe until at least one exists.
@@ -179,16 +179,16 @@ export function AdminPlans() {
       ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {plans.map(plan => (
-            <li key={plan.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <li key={plan.id} className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-white">{plan.name}</h3>
+                    <h3 className="text-base font-semibold text-primary">{plan.name}</h3>
                     <Badge variant={plan.isActive ? 'success' : 'default'} size="sm">
                       {plan.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  <p className="mt-0.5 font-mono text-[11px] uppercase text-[#FFBD2E]">{plan.code}</p>
+                  <p className="mt-0.5 font-mono text-[11px] uppercase text-[var(--brand-yellow-ink)]">{plan.code}</p>
                   <p className="mt-2 text-sm text-muted">{plan.description}</p>
                 </div>
                 <Button
@@ -202,12 +202,12 @@ export function AdminPlans() {
               </div>
 
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">{money(plan.monthlyPrice)}</span>
+                <span className="text-2xl font-bold text-primary">{money(plan.monthlyPrice)}</span>
                 <span className="text-xs text-muted">per month</span>
                 <span className="ml-auto text-xs text-muted">{money(plan.annualPrice)} annually</span>
               </div>
 
-              <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-white/10 pt-4 text-xs">
+              <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-[var(--ink)]/10 pt-4 text-xs">
                 <Limit label="Products" value={plan.maxProducts} />
                 <Limit label="Team" value={plan.maxTeamMembers} />
                 <Limit label="Stores" value={plan.maxStores} />
@@ -237,6 +237,6 @@ function Limit({ label, value }: { label: string; value: number }) {
 
 function Capability({ children }: { children: React.ReactNode }) {
   return (
-    <li className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-secondary">{children}</li>
+    <li className="rounded-md bg-[var(--ink)]/5 px-2 py-0.5 text-[11px] text-secondary">{children}</li>
   );
 }

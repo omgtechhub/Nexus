@@ -295,7 +295,7 @@ export function Orders() {
                 'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer',
                 activeFilter === filter
                   ? 'bg-gradient-to-r from-[#FF5F56] to-[#FFBD2E] text-white font-semibold shadow-md'
-                  : 'bg-white/5 border border-white/10 text-muted hover:text-white hover:border-white/20'
+                  : 'bg-[var(--ink)]/5 border border-[var(--ink)]/10 text-muted hover:text-primary hover:border-[var(--ink)]/20'
               )}
             >
               {filter === 'All' ? 'All' : statusConfig[filter].label}
@@ -304,7 +304,7 @@ export function Orders() {
         </div>
         <button
           onClick={() => { setActiveFilter('All'); setSearch(''); }}
-          className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-muted hover:text-white text-xs hover:border-white/20 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--ink)]/5 border border-[var(--ink)]/10 text-muted hover:text-primary text-xs hover:border-[var(--ink)]/20 transition-colors cursor-pointer"
         >
           <Filter size={13} />
           Reset Filters
@@ -314,12 +314,12 @@ export function Orders() {
       {/* Orders table */}
       {isError ? (
         <div className="stat-card p-6 border border-[#FF5F56]/30 bg-[#FF5F56]/5 text-center space-y-3">
-          <div className="w-10 h-10 rounded-full bg-[#FF5F56]/10 border border-[#FF5F56]/20 flex items-center justify-center mx-auto text-[#FF5F56]">
+          <div className="w-10 h-10 rounded-full bg-[#FF5F56]/10 border border-[#FF5F56]/20 flex items-center justify-center mx-auto text-[var(--brand-red-ink)]">
             <AlertTriangle size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Couldn't load orders</h4>
-            <p className="text-xs text-[#FF5F56] mt-1">{(error as Error)?.message || 'An error occurred while fetching orders.'}</p>
+            <h4 className="text-sm font-bold text-primary">Couldn't load orders</h4>
+            <p className="text-xs text-[var(--brand-red-ink)] mt-1">{(error as Error)?.message || 'An error occurred while fetching orders.'}</p>
           </div>
           <Button variant="ghost" size="sm" icon={<RotateCw size={13} />} onClick={() => refetch()}>
             Retry
@@ -330,7 +330,7 @@ export function Orders() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/5">
+                <tr className="border-b border-[var(--ink)]/5">
                   <th className="text-left p-4 text-xs font-semibold text-muted uppercase tracking-wider">Order</th>
                   <th className="text-left p-4 text-xs font-semibold text-muted uppercase tracking-wider">Customer</th>
                   <th className="text-left p-4 text-xs font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Items</th>
@@ -346,14 +346,14 @@ export function Orders() {
                   return (
                     <tr
                       key={order.id}
-                      className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                      className="border-b border-[var(--ink)]/5 hover:bg-[var(--ink)]/3 transition-colors"
                     >
                       <td className="p-4">
-                        <span className="text-sm font-mono font-semibold text-[#FFBD2E]">{order.orderNumber}</span>
+                        <span className="text-sm font-mono font-semibold text-[var(--brand-yellow-ink)]">{order.orderNumber}</span>
                       </td>
                       <td className="p-4">
                         <div>
-                          <p className="text-sm font-medium text-white">{order.customerName}</p>
+                          <p className="text-sm font-medium text-primary">{order.customerName}</p>
                           <p className="text-xs text-muted">{order.customerEmail}</p>
                         </div>
                       </td>
@@ -367,12 +367,12 @@ export function Orders() {
                       </td>
                       <td className="p-4">
                         <div>
-                          <p className="text-sm font-semibold text-white">{formatCurrency(order.total)}</p>
+                          <p className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</p>
                           <p className={cn(
                             'text-xs capitalize',
-                            order.paymentStatus === 'PAID' || order.paymentStatus === 'SUCCESS' ? 'text-[#27C93F]' :
-                            order.paymentStatus === 'REFUNDED' || order.paymentStatus === 'PARTIALLY_REFUNDED' ? 'text-[#FF5F56]' :
-                            order.paymentStatus === 'FAILED' ? 'text-[#FF5F56]' : 'text-[#FFBD2E]'
+                            order.paymentStatus === 'PAID' || order.paymentStatus === 'SUCCESS' ? 'text-[var(--brand-green-ink)]' :
+                            order.paymentStatus === 'REFUNDED' || order.paymentStatus === 'PARTIALLY_REFUNDED' ? 'text-[var(--brand-red-ink)]' :
+                            order.paymentStatus === 'FAILED' ? 'text-[var(--brand-red-ink)]' : 'text-[var(--brand-yellow-ink)]'
                           )}>
                             {order.paymentStatus.replace(/_/g, ' ').toLowerCase()}
                           </p>
@@ -386,7 +386,7 @@ export function Orders() {
                       <td className="p-4">
                         <button aria-label="View"
                           onClick={() => setSelectedOrder(order)}
-                          className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-[var(--ink)]/10 transition-colors cursor-pointer"
                           title="View order details"
                         >
                           <Eye size={14} />
@@ -411,20 +411,20 @@ export function Orders() {
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedOrder(null)} aria-hidden="true" />
-          <div className="relative bg-[#121528] border border-white/20 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <div className="relative bg-[var(--surface-overlay)] border border-[var(--ink)]/20 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-[var(--ink)]/10 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white">{selectedOrder.orderNumber}</h2>
+                <h2 className="text-lg font-bold text-primary">{selectedOrder.orderNumber}</h2>
                 <p className="text-xs text-muted">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors">✕</button>
+              <button onClick={() => setSelectedOrder(null)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-[var(--ink)]/10 transition-colors">✕</button>
             </div>
             <div className="p-6 space-y-5">
               {/* Customer */}
               <div>
                 <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Customer</h4>
-                <div className="glass rounded-xl p-3 border border-white/5">
-                  <p className="text-sm font-semibold text-white">{selectedOrder.customer?.name}</p>
+                <div className="glass rounded-xl p-3 border border-[var(--ink)]/5">
+                  <p className="text-sm font-semibold text-primary">{selectedOrder.customer?.name}</p>
                   <p className="text-xs text-muted">{selectedOrder.customer?.email}</p>
                 </div>
               </div>
@@ -433,18 +433,18 @@ export function Orders() {
                 <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Items</h4>
                 <div className="space-y-2">
                   {selectedOrder.items.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 glass rounded-xl border border-white/5">
+                    <div key={i} className="flex items-center justify-between p-3 glass rounded-xl border border-[var(--ink)]/5">
                       <div>
-                        <p className="text-sm text-white">{item.title}</p>
+                        <p className="text-sm text-primary">{item.title}</p>
                         <p className="text-xs text-muted">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-sm font-semibold text-white">{formatCurrency(item.price * item.quantity)}</span>
+                      <span className="text-sm font-semibold text-primary">{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Totals */}
-              <div className="glass rounded-xl p-4 border border-white/5 space-y-2">
+              <div className="glass rounded-xl p-4 border border-[var(--ink)]/5 space-y-2">
                 <div className="flex justify-between text-sm text-muted">
                   <span>Subtotal</span><span>{formatCurrency(selectedOrder.subtotal)}</span>
                 </div>
@@ -454,12 +454,12 @@ export function Orders() {
                 <div className="flex justify-between text-sm text-muted">
                   <span>Tax</span><span>{formatCurrency(selectedOrder.tax)}</span>
                 </div>
-                <div className="flex justify-between text-sm font-bold text-white border-t border-white/10 pt-2 mt-2">
+                <div className="flex justify-between text-sm font-bold text-primary border-t border-[var(--ink)]/10 pt-2 mt-2">
                   <span>Total</span><span>{formatCurrency(selectedOrder.total)}</span>
                 </div>
               </div>
               {/* Fulfill & Refund Action Buttons */}
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--ink)]/10">
                 <div className="flex gap-2">
                   <Button
                     variant="primary"
@@ -535,12 +535,12 @@ export function Orders() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} aria-hidden="true" />
-          <div className="relative z-10 w-full max-w-2xl bg-[#121528] border border-white/20 p-6 rounded-2xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <ShoppingBag className="text-[#FFBD2E]" size={20} /> Create Manual Order
+          <div className="relative z-10 w-full max-w-2xl bg-[var(--surface-overlay)] border border-[var(--ink)]/20 p-6 rounded-2xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[var(--ink)]/10 pb-4">
+              <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                <ShoppingBag className="text-[var(--brand-yellow-ink)]" size={20} /> Create Manual Order
               </h3>
-              <button onClick={() => setShowCreateModal(false)} className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors">
+              <button onClick={() => setShowCreateModal(false)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-[var(--ink)]/10 transition-colors">
                 ✕
               </button>
             </div>
@@ -554,7 +554,7 @@ export function Orders() {
                   <select id="orders-select-existing-customer-optiona-2"
                     value={selectedCustomerId}
                     onChange={e => handleCustomerSelect(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-lg bg-[#15182b] border border-white/10 text-white focus:outline-none focus:border-[#FFBD2E]"
+                    className="w-full px-3.5 py-2 rounded-lg bg-[var(--input-bg)] border border-[var(--ink)]/10 text-primary focus:outline-none focus:border-[#FFBD2E]"
                   >
                     <option value="custom">-- Walk-in / New Customer --</option>
                     {customersList.map(c => (
@@ -572,7 +572,7 @@ export function Orders() {
                       value={customerName}
                       onChange={e => setCustomerName(e.target.value)}
                       placeholder="e.g. Sarah Connor"
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                   <div>
@@ -583,14 +583,14 @@ export function Orders() {
                       value={customerEmail}
                       onChange={e => setCustomerEmail(e.target.value)}
                       placeholder="sarah@example.com"
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Line Items Table */}
-              <div className="space-y-3 pt-2 border-t border-white/10">
+              <div className="space-y-3 pt-2 border-t border-[var(--ink)]/10">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-secondary uppercase tracking-wider">Line Items</h4>
                   <Button type="button" variant="ghost" size="sm" icon={<Plus size={13} />} onClick={handleAddLineItem}>
@@ -600,13 +600,13 @@ export function Orders() {
 
                 <div className="space-y-2">
                   {lineItems.map((item, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-xl">
+                    <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-xl">
                       {products.length > 0 && (
                         <select
                           aria-label={`Product for line item ${idx + 1}`}
                           value={item.productId}
                           onChange={e => handleUpdateLineItem(idx, 'productId', e.target.value)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#15182b] border border-white/10 text-white text-xs"
+                          className="px-2.5 py-1.5 rounded-lg bg-[var(--input-bg)] border border-[var(--ink)]/10 text-primary text-xs"
                         >
                           <option value="">-- Select Product --</option>
                           {products.map(p => (
@@ -620,7 +620,7 @@ export function Orders() {
                         placeholder="Product Name"
                         value={item.title}
                         onChange={e => handleUpdateLineItem(idx, 'title', e.target.value)}
-                        className="form-input bg-[#121528] text-white flex-1 min-w-[120px]"
+                        className="form-input bg-[var(--surface-overlay)] text-primary flex-1 min-w-[120px]"
                       />
                       <div className="flex items-center gap-2">
                         <div className="w-24">
@@ -631,7 +631,7 @@ export function Orders() {
                             placeholder="Price ($)"
                             value={item.price}
                             onChange={e => handleUpdateLineItem(idx, 'price', e.target.value)}
-                            className="form-input bg-[#121528] text-white"
+                            className="form-input bg-[var(--surface-overlay)] text-primary"
                           />
                         </div>
                         <div className="w-16">
@@ -642,14 +642,14 @@ export function Orders() {
                             placeholder="Qty"
                             value={item.quantity}
                             onChange={e => handleUpdateLineItem(idx, 'quantity', parseInt(e.target.value, 10) || 1)}
-                            className="form-input bg-[#121528] text-white"
+                            className="form-input bg-[var(--surface-overlay)] text-primary"
                           />
                         </div>
                         {lineItems.length > 1 && (
                           <button aria-label="Delete"
                             type="button"
                             onClick={() => handleRemoveLineItem(idx)}
-                            className="p-2 text-muted hover:text-[#FF5F56] transition-colors cursor-pointer"
+                            className="p-2 text-muted hover:text-[var(--brand-red-ink)] transition-colors cursor-pointer"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -661,7 +661,7 @@ export function Orders() {
               </div>
 
               {/* Shipping Address */}
-              <div className="space-y-3 pt-2 border-t border-white/10">
+              <div className="space-y-3 pt-2 border-t border-[var(--ink)]/10">
                 <h4 className="text-xs font-bold text-secondary uppercase tracking-wider">Shipping Address</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -671,7 +671,7 @@ export function Orders() {
                       required
                       value={shipFirstName}
                       onChange={e => setShipFirstName(e.target.value)}
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                   <div>
@@ -680,7 +680,7 @@ export function Orders() {
                       type="text"
                       value={shipLastName}
                       onChange={e => setShipLastName(e.target.value)}
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                 </div>
@@ -693,7 +693,7 @@ export function Orders() {
                     placeholder="123 Main St, Suite 100"
                     value={shipAddress1}
                     onChange={e => setShipAddress1(e.target.value)}
-                    className="form-input bg-[#121528] text-white"
+                    className="form-input bg-[var(--surface-overlay)] text-primary"
                   />
                 </div>
 
@@ -705,7 +705,7 @@ export function Orders() {
                       required
                       value={shipCity}
                       onChange={e => setShipCity(e.target.value)}
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                   <div>
@@ -715,7 +715,7 @@ export function Orders() {
                       required
                       value={shipState}
                       onChange={e => setShipState(e.target.value)}
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                   <div>
@@ -725,7 +725,7 @@ export function Orders() {
                       required
                       value={shipZip}
                       onChange={e => setShipZip(e.target.value)}
-                      className="form-input bg-[#121528] text-white"
+                      className="form-input bg-[var(--surface-overlay)] text-primary"
                     />
                   </div>
                 </div>
@@ -737,20 +737,20 @@ export function Orders() {
                     required
                     value={shipCountry}
                     onChange={e => setShipCountry(e.target.value)}
-                    className="form-input bg-[#121528] text-white"
+                    className="form-input bg-[var(--surface-overlay)] text-primary"
                   />
                 </div>
               </div>
 
               {/* Order Totals Summary */}
-              <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2">
+              <div className="p-4 bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-xl space-y-2">
                 <div className="flex justify-between text-secondary text-xs">
                   <span>Subtotal ({lineItems.length} item{lineItems.length !== 1 ? 's' : ''})</span>
                   <span className="font-mono">${computedSubtotal.toFixed(2)} USD</span>
                 </div>
-                <div className="flex justify-between text-white font-bold text-sm border-t border-white/10 pt-2">
+                <div className="flex justify-between text-primary font-bold text-sm border-t border-[var(--ink)]/10 pt-2">
                   <span>Order Total</span>
-                  <span className="font-mono text-[#27C93F]">${computedTotal.toFixed(2)} USD</span>
+                  <span className="font-mono text-[var(--brand-green-ink)]">${computedTotal.toFixed(2)} USD</span>
                 </div>
               </div>
 

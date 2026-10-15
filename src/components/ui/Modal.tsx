@@ -46,17 +46,17 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', showClose
         onClick={onClose}
       />
       <div className={cn(
-        'relative w-full glass rounded-2xl shadow-2xl border border-white/10',
+        'relative w-full glass rounded-2xl shadow-2xl border border-[var(--ink)]/10',
         'animate-in fade-in zoom-in-95 duration-200',
         sizes[size]
       )}>
         {(title || showClose) && (
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
-            {title && <h2 className="text-lg font-semibold text-white">{title}</h2>}
+          <div className="flex items-center justify-between p-6 border-b border-[var(--ink)]/10">
+            {title && <h2 className="text-lg font-semibold text-primary">{title}</h2>}
             {showClose && (
               <button aria-label="Close dialog"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors ml-auto"
+                className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-[var(--ink)]/10 transition-colors ml-auto"
               >
                 <X size={18} />
               </button>

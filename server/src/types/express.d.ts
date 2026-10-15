@@ -1,5 +1,5 @@
 import { AuthenticatedUser } from './index.js';
-import { Store, StoreMember, Role } from '@prisma/client';
+import { Store, StoreMember, Role, VoicePortal } from '@prisma/client';
 
 declare global {
   namespace Express {
@@ -9,6 +9,10 @@ declare global {
       membership?: StoreMember;
       memberRole?: Role;
       sessionId?: string;
+      /** Which portal's voice profile this request speaks to. Set where the
+       *  voice routes are mounted, because one person may hold a seller and a
+       *  customer account and enrolling for one must not unlock the other. */
+      voicePortal?: VoicePortal;
     }
   }
 }

@@ -30,7 +30,7 @@ export function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060813] text-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--surface-deep)] text-primary flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-1/4 left-1/3 w-[500px] h-[300px] bg-red-600/10 blur-[130px] rounded-full pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[250px] bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -39,7 +39,7 @@ export function AdminLoginPage() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF5F56] to-red-600 border border-red-400/40 mx-auto flex items-center justify-center text-white shadow-xl">
             <Shield size={28} />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Nexus App Owner Portal</h1>
+          <h1 className="text-2xl font-black text-primary tracking-tight">Nexus App Owner Portal</h1>
           <p className="text-xs text-muted">Restricted Platform SuperAdmin System Administration</p>
         </div>
 
@@ -53,7 +53,7 @@ export function AdminLoginPage() {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="form-input bg-[#121528] text-white pl-10"
+                className="form-input bg-[var(--surface-overlay)] text-primary pl-10"
                 placeholder="admin@nexus.io"
               />
             </div>
@@ -68,7 +68,7 @@ export function AdminLoginPage() {
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="form-input bg-[#121528] text-white pl-10"
+                className="form-input bg-[var(--surface-overlay)] text-primary pl-10"
                 placeholder="••••••••••••"
               />
             </div>
@@ -92,10 +92,10 @@ export function AdminLoginPage() {
           </Button>
         </form>
 
-        <div className="text-center pt-2 border-t border-white/10">
+        <div className="text-center pt-2 border-t border-[var(--ink)]/10">
           <button
             onClick={() => navigate('marketing')}
-            className="text-xs text-muted hover:text-white transition-colors"
+            className="text-xs text-muted hover:text-primary transition-colors"
           >
             ← Back to Public Marketplace
           </button>

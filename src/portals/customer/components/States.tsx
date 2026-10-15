@@ -20,7 +20,7 @@ export function ErrorState({
 }) {
   return (
     <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
-      <AlertCircle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
+      <AlertCircle size={20} className="mx-auto mb-3 text-[var(--brand-red-ink)]" aria-hidden="true" />
       <p className="text-sm text-strong">{message || 'Something went wrong loading this.'}</p>
       {onRetry && (
         <div className="mt-4">
@@ -45,11 +45,11 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-muted">
+    <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ink)]/5 text-muted">
         {icon}
       </div>
-      <h2 className="text-base font-semibold text-white">{title}</h2>
+      <h2 className="text-base font-semibold text-primary">{title}</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">{description}</p>
       {action && <div className="mt-6">{action}</div>}
     </div>
@@ -59,7 +59,7 @@ export function EmptyState({
 export function PageHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">{title}</h1>
+      <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
     </div>
   );

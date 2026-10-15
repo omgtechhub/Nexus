@@ -3,6 +3,7 @@ import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-do
 import { ShoppingBag, User, Package, MapPin, LogOut, Store, Menu, X, Truck } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { cn } from '../../../utils/cn';
+import { ThemeToggle } from '../../../components/ui/ThemeToggle';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', path: '/account/dashboard', icon: ShoppingBag },
@@ -13,7 +14,7 @@ const NAV_ITEMS = [
 
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27C93F] ' +
-  'focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0D1B]';
+  'focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-base)]';
 
 export function CustomerLayout({ children }: { children?: React.ReactNode }) {
   const { user, logout } = useApp();
@@ -52,11 +53,11 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
     cn(
       'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
       focusRing,
-      isActive ? 'bg-white/10 font-semibold text-white' : 'text-secondary hover:bg-white/5 hover:text-white'
+      isActive ? 'bg-[var(--ink)]/10 font-semibold text-primary' : 'text-secondary hover:bg-[var(--ink)]/5 hover:text-primary'
     );
 
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-[#0B0D1B] text-white">
+    <div className="flex min-h-screen flex-col justify-between bg-[var(--surface-base)] text-primary">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[#27C93F] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-950"
@@ -68,19 +69,24 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-colors duration-300',
           scrolled || menuOpen
-            ? 'border-b border-[#222642] bg-[#0B0D1B]/95 backdrop-blur-xl'
-            : 'border-b border-white/10 bg-[#0B0D1B]/60 backdrop-blur-md'
+            ? 'border-b border-[var(--line)] bg-[var(--surface-base)]/95 backdrop-blur-xl'
+            : 'border-b border-[var(--ink)]/10 bg-[var(--surface-base)]/60 backdrop-blur-md'
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-6">
-            <Link to="/account/dashboard" className={cn('flex flex-shrink-0 items-center gap-2 rounded', focusRing)}>
+            {/* Home. These three portal logos used to point at their own
+                portal's dashboard, which made them do nothing at all on the
+                dashboard itself — the page a user is on most of the time. A
+                brand mark goes to the site home; each portal's own overview is
+                the first item in the nav beside it. */}
+            <Link to="/" aria-label="Nexus home" className={cn('flex flex-shrink-0 items-center gap-2 rounded', focusRing)}>
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-sm font-bold text-black">
                 N
               </span>
-              <span className="text-lg font-bold text-white">
+              <span className="text-lg font-bold text-primary">
                 Nexus
-                <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-normal text-muted">
+                <span className="ml-1 rounded-full bg-[var(--ink)]/10 px-2 py-0.5 text-xs font-normal text-muted">
                   Account
                 </span>
               </span>
@@ -97,10 +103,12 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle className="rounded-lg" />
+
             <Link
               to="/storefront"
               className={cn(
-                'hidden items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-body transition-colors hover:bg-white/10 hover:text-white sm:flex',
+                'hidden items-center gap-1.5 rounded-lg border border-[var(--ink)]/10 bg-[var(--ink)]/5 px-3 py-1.5 text-xs font-medium text-body transition-colors hover:bg-[var(--ink)]/10 hover:text-primary sm:flex',
                 focusRing
               )}
             >
@@ -109,9 +117,9 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
             </Link>
 
             {user && (
-              <div className="hidden items-center gap-3 border-l border-white/10 pl-3 md:flex">
+              <div className="hidden items-center gap-3 border-l border-[var(--ink)]/10 pl-3 md:flex">
                 <div className="text-right">
-                  <div className="text-sm font-medium text-white">{user.name}</div>
+                  <div className="text-sm font-medium text-primary">{user.name}</div>
                   <div className="text-xs text-muted">{user.email}</div>
                 </div>
                 <button
@@ -119,7 +127,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
                   onClick={handleLogout}
                   aria-label="Sign out"
                   className={cn(
-                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-secondary transition-colors hover:bg-[#FF5F56]/20 hover:text-[#FF5F56]',
+                    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-secondary transition-colors hover:bg-[#FF5F56]/20 hover:text-[var(--brand-red-ink)]',
                     focusRing
                   )}
                 >
@@ -135,7 +143,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
               aria-controls="account-mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               className={cn(
-                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-body transition-colors hover:bg-white/5 hover:text-white md:hidden',
+                '-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-body transition-colors hover:bg-[var(--ink)]/5 hover:text-primary md:hidden',
                 focusRing
               )}
             >
@@ -145,7 +153,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div id="account-mobile-nav" className="border-t border-[#222642] bg-[#0B0D1B] md:hidden">
+          <div id="account-mobile-nav" className="border-t border-[var(--line)] bg-[var(--surface-base)] md:hidden">
             <nav aria-label="Account" className="space-y-1 px-4 py-4 sm:px-6">
               {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
                 <NavLink
@@ -156,7 +164,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
                     cn(
                       'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors',
                       focusRing,
-                      isActive ? 'bg-white/5 text-white' : 'text-body hover:bg-white/5 hover:text-white'
+                      isActive ? 'bg-[var(--ink)]/5 text-primary' : 'text-body hover:bg-[var(--ink)]/5 hover:text-primary'
                     )
                   }
                 >
@@ -168,7 +176,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
               <Link
                 to="/track"
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-body transition-colors hover:bg-white/5 hover:text-white',
+                  'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-body transition-colors hover:bg-[var(--ink)]/5 hover:text-primary',
                   focusRing
                 )}
               >
@@ -176,7 +184,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
                 Track an order
               </Link>
 
-              <div className="space-y-2 border-t border-white/10 pt-4">
+              <div className="space-y-2 border-t border-[var(--ink)]/10 pt-4">
                 {user && (
                   <p className="px-3 text-xs text-muted">
                     Signed in as <span className="text-body">{user.email}</span>
@@ -186,7 +194,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
                   type="button"
                   onClick={handleLogout}
                   className={cn(
-                    'w-full rounded-lg border border-white/15 px-3 py-3 text-center text-base font-medium text-white',
+                    'w-full rounded-lg border border-[var(--ink)]/15 px-3 py-3 text-center text-base font-medium text-primary',
                     focusRing
                   )}
                 >
@@ -198,17 +206,17 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
         )}
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6">
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6">
         {children || <Outlet />}
       </main>
 
-      <footer className="border-t border-white/10 bg-[#0B0D1B] py-6">
+      <footer className="border-t border-[var(--ink)]/10 bg-[var(--surface-base)] py-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-xs text-muted sm:flex-row sm:px-6">
           <p>© {new Date().getFullYear()} Nexus Commerce, Inc. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <Link to="/track" className={cn('rounded transition-colors hover:text-white', focusRing)}>Track an order</Link>
-            <Link to="/privacy" className={cn('rounded transition-colors hover:text-white', focusRing)}>Privacy</Link>
-            <Link to="/terms" className={cn('rounded transition-colors hover:text-white', focusRing)}>Terms</Link>
+            <Link to="/track" className={cn('rounded transition-colors hover:text-primary', focusRing)}>Track an order</Link>
+            <Link to="/privacy" className={cn('rounded transition-colors hover:text-primary', focusRing)}>Privacy</Link>
+            <Link to="/terms" className={cn('rounded transition-colors hover:text-primary', focusRing)}>Terms</Link>
           </div>
         </div>
       </footer>

@@ -32,7 +32,7 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0B0D1B] text-white flex items-center justify-center p-6">
+    <main className="min-h-screen bg-[var(--surface-base)] text-primary flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link
           to="/"
@@ -45,9 +45,9 @@ export function ForgotPasswordPage() {
         </Link>
 
         {status === 'sent' ? (
-          <div className="bg-[#131629] border border-[#222642] rounded-2xl p-8 text-center space-y-4">
+          <div className="bg-[var(--surface-1)] border border-[var(--line)] rounded-2xl p-8 text-center space-y-4">
             <div
-              className="w-14 h-14 rounded-2xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[#27C93F] mx-auto flex items-center justify-center"
+              className="w-14 h-14 rounded-2xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[var(--brand-green-ink)] mx-auto flex items-center justify-center"
               aria-hidden="true"
             >
               <CheckCircle2 size={28} />
@@ -62,7 +62,7 @@ export function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={() => setStatus('idle')}
-                className="text-[#FFBD2E] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
+                className="text-[var(--brand-yellow-ink)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
               >
                 try another address
               </button>
@@ -70,7 +70,7 @@ export function ForgotPasswordPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-[#131629] border border-[#222642] rounded-2xl p-8">
+          <div className="bg-[var(--surface-1)] border border-[var(--line)] rounded-2xl p-8">
             <h1 className="text-2xl font-bold mb-2">Reset your password</h1>
             <p className="text-sm text-muted mb-6 leading-relaxed">
               Enter the email address on your account and we'll send you a link to choose a new
@@ -94,7 +94,7 @@ export function ForgotPasswordPage() {
               />
 
               {error && (
-                <p id="reset-email-error" role="alert" className="text-xs text-[#FF5F56]">
+                <p id="reset-email-error" role="alert" className="text-xs text-[var(--brand-red-ink)]">
                   {error}
                 </p>
               )}
@@ -115,7 +115,7 @@ export function ForgotPasswordPage() {
 
         <Link
           to="/seller/login"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-muted hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
+          className="mt-6 inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded"
         >
           <ArrowLeft size={15} aria-hidden="true" />
           Back to sign in

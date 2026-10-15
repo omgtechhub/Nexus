@@ -101,7 +101,7 @@ export function InventorySection() {
   if (isError) {
     return (
       <div className="rounded-2xl border border-[#FF5F56]/30 bg-[#FF5F56]/5 p-6 text-center" role="alert">
-        <AlertTriangle size={20} className="mx-auto mb-3 text-[#FF5F56]" aria-hidden="true" />
+        <AlertTriangle size={20} className="mx-auto mb-3 text-[var(--brand-red-ink)]" aria-hidden="true" />
         <p className="text-sm text-strong">{(error as Error)?.message || 'Could not load inventory.'}</p>
         <div className="mt-4">
           <Button variant="secondary" size="sm" onClick={() => refetch()}>Try again</Button>
@@ -127,7 +127,7 @@ export function InventorySection() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by product or SKU"
             aria-label="Search inventory"
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
+            className="w-full rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 py-2.5 pl-10 pr-3 text-sm text-primary placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
           />
         </div>
 
@@ -142,7 +142,7 @@ export function InventorySection() {
                 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                 filter === key
                   ? 'bg-[#FFBD2E] text-slate-950 font-semibold'
-                  : 'border border-white/10 bg-white/5 text-secondary hover:text-white'
+                  : 'border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-secondary hover:text-primary'
               )}
             >
               {key === 'all' ? 'All' : STOCK_BADGE[key].label} ({counts[key]})
@@ -152,7 +152,7 @@ export function InventorySection() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+        <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
           <Package size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
           <p className="text-sm text-secondary">
             {items.length === 0
@@ -163,7 +163,7 @@ export function InventorySection() {
       ) : (
         // The card clips its corners; the inner wrapper is what scrolls, so a
         // wide table cannot push the whole page sideways on a phone.
-        <div className="overflow-hidden rounded-2xl border border-white/10">
+        <div className="overflow-hidden rounded-2xl border border-[var(--ink)]/10">
           {/* `relative` matters: the sr-only caption and header below are
               position:absolute, and without a positioned ancestor they anchor at
               their static position inside the 640px-wide table, which extends the
@@ -172,7 +172,7 @@ export function InventorySection() {
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[640px] text-left">
             <caption className="sr-only">Inventory levels by product</caption>
-            <thead className="bg-white/5">
+            <thead className="bg-[var(--ink)]/5">
               <tr>
                 <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Product</th>
                 <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">SKU</th>
@@ -188,9 +188,9 @@ export function InventorySection() {
                 const state = stockState(item);
                 const badge = STOCK_BADGE[state];
                 return (
-                  <tr key={item.id} className="border-t border-white/5 hover:bg-white/[0.03]">
+                  <tr key={item.id} className="border-t border-[var(--ink)]/5 hover:bg-[var(--ink)]/[0.03]">
                     <td className="p-4">
-                      <p className="text-sm font-medium text-white">{item.product?.title || 'Untitled product'}</p>
+                      <p className="text-sm font-medium text-primary">{item.product?.title || 'Untitled product'}</p>
                       {item.variant?.title && (
                         <p className="mt-0.5 text-xs text-muted">{item.variant.title}</p>
                       )}
@@ -198,7 +198,7 @@ export function InventorySection() {
                     <td className="p-4 font-mono text-xs text-muted">{item.sku || '—'}</td>
                     <td className="p-4 text-right font-mono text-sm text-strong">{item.stock}</td>
                     <td className="p-4 text-right font-mono text-sm text-muted">{item.reservedStock}</td>
-                    <td className="p-4 text-right font-mono text-sm font-semibold text-white">{item.availableStock}</td>
+                    <td className="p-4 text-right font-mono text-sm font-semibold text-primary">{item.availableStock}</td>
                     <td className="p-4">
                       <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
                     </td>
@@ -225,9 +225,9 @@ export function InventorySection() {
         >
           <form
             onSubmit={submitAdjust}
-            className="w-full max-w-md rounded-2xl border border-white/15 bg-[#0D0F1F] p-6"
+            className="w-full max-w-md rounded-2xl border border-[var(--ink)]/15 bg-[var(--surface-2)] p-6"
           >
-            <h2 id="adjust-stock-title" className="text-base font-semibold text-white">
+            <h2 id="adjust-stock-title" className="text-base font-semibold text-primary">
               Adjust stock
             </h2>
             <p className="mt-1 text-sm text-muted">
@@ -235,10 +235,10 @@ export function InventorySection() {
               {adjusting.variant?.title ? ` · ${adjusting.variant.title}` : ''}
             </p>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+            <div className="mt-4 rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 p-3 text-sm">
               <div className="flex items-center justify-between text-muted">
                 <span>On hand now</span>
-                <span className="font-mono text-white">{adjusting.stock}</span>
+                <span className="font-mono text-primary">{adjusting.stock}</span>
               </div>
             </div>
 
@@ -251,7 +251,7 @@ export function InventorySection() {
                   <button aria-label="Remove"
                     type="button"
                     onClick={() => setDelta(String((parseInt(delta, 10) || 0) - 1))}
-                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-body hover:text-white"
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-body hover:text-primary"
                   >
                     <Minus size={16} aria-hidden="true" />
                   </button>
@@ -262,12 +262,12 @@ export function InventorySection() {
                     value={delta}
                     onChange={e => setDelta(e.target.value)}
                     placeholder="0"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-center font-mono text-white focus:border-[#FFBD2E]/50 focus:outline-none"
+                    className="w-full rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 px-3 py-2.5 text-center font-mono text-primary focus:border-[#FFBD2E]/50 focus:outline-none"
                   />
                   <button aria-label="Add"
                     type="button"
                     onClick={() => setDelta(String((parseInt(delta, 10) || 0) + 1))}
-                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-body hover:text-white"
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--ink)]/10 bg-[var(--ink)]/5 text-body hover:text-primary"
                   >
                     <Plus size={16} aria-hidden="true" />
                   </button>
@@ -306,12 +306,12 @@ export function InventorySection() {
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: 'warning' | 'error' }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+    <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] p-4">
       <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
       <p
         className={cn(
           'mt-1.5 text-2xl font-bold',
-          tone === 'error' ? 'text-[#FF5F56]' : tone === 'warning' ? 'text-[#FFBD2E]' : 'text-white'
+          tone === 'error' ? 'text-[var(--brand-red-ink)]' : tone === 'warning' ? 'text-[var(--brand-yellow-ink)]' : 'text-primary'
         )}
       >
         {value}

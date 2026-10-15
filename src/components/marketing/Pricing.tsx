@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Zap, Star } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { pricingPlans } from '../../data/marketingContent';
@@ -21,11 +22,11 @@ export function Pricing() {
       )}>
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FFBD2E]/30 bg-[#FFBD2E]/10 text-[#FFBD2E] text-xs font-medium mb-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FFBD2E]/30 bg-[#FFBD2E]/10 text-[var(--brand-yellow-ink)] text-xs font-medium mb-5">
             <Zap size={12} fill="currentColor" />
             Simple, transparent pricing
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+          <h2 className="text-4xl sm:text-5xl font-bold text-primary mb-4">
             Start free, scale with
             <span className="text-gradient"> confidence</span>
           </h2>
@@ -34,12 +35,12 @@ export function Pricing() {
           </p>
 
           {/* Toggle */}
-          <div className="inline-flex items-center gap-3 glass rounded-full p-1.5 border border-white/10">
+          <div className="inline-flex items-center gap-3 glass rounded-full p-1.5 border border-[var(--ink)]/10">
             <button
               onClick={() => setAnnual(false)}
               className={cn(
                 'px-5 py-2 rounded-full text-sm font-medium transition-colors',
-                !annual ? 'bg-gradient-to-r from-[#FF5F56] to-[#FFBD2E] text-white shadow-lg font-semibold' : 'text-muted hover:text-white'
+                !annual ? 'bg-gradient-to-r from-[#FF5F56] to-[#FFBD2E] text-white shadow-lg font-semibold' : 'text-muted hover:text-primary'
               )}
             >
               Monthly
@@ -48,7 +49,7 @@ export function Pricing() {
               onClick={() => setAnnual(true)}
               className={cn(
                 'px-5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2',
-                annual ? 'bg-gradient-to-r from-[#FFBD2E] to-[#27C93F] text-white shadow-lg font-semibold' : 'text-muted hover:text-white'
+                annual ? 'bg-gradient-to-r from-[#FFBD2E] to-[#27C93F] text-white shadow-lg font-semibold' : 'text-muted hover:text-primary'
               )}
             >
               Annual
@@ -65,8 +66,8 @@ export function Pricing() {
               className={cn(
                 'relative rounded-2xl p-6 border transition-colors duration-300',
                 plan.highlighted
-                  ? 'bg-gradient-to-b from-[#FF5F56]/15 via-[#131629] to-[#0B0D1B] border-[#FFBD2E]/50 shadow-2xl shadow-red-900/30 scale-105 z-10'
-                  : 'glass border-white/10 hover:border-white/20'
+                  ? 'bg-gradient-to-b from-[#FF5F56]/15 via-[var(--surface-1)] to-[var(--surface-base)] border-[#FFBD2E]/50 shadow-2xl shadow-red-900/30 scale-105 z-10'
+                  : 'glass border-[var(--ink)]/10 hover:border-[var(--ink)]/20'
               )}
               style={{ transitionDelay: `${index * 60}ms` }}
             >
@@ -80,7 +81,7 @@ export function Pricing() {
                   'absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold',
                   plan.highlighted
                     ? 'bg-gradient-to-r from-[#FF5F56] to-[#FFBD2E] text-white shadow-lg shadow-red-900/50'
-                    : 'bg-white/20 text-white'
+                    : 'bg-[var(--ink)]/20 text-primary'
                 )}>
                   {plan.badge === 'Best Value' && <Star size={10} className="inline mr-1" fill="currentColor" />}
                   {plan.badge}
@@ -88,18 +89,18 @@ export function Pricing() {
               )}
 
               <div className="relative z-10">
-                <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
+                <h3 className="text-lg font-bold text-primary mb-1">{plan.name}</h3>
                 <p className="text-xs text-muted mb-5">{plan.description}</p>
 
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-white">
+                    <span className="text-4xl font-extrabold text-primary">
                       ${annual ? plan.annualPrice : plan.price}
                     </span>
                     <span className="text-muted text-sm">/mo</span>
                   </div>
                   {annual && (
-                    <div className="text-xs text-[#27C93F] mt-1 font-medium">
+                    <div className="text-xs text-[var(--brand-green-ink)] mt-1 font-medium">
                       Save ${(plan.price - plan.annualPrice) * 12}/year
                     </div>
                   )}
@@ -121,8 +122,8 @@ export function Pricing() {
                       <div className={cn(
                         'w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
                         plan.highlighted
-                          ? 'bg-[#27C93F]/20 text-[#27C93F]'
-                          : 'bg-white/10 text-muted'
+                          ? 'bg-[#27C93F]/20 text-[var(--brand-green-ink)]'
+                          : 'bg-[var(--ink)]/10 text-muted'
                       )}>
                         <Check size={10} strokeWidth={3} />
                       </div>
@@ -141,9 +142,16 @@ export function Pricing() {
         <div className="mt-10 text-center">
           <p className="text-sm text-muted">
             Need a custom solution?{' '}
-            <button onClick={() => navigate('contact')} className="text-[#FFBD2E] hover:text-[#27C93F] underline underline-offset-2 transition-colors font-medium">
+            {/* A link, not a button. It goes to a page, so it has to behave
+                like every other link on the site: a real href the browser can
+                show on hover, middle-click into a new tab, or copy. The button
+                it replaced routed correctly but offered none of that. */}
+            <Link
+              to="/contact"
+              className="rounded text-[var(--brand-yellow-ink)] underline underline-offset-2 transition-colors hover:text-[var(--brand-green-ink)] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
+            >
               Talk to our sales team
-            </button>{' '}
+            </Link>{' '}
             — we'll build a plan that fits perfectly.
           </p>
         </div>

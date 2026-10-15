@@ -55,10 +55,10 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-[#0B0D1B] text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-[#131629] border border-[#FF5F56]/30 rounded-2xl p-8 text-center space-y-4">
+      <main className="min-h-screen bg-[var(--surface-base)] text-primary flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[var(--surface-1)] border border-[#FF5F56]/30 rounded-2xl p-8 text-center space-y-4">
           <div
-            className="w-14 h-14 rounded-2xl bg-[#FF5F56]/10 border border-[#FF5F56]/30 text-[#FF5F56] mx-auto flex items-center justify-center"
+            className="w-14 h-14 rounded-2xl bg-[#FF5F56]/10 border border-[#FF5F56]/30 text-[var(--brand-red-ink)] mx-auto flex items-center justify-center"
             aria-hidden="true"
           >
             <AlertCircle size={28} />
@@ -76,7 +76,7 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0B0D1B] text-white flex items-center justify-center p-6">
+    <main className="min-h-screen bg-[var(--surface-base)] text-primary flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link
           to="/"
@@ -89,9 +89,9 @@ export function ResetPasswordPage() {
         </Link>
 
         {status === 'done' ? (
-          <div className="bg-[#131629] border border-[#222642] rounded-2xl p-8 text-center space-y-4">
+          <div className="bg-[var(--surface-1)] border border-[var(--line)] rounded-2xl p-8 text-center space-y-4">
             <div
-              className="w-14 h-14 rounded-2xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[#27C93F] mx-auto flex items-center justify-center"
+              className="w-14 h-14 rounded-2xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[var(--brand-green-ink)] mx-auto flex items-center justify-center"
               aria-hidden="true"
             >
               <CheckCircle2 size={28} />
@@ -102,7 +102,7 @@ export function ResetPasswordPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-[#131629] border border-[#222642] rounded-2xl p-8">
+          <div className="bg-[var(--surface-1)] border border-[var(--line)] rounded-2xl p-8">
             <h1 className="text-2xl font-bold mb-2">Choose a new password</h1>
             <p className="text-sm text-muted mb-6">
               This also signs you out everywhere else.
@@ -121,7 +121,7 @@ export function ResetPasswordPage() {
                 icon={<Lock size={16} aria-hidden="true" />}
                 aria-describedby="password-rules"
                 rightElement={
-                  <button aria-label="Hide"
+                  <button aria-label={reveal ? 'Hide password' : 'Show password'}
                     type="button"
                     onClick={() => setReveal((v) => !v)}
                     className="text-muted hover:text-primary transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFBD2E] rounded p-1"
@@ -137,8 +137,8 @@ export function ResetPasswordPage() {
                     <span
                       className={
                         c.passed
-                          ? 'w-4 h-4 rounded-full bg-[#27C93F]/15 text-[#27C93F] flex items-center justify-center'
-                          : 'w-4 h-4 rounded-full border border-white/20'
+                          ? 'w-4 h-4 rounded-full bg-[#27C93F]/15 text-[var(--brand-green-ink)] flex items-center justify-center'
+                          : 'w-4 h-4 rounded-full border border-[var(--ink)]/20'
                       }
                       aria-hidden="true"
                     >
@@ -163,7 +163,7 @@ export function ResetPasswordPage() {
               />
 
               {error && (
-                <p role="alert" className="text-xs text-[#FF5F56] flex items-start gap-1.5">
+                <p role="alert" className="text-xs text-[var(--brand-red-ink)] flex items-start gap-1.5">
                   <AlertCircle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
                   {error}
                 </p>

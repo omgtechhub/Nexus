@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import supertest from 'supertest';
+import crypto from 'crypto';
+import { TEST_WEBHOOK_SECRET } from './testDatabaseUrl.js';
 import { app } from '../src/app.js';
 import { prisma } from '../src/prisma.js';
 
@@ -146,17 +148,26 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
       data: { reference, status: 'success', amount: 21600 },
     };
 
+    // A real HMAC over the exact bytes sent. The provider used to accept the
+    // literal string 'test_paystack_signature', which the webhook handler
+    // treats as authority to mark an order PAID -- a remote switch for anyone
+    // who read the source.
+    const signature = crypto
+      .createHmac('sha512', TEST_WEBHOOK_SECRET)
+      .update(JSON.stringify(webhookBody))
+      .digest('hex');
+
     // First webhook call
     const res1 = await request
       .post('/api/webhooks/paystack')
-      .set('x-paystack-signature', 'test_paystack_signature')
+      .set('x-paystack-signature', signature)
       .send(webhookBody);
     expect(res1.status).toBe(200);
 
     // Second webhook call with same eventId (idempotency check)
     const res2 = await request
       .post('/api/webhooks/paystack')
-      .set('x-paystack-signature', 'test_paystack_signature')
+      .set('x-paystack-signature', signature)
       .send(webhookBody);
     expect(res2.status).toBe(200);
     expect(res2.body.note).toBe('Event already processed');

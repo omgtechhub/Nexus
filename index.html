@@ -3,13 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nexus Commerce — Sell More. Grow Faster. Build Smarter.</title>
-    <meta name="description" content="Nexus Commerce is the all-in-one platform for ambitious entrepreneurs and enterprises. Launch your store, manage orders, and scale globally with AI-powered tools." />
-    <meta name="keywords" content="ecommerce platform, online store builder, SaaS commerce, sell online, business management" />
-    <meta property="og:title" content="Nexus Commerce — The Future of Commerce" />
-    <meta property="og:description" content="Launch, manage, and scale your business with Nexus Commerce. Powerful tools for modern entrepreneurs." />
+    <title>Nexus Commerce — Shop Everything. Sell Anything.</title>
+    <!-- Nexus is a marketplace, not a shop-building tool: sellers list products
+         into one shared shopfront that the platform runs. The description and
+         keywords used to sell a store builder ("launch your store", "online
+         store builder"), which is the first thing a search result shows and the
+         one thing the product does not do. -->
+    <meta name="description" content="Nexus Commerce is the marketplace where independent sellers list their products and shoppers buy from all of them with one account. List in minutes, reach buyers already here, and let Nexus run the checkout and delivery." />
+    <meta name="keywords" content="online marketplace, sell products online, list products, multi-seller marketplace, shop online, Nigeria marketplace" />
+    <meta property="og:title" content="Nexus Commerce — The Marketplace for Independent Sellers" />
+    <meta property="og:description" content="List your products on Nexus and reach shoppers already browsing. One shopfront, one checkout, one account — run for you." />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <!-- Kept in step with the active theme by ThemeContext. -->
+    <meta name="theme-color" content="#0B0D1B" />
+    <script>
+      /*
+       * Applied before first paint, so the page never renders in the wrong
+       * theme and then snaps. Mirrors ThemeContext: a stored 'light'/'dark'
+       * wins, anything else follows the OS, and dark is the fallback.
+       *
+       * Inlined deliberately — an external file would be a network round-trip
+       * in front of the first paint, which is the flash this avoids.
+       */
+      (function () {
+        try {
+          var stored = localStorage.getItem('nexus:theme');
+          var theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cal+Sans:wght@400;600&display=swap" rel="stylesheet" />

@@ -133,12 +133,12 @@ export function Customers() {
       {/* Customer cards */}
       {isError ? (
         <div className="stat-card p-6 border border-[#FF5F56]/30 bg-[#FF5F56]/5 text-center space-y-3">
-          <div className="w-10 h-10 rounded-full bg-[#FF5F56]/10 border border-[#FF5F56]/20 flex items-center justify-center mx-auto text-[#FF5F56]">
+          <div className="w-10 h-10 rounded-full bg-[#FF5F56]/10 border border-[#FF5F56]/20 flex items-center justify-center mx-auto text-[var(--brand-red-ink)]">
             <AlertTriangle size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white">Couldn't load customers</h4>
-            <p className="text-xs text-[#FF5F56] mt-1">{(error as Error)?.message || 'An error occurred while fetching customers.'}</p>
+            <h4 className="text-sm font-bold text-primary">Couldn't load customers</h4>
+            <p className="text-xs text-[var(--brand-red-ink)] mt-1">{(error as Error)?.message || 'An error occurred while fetching customers.'}</p>
           </div>
           <Button variant="ghost" size="sm" icon={<RotateCw size={13} />} onClick={() => refetch()}>
             Retry
@@ -153,11 +153,11 @@ export function Customers() {
               className="stat-card p-5 text-left hover:border-[#FFBD2E]/30 transition-colors cursor-pointer"
             >
               <div className="flex items-start gap-3 mb-4">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColors[index % avatarColors.length]} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md`}>
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColors[index % avatarColors.length]} flex items-center justify-center text-primary font-bold text-sm flex-shrink-0 shadow-md`}>
                   {getInitials(customer.name)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white truncate">{customer.name}</h3>
+                  <h3 className="text-sm font-semibold text-primary truncate">{customer.name}</h3>
                   <p className="text-xs text-muted truncate">{customer.email}</p>
                   {customer.location && (
                     <div className="flex items-center gap-1 mt-1 text-xs text-muted">
@@ -169,28 +169,28 @@ export function Customers() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/5 rounded-xl p-2.5 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[#FFBD2E] mb-1">
+                <div className="bg-[var(--ink)]/5 rounded-xl p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1 text-[var(--brand-yellow-ink)] mb-1">
                     <ShoppingBag size={12} />
                   </div>
-                  <div className="text-sm font-bold text-white">{customer.totalOrders}</div>
+                  <div className="text-sm font-bold text-primary">{customer.totalOrders}</div>
                   <div className="text-[10px] text-muted">Orders</div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-2.5 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[#27C93F] mb-1">
+                <div className="bg-[var(--ink)]/5 rounded-xl p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1 text-[var(--brand-green-ink)] mb-1">
                     <DollarSign size={12} />
                   </div>
-                  <div className="text-sm font-bold text-white">{formatCurrency(customer.totalSpent)}</div>
+                  <div className="text-sm font-bold text-primary">{formatCurrency(customer.totalSpent)}</div>
                   <div className="text-[10px] text-muted">Spent</div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--ink)]/5">
                 <span className="text-[10px] text-muted">
                   Customer since {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </span>
                 {customer.totalSpent > 1000 && (
-                  <span className="text-[10px] bg-[#FFBD2E]/20 text-[#FFBD2E] px-1.5 py-0.5 rounded-full font-medium">VIP</span>
+                  <span className="text-[10px] bg-[#FFBD2E]/20 text-[var(--brand-yellow-ink)] px-1.5 py-0.5 rounded-full font-medium">VIP</span>
                 )}
               </div>
             </button>
@@ -202,10 +202,10 @@ export function Customers() {
       {selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedCustomer(null)} aria-hidden="true" />
-          <div className="relative bg-[#121528] border border-white/20 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Customer Profile</h2>
-              <button onClick={() => setSelectedCustomer(null)} className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-white/10 transition-colors">✕</button>
+          <div className="relative bg-[var(--surface-overlay)] border border-[var(--ink)]/20 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-6 border-b border-[var(--ink)]/10 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-primary">Customer Profile</h2>
+              <button onClick={() => setSelectedCustomer(null)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-[var(--ink)]/10 transition-colors">✕</button>
             </div>
             <div className="p-6 space-y-5">
               <div className="flex items-center gap-4">
@@ -213,10 +213,10 @@ export function Customers() {
                   {getInitials(selectedCustomer.name)}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">{selectedCustomer.name}</h3>
+                  <h3 className="text-lg font-bold text-primary">{selectedCustomer.name}</h3>
                   <div className="flex items-center gap-3 mt-1">
                     {selectedCustomer.totalSpent > 1000 && (
-                      <span className="text-xs bg-[#FFBD2E]/20 text-[#FFBD2E] px-2 py-0.5 rounded-full font-medium">VIP Customer</span>
+                      <span className="text-xs bg-[#FFBD2E]/20 text-[var(--brand-yellow-ink)] px-2 py-0.5 rounded-full font-medium">VIP Customer</span>
                     )}
                   </div>
                 </div>
@@ -242,12 +242,12 @@ export function Customers() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="glass rounded-xl p-4 text-center border border-white/5">
-                  <div className="text-xl font-bold text-white">{selectedCustomer.totalOrders}</div>
+                <div className="glass rounded-xl p-4 text-center border border-[var(--ink)]/5">
+                  <div className="text-xl font-bold text-primary">{selectedCustomer.totalOrders}</div>
                   <div className="text-xs text-muted mt-0.5">Total Orders</div>
                 </div>
-                <div className="glass rounded-xl p-4 text-center border border-white/5">
-                  <div className="text-xl font-bold text-[#27C93F]">{formatCurrency(selectedCustomer.totalSpent)}</div>
+                <div className="glass rounded-xl p-4 text-center border border-[var(--ink)]/5">
+                  <div className="text-xl font-bold text-[var(--brand-green-ink)]">{formatCurrency(selectedCustomer.totalSpent)}</div>
                   <div className="text-xs text-muted mt-0.5">Total Spent</div>
                 </div>
               </div>
@@ -280,16 +280,16 @@ export function Customers() {
       {showAddCustomerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAddCustomerModal(false)} aria-hidden="true" />
-          <div className="relative z-10 w-full max-w-md bg-[#121528] border border-white/20 p-6 rounded-2xl shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <UserPlus className="text-[#FFBD2E]" size={20} /> Add New Customer
+          <div className="relative z-10 w-full max-w-md bg-[var(--surface-overlay)] border border-[var(--ink)]/20 p-6 rounded-2xl shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+              <UserPlus className="text-[var(--brand-yellow-ink)]" size={20} /> Add New Customer
             </h3>
             <form onSubmit={handleCreateCustomer} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-body mb-1">Full Name</label>
                 <input aria-label="e.g. Jane Doe"
                   required
-                  className="form-input bg-[#121528] text-white"
+                  className="form-input bg-[var(--surface-overlay)] text-primary"
                   placeholder="e.g. Jane Doe"
                   value={name}
                   onChange={e => setName(e.target.value)}
@@ -300,7 +300,7 @@ export function Customers() {
                 <input aria-label="jane@example.com"
                   required
                   type="email"
-                  className="form-input bg-[#121528] text-white"
+                  className="form-input bg-[var(--surface-overlay)] text-primary"
                   placeholder="jane@example.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -310,7 +310,7 @@ export function Customers() {
                 <label className="block text-xs font-semibold text-body mb-1">Phone Number</label>
                 <input aria-label="+1 (555) 000-0000"
                   type="tel"
-                  className="form-input bg-[#121528] text-white"
+                  className="form-input bg-[var(--surface-overlay)] text-primary"
                   placeholder="+1 (555) 000-0000"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
@@ -319,7 +319,7 @@ export function Customers() {
               <div>
                 <label className="block text-xs font-semibold text-body mb-1">Location</label>
                 <input aria-label="e.g. San Francisco, US"
-                  className="form-input bg-[#121528] text-white"
+                  className="form-input bg-[var(--surface-overlay)] text-primary"
                   placeholder="e.g. San Francisco, US"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
@@ -340,9 +340,9 @@ export function Customers() {
       {showComposeEmailModal && selectedCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowComposeEmailModal(false)} aria-hidden="true" />
-          <div className="relative z-10 w-full max-w-lg bg-[#121528] border border-white/20 p-6 rounded-2xl shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Mail className="text-[#FFBD2E]" size={20} /> Email {selectedCustomer.name}
+          <div className="relative z-10 w-full max-w-lg bg-[var(--surface-overlay)] border border-[var(--ink)]/20 p-6 rounded-2xl shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+              <Mail className="text-[var(--brand-yellow-ink)]" size={20} /> Email {selectedCustomer.name}
             </h3>
             <p className="text-xs text-muted">Recipient: {selectedCustomer.email}</p>
             <form onSubmit={handleSendEmail} className="space-y-3">
@@ -350,7 +350,7 @@ export function Customers() {
                 <label className="block text-xs font-semibold text-body mb-1">Subject</label>
                 <input aria-label="e.g. Special offer for your next order!"
                   required
-                  className="form-input bg-[#121528] text-white"
+                  className="form-input bg-[var(--surface-overlay)] text-primary"
                   placeholder="e.g. Special offer for your next order!"
                   value={emailSubject}
                   onChange={e => setEmailSubject(e.target.value)}
@@ -361,7 +361,7 @@ export function Customers() {
                 <textarea id="customers-message-body-2"
                   required
                   rows={4}
-                  className="form-input bg-[#121528] text-white resize-none"
+                  className="form-input bg-[var(--surface-overlay)] text-primary resize-none"
                   placeholder="Write your email message…"
                   value={emailBody}
                   onChange={e => setEmailBody(e.target.value)}

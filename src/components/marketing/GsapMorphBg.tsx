@@ -73,45 +73,73 @@ export function GsapMorphBg() {
     if (reduceMotion) return;
 
     const blobs = Array.from(root.querySelectorAll<HTMLElement>('[data-blob]'));
+
+    /**
+     * One timeline holding all three loops.
+     *
+     * The drifts are children of a timeline rather than three loose tweens
+     * because a timeline is the thing that can be paused: `gsap.context()` has
+     * no `pause`/`resume` — it exists to revert and to scope selectors, and
+     * GSAP's own docs say so outright. Calling them on the context threw
+     * `ctx.resume is not a function` the first time the hero crossed the
+     * viewport edge, which meant the idle-while-off-screen saving below never
+     * actually happened and the homepage carried an uncaught error.
+     */
+    let drift: gsap.core.Timeline | null = null;
+
     const ctx = gsap.context(() => {
+      drift = gsap.timeline();
       blobs.forEach((blob, index) => {
         const { x, y, scale, duration } = BLOBS[index].drift;
-        gsap.to(blob, {
-          // Transform only. The browser can run these on the compositor
-          // without re-rasterising the blurred gradient underneath.
-          xPercent: (x / 550) * 100,
-          yPercent: (y / 550) * 100,
-          scale,
-          duration,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
+        drift!.to(
+          blob,
+          {
+            // Transform only. The browser can run these on the compositor
+            // without re-rasterising the blurred gradient underneath.
+            xPercent: (x / 550) * 100,
+            yPercent: (y / 550) * 100,
+            scale,
+            duration,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+          },
           // Stagger the loops so the three never peak together.
-          delay: index * 1.5,
-        });
+          index * 1.5
+        );
       });
     }, root);
 
     /**
-     * Idle while off screen.
+     * Idle while off screen, and while the tab is in the background.
      *
-     * The old version kept all three loops running for the whole session, so
-     * scrolling down the homepage — or sitting on any other part of it — paid
-     * for an animation nobody could see. That is most of why the page felt
-     * heavy rather than just the hero.
+     * Both conditions feed one decision. Treating them as two independent
+     * switches is how the previous version would have resumed the animation on
+     * tab focus even when the hero was scrolled a page away — it only ever
+     * wanted to run when the glow is both on screen and actually being looked
+     * at.
      */
+    let onScreen = true;
+    let tabVisible = !document.hidden;
+
+    const sync = () => {
+      if (!drift) return;
+      if (onScreen && tabVisible) drift.resume();
+      else drift.pause();
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) ctx.resume();
-        else ctx.pause();
+        onScreen = entry.isIntersecting;
+        sync();
       },
       { rootMargin: '120px' }
     );
     observer.observe(root);
 
     const onVisibility = () => {
-      if (document.hidden) ctx.pause();
-      else ctx.resume();
+      tabVisible = !document.hidden;
+      sync();
     };
     document.addEventListener('visibilitychange', onVisibility);
 

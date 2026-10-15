@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthPage } from '../../../components/auth/AuthPage';
-import { RequireCustomer } from '../../../app/auth/guards';
+import { RequireCustomer, useAuthReturnTo } from '../../../app/auth/guards';
 import { CustomerLayout } from '../layout/CustomerLayout';
 import { CustomerDashboard } from '../pages/CustomerDashboard';
 import { CustomerOrders } from '../pages/CustomerOrders';
@@ -10,6 +10,10 @@ import { useApp } from '../../../context/AppContext';
 
 export function CustomerRoutes() {
   const { isAuthenticated } = useApp();
+  // Where the visitor was going. Without this, an already-signed-in customer
+  // landing on the auth routes was pushed to their dashboard even when they
+  // had been sent here from the bag, which dropped them out of checkout.
+  const returnTo = useAuthReturnTo();
 
   return (
     <Routes>
@@ -17,7 +21,7 @@ export function CustomerRoutes() {
         path="login"
         element={
           isAuthenticated
-            ? <Navigate to="/account/dashboard" replace />
+            ? <Navigate to={returnTo || '/account/dashboard'} replace />
             : <AuthPage mode="login" portal="customer" />
         }
       />
@@ -25,7 +29,7 @@ export function CustomerRoutes() {
         path="register"
         element={
           isAuthenticated
-            ? <Navigate to="/account/dashboard" replace />
+            ? <Navigate to={returnTo || '/account/dashboard'} replace />
             : <AuthPage mode="signup" portal="customer" />
         }
       />

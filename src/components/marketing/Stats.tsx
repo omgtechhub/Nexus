@@ -44,10 +44,10 @@ const stats = [
 ];
 
 const colorClasses = {
-  emerald: { bg: 'bg-[#27C93F]/10', border: 'border-[#27C93F]/30', text: 'text-[#27C93F]', glow: 'shadow-[#27C93F]/20' },
-  blue: { bg: 'bg-[#FF5F56]/10', border: 'border-[#FF5F56]/30', text: 'text-[#FF5F56]', glow: 'shadow-[#FF5F56]/20' },
+  emerald: { bg: 'bg-[#27C93F]/10', border: 'border-[#27C93F]/30', text: 'text-[var(--brand-green-ink)]', glow: 'shadow-[#27C93F]/20' },
+  blue: { bg: 'bg-[#FF5F56]/10', border: 'border-[#FF5F56]/30', text: 'text-[var(--brand-red-ink)]', glow: 'shadow-[#FF5F56]/20' },
   purple: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400', glow: 'shadow-cyan-500/20' },
-  amber: { bg: 'bg-[#FFBD2E]/10', border: 'border-[#FFBD2E]/30', text: 'text-[#FFBD2E]', glow: 'shadow-[#FFBD2E]/20' },
+  amber: { bg: 'bg-[#FFBD2E]/10', border: 'border-[#FFBD2E]/30', text: 'text-[var(--brand-yellow-ink)]', glow: 'shadow-[#FFBD2E]/20' },
 };
 
 export function Stats() {
@@ -60,7 +60,7 @@ export function Stats() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6" ref={ref}>
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
             Trusted by millions,
             <span className="text-gradient"> proven at scale</span>
           </h2>
@@ -97,7 +97,7 @@ export function Stats() {
                     <span>—</span>
                   )}
                 </div>
-                <div className="text-base font-semibold text-white mb-1">{stat.label}</div>
+                <div className="text-base font-semibold text-primary mb-1">{stat.label}</div>
                 <div className="text-xs text-muted">{stat.description}</div>
               </div>
             );
