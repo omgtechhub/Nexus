@@ -10,10 +10,14 @@
  * any root-level file fails the whole build with
  * `Invalid code point <n>` and no indication of which file is at fault.
  *
- * That is exactly what happened: a note at the repo root quoting
- * `C:\Users\...\363fbe41-...` broke `npm run build` until the backslashes were
- * removed. Restricting the scan to `src/` makes the build depend on the
+ * That is exactly what happened: a note at the repo root quoting an absolute
+ * Windows path broke the build until its separators were changed to forward
+ * slashes. Restricting the scan to `src/` makes the build depend on the
  * application's own files and nothing else.
+ *
+ * NOTE: do not write a backslash-separated path in this file either. Tailwind
+ * parses this stylesheet, so a path in a comment here trips the same bug — as
+ * the first version of this very comment did.
  */
 @source "./";
 
