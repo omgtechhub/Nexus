@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "StoreSettings" ADD COLUMN     "defaultShippingFee" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "freeShippingThreshold" DOUBLE PRECISION,
+ADD COLUMN     "taxEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "taxInclusive" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "taxLabel" TEXT NOT NULL DEFAULT 'Tax',
+ADD COLUMN     "taxRate" DOUBLE PRECISION NOT NULL DEFAULT 0;

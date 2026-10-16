@@ -65,6 +65,15 @@ export interface CartItemValidation {
   error?: string;
 }
 
+export interface ShippingOption {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  estimatedDays: string | null;
+  isFree: boolean;
+}
+
 export interface CartValidationResult {
   isValid: boolean;
   items: CartItemValidation[];
@@ -72,6 +81,22 @@ export interface CartValidationResult {
   taxEstimate: number;
   shippingEstimate: number;
   totalEstimate: number;
+  /**
+   * The store's own tax and delivery configuration, as resolved server-side.
+   *
+   * Tax used to be a hardcoded 8% computed independently on the client, so the
+   * summary could disagree with the charge and every store showed "Tax (8%)"
+   * whether it levied any or not. These let the summary name the line what the
+   * merchant calls it, omit it entirely at a zero rate, and offer the real
+   * delivery choices. Optional because an older server will not send them.
+   */
+  taxLabel?: string;
+  taxRate?: number;
+  taxInclusive?: boolean;
+  currency?: string;
+  shippingMethodId?: string | null;
+  shippingMethodName?: string | null;
+  shippingOptions?: ShippingOption[];
 }
 
 export interface CheckoutPayload {
@@ -93,6 +118,8 @@ export interface CheckoutPayload {
     phone?: string;
   };
   discountCode?: string;
+  /** From the quote's `shippingOptions`; cheapest applies when omitted. */
+  shippingMethodId?: string;
 }
 
 export interface CheckoutResult {
@@ -148,11 +175,14 @@ export async function fetchStorefrontCategoriesApi(storeSlug: string): Promise<{
 
 export async function validateCartApi(
   storeSlug: string,
-  items: { variantId: string; quantity: number }[]
+  items: { variantId: string; quantity: number }[],
+  // The destination decides which shipping zone applies, so a quote without it
+  // falls back to the store's default rate.
+  options?: { country?: string; shippingMethodId?: string }
 ): Promise<CartValidationResult> {
   return apiClient<CartValidationResult>(`/storefront/${storeSlug}/cart/validate`, {
     method: 'POST',
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ items, ...options }),
   });
 }
 

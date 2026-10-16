@@ -3,6 +3,43 @@ import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { prisma } from './prisma.js';
 import { selectEmailProvider } from './services/email/selectProvider.js';
+import { checkSessionCookieViability } from './utils/deploymentChecks.js';
+import { backfillMissingCommissions } from './services/payouts/payout.service.js';
+
+/**
+ * Refuse to serve a production install that cannot hold a session.
+ *
+ * The rule itself lives in `utils/deploymentChecks.ts` as a pure function so
+ * it can be tested without terminating the test runner; this is only the part
+ * that acts on the verdict.
+ */
+function assertSessionCookieCanWork(): void {
+  const verdict = checkSessionCookieViability(config.frontendUrl, config.isProd);
+
+  if (verdict.fatal) {
+    logger.fatal({
+      msg:
+        'FRONTEND_URL is http:// on a production build. The session cookie is issued '
+        + 'SameSite=None; Secure, which a browser discards over plain HTTP — every login '
+        + 'would appear to succeed and then fail. Serve the app over https and set '
+        + 'FRONTEND_URL accordingly.',
+      frontendUrl: config.frontendUrl,
+      insecureOrigins: verdict.insecureOrigins,
+    });
+    process.exit(1);
+  }
+
+  if (verdict.insecureOrigins.length > 0) {
+    // Loopback only: browsers treat localhost as a secure context, so the
+    // cookie survives. Fine locally; not a deployable configuration.
+    logger.warn({
+      msg: 'Production build serving a loopback origin over http. Fine locally; not deployable.',
+      frontendUrl: config.frontendUrl,
+    });
+  }
+}
+
+assertSessionCookieCanWork();
 
 /**
  * Pick the email transport before accepting traffic.
@@ -12,6 +49,20 @@ import { selectEmailProvider } from './services/email/selectProvider.js';
  * cleanly and silently never sends a password reset.
  */
 await selectEmailProvider();
+
+/**
+ * Give every already-settled payment a merchant/platform split.
+ *
+ * Payments taken before payouts existed have a null `merchantNetAmount`, which
+ * would read as a zero balance and tell merchants they are owed nothing.
+ * Idempotent and cheap; failure must not stop the API serving, so it is logged
+ * rather than fatal.
+ */
+try {
+  await backfillMissingCommissions();
+} catch (err) {
+  logger.error({ err }, 'Commission backfill failed; merchant balances may read low until it succeeds');
+}
 
 const server = app.listen(config.port, () => {
   logger.info(`Nexus Commerce Server listening on port ${config.port} [${config.nodeEnv}]`);

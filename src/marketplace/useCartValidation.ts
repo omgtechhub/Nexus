@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { validateCartApi, CartValidationResult } from '../api/storefront';
 import { useCart, CartCorrection, CartStoreGroup } from '../context/CartContext';
 
@@ -127,4 +127,41 @@ export function lineProblem(
       : 'Out of stock at this store.';
   }
   return null;
+}
+
+/**
+ * A live quote for one store's cart.
+ *
+ * The single-store counterpart to `useCartValidation`, for the per-merchant
+ * storefront. That page computed tax and delivery in the browser from
+ * hardcoded constants — an 8% rate no store had configured, and a flat $15
+ * that ignored the merchant's own shipping zones — so the figures on screen
+ * were a guess that could disagree with the amount charged.
+ *
+ * Keyed on the destination and the chosen delivery method as well as the
+ * lines, because all three change the price.
+ */
+export function useCartQuote(
+  storeSlug: string,
+  items: { variantId: string; quantity: number }[],
+  country?: string,
+  shippingMethodId?: string
+) {
+  const signature = items
+    .map(i => `${i.variantId}:${i.quantity}`)
+    .sort()
+    .join('|');
+
+  return useQuery({
+    queryKey: ['cart-quote', storeSlug, signature, country ?? '', shippingMethodId ?? ''] as const,
+    queryFn: () =>
+      validateCartApi(
+        storeSlug,
+        items.map(i => ({ variantId: i.variantId, quantity: i.quantity })),
+        { country, shippingMethodId }
+      ),
+    enabled: items.length > 0 && Boolean(storeSlug),
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 }

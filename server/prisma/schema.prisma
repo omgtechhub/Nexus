@@ -254,6 +254,8 @@ model Store {
   aiConversations     AiConversation[]
   aiUsageEvents       AiUsageEvent[]
   productReviews      ProductReview[]
+  payouts             Payout[]
+  payoutAccount       MerchantPayoutAccount?
 }
 
 model StoreMember {
@@ -626,6 +628,32 @@ model StoreSettings {
   guestCheckout     Boolean  @default(true)
   requireAccount    Boolean  @default(false)
   orderNotesEnabled Boolean  @default(true)
+
+  /// Tax, per store.
+  ///
+  /// There was no tax configuration at all: checkout applied a hardcoded 8%
+  /// to every order in every store, so a Nigerian merchant charged their
+  /// customers a US-shaped sales tax nobody had configured and nobody remits.
+  ///
+  /// Defaults to **off**. A tax rate is a legal declaration about a specific
+  /// business in a specific place; inheriting someone else's is worse than
+  /// charging nothing, and a merchant who needs it will set it.
+  taxEnabled        Boolean  @default(false)
+  /// Percentage, e.g. 7.5 for 7.5%. Only read when taxEnabled.
+  taxRate           Float    @default(0)
+  /// What the line is called on the order summary — "VAT", "Sales tax", "GST".
+  taxLabel          String   @default("Tax")
+  /// When true, listed prices already include tax, so it is shown as a
+  /// component of the total rather than added to it.
+  taxInclusive      Boolean  @default(false)
+
+  /// Fallback delivery charge for a store with no shipping zone configured.
+  ///
+  /// Checkout previously hardcoded $15, free over $100, ignoring the
+  /// ShippingZone/ShippingMethod records merchants actually fill in. Those are
+  /// now the primary source; these two only apply when a store has none.
+  defaultShippingFee      Float  @default(0)
+  freeShippingThreshold   Float?
   socialLinks       Json     @default("{}")
   seoTitle          String?
   seoDescription    String?
@@ -752,6 +780,19 @@ model Payment {
   currency          String          @default("USD")
   status            PaymentStatus   @default(PENDING)
   metadata          Json?
+
+  /// The platform's cut, and what the merchant is owed, both fixed at the
+  /// moment the payment settled.
+  ///
+  /// Captured per payment rather than recomputed from a current rate, so
+  /// changing the commission never re-values money already taken. Null until
+  /// the payment settles; `merchantNetAmount` is what the payout balance sums.
+  platformFeeAmount Float?
+  merchantNetAmount Float?
+  /// The rate used, kept for the audit trail and for explaining a figure to a
+  /// merchant who asks why it is what it is.
+  commissionRate    Float?
+
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -1255,4 +1296,88 @@ model VoiceProfile {
 
   @@unique([userId, portal])
   @@index([userId])
+}
+
+
+/// How a payout reached the merchant.
+enum PayoutMethod {
+  /// Recorded by a platform admin after paying by their own means. The
+  /// default, because automated transfers need verified bank details and a
+  /// funded provider balance.
+  MANUAL
+  /// Executed through the payment provider's transfer API.
+  PROVIDER_TRANSFER
+}
+
+enum PayoutStatus {
+  /// Requested or scheduled; the money has not moved.
+  PENDING
+  /// Handed to the provider, awaiting confirmation.
+  PROCESSING
+  /// Confirmed as received by the merchant.
+  PAID
+  FAILED
+  /// Paid, then reversed by the provider or the bank.
+  REVERSED
+}
+
+/// Where a merchant's money is sent.
+///
+/// The full account number is deliberately **not** stored. It is needed once,
+/// to register the destination with the payment provider, which returns a
+/// recipient token used for every later transfer; only that token and the last
+/// four digits — enough for a merchant to recognise their own account — are
+/// kept. Holding full bank details for every merchant is a liability with no
+/// operational benefit.
+model MerchantPayoutAccount {
+  id                  String   @id @default(uuid())
+  storeId             String   @unique
+  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  accountName         String
+  bankName            String
+  /// Provider's bank identifier (Paystack `bank.code`).
+  bankCode            String
+  accountNumberLast4  String
+  /// Provider recipient token, used in place of the account number.
+  providerRecipientId String?
+  provider            String   @default("PAYSTACK")
+  /// Set once the provider confirms the account resolves to `accountName`.
+  verifiedAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+/// A settlement of a merchant's balance.
+///
+/// Before this existed there was no payout subsystem at all: every customer
+/// payment landed in the platform's own gateway account with no record of what
+/// was owed to which merchant, while the seller-facing assistant already told
+/// merchants their payouts were visible in the dashboard.
+model Payout {
+  id                String       @id @default(uuid())
+  storeId           String
+  store             Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /// Human-readable, shown to the merchant.
+  reference         String       @unique
+  amount            Float
+  currency          String       @default("USD")
+  status            PayoutStatus @default(PENDING)
+  method            PayoutMethod @default(MANUAL)
+  /// Provider transfer id, when executed through one.
+  providerReference String?
+  /// The window of earnings this settles, for the merchant's statement.
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  /// Admin who created it; null for a scheduled job.
+  initiatedByUserId String?
+  note              String?
+  failureReason     String?
+  paidAt            DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([storeId])
+  @@index([status])
 }

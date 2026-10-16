@@ -30,8 +30,10 @@ function OrderList() {
           title="No orders yet"
           description="Orders you place at any store on Nexus will appear here, wherever you bought them."
           action={
-            <Link to="/storefront">
-              <Button variant="primary" size="md">Browse a store</Button>
+            /* See CustomerDashboard: `/storefront` without a slug renders
+               "No storefront specified", not a shop. */
+            <Link to="/products">
+              <Button variant="primary" size="md">Start shopping</Button>
             </Link>
           }
         />

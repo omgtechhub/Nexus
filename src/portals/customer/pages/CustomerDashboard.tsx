@@ -44,8 +44,12 @@ export function CustomerDashboard() {
           title="No orders yet"
           description="Once you buy from a store on Nexus, your orders and delivery updates will show up here."
           action={
-            <Link to="/storefront">
-              <Button variant="primary" size="md">Browse a store</Button>
+            /* `/products`, the marketplace. `/storefront` needs a store slug
+               and renders "No storefront specified" without one — so this
+               empty state, the first thing a new customer ever sees, was a
+               dead end. */
+            <Link to="/products">
+              <Button variant="primary" size="md">Start shopping</Button>
             </Link>
           }
         />

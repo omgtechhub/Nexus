@@ -36,6 +36,16 @@ export async function getSettings(req: Request, res: Response, next: NextFunctio
         activeTheme: settings.activeTheme,
         primaryColor: settings.primaryColor,
         customDomain: settings.customDomain,
+        // Read by checkout through `quote.service.ts`. Returned here so the
+        // merchant can see and change what their customers are charged —
+        // previously tax and delivery were hardcoded platform-wide and had no
+        // API surface at all.
+        taxEnabled: settings.taxEnabled,
+        taxRate: settings.taxRate,
+        taxLabel: settings.taxLabel,
+        taxInclusive: settings.taxInclusive,
+        defaultShippingFee: settings.defaultShippingFee,
+        freeShippingThreshold: settings.freeShippingThreshold,
       },
     });
   } catch (err) {

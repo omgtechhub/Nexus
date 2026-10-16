@@ -61,6 +61,16 @@ export interface PaymentRecord {
   amount: number;
   currency: string;
   status: string;
+  /**
+   * The platform/merchant split, fixed when the payment settled.
+   *
+   * Null for a payment taken before payouts existed, and for one that has not
+   * settled. The Payments section shows a dash in that case rather than the
+   * client-side guess at a gateway fee it used to invent.
+   */
+  platformFeeAmount?: number | null;
+  merchantNetAmount?: number | null;
+  commissionRate?: number | null;
   createdAt: string;
   order?: {
     id: string;

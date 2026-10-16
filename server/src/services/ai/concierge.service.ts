@@ -338,12 +338,28 @@ export async function answerPublicQuestion(message: string): Promise<ConciergeAn
       };
 
     case 'PAYOUTS':
+      /**
+       * Describes how payouts actually work, which is manually.
+       *
+       * This used to say payouts were "shown in the Payments section: what has
+       * cleared, what is pending, and the account it was sent to" — at a point
+       * when no payout subsystem existed at all. There was no balance, no
+       * record of what was owed to whom, and no mechanism to pay a merchant.
+       * The Payments section showed their customer charges.
+       *
+       * A merchant's balance and payout history are real now, but transfers
+       * are still recorded by the platform rather than executed automatically,
+       * and saying otherwise sets an expectation about timing that nothing
+       * guarantees. See `services/payouts/README.md`.
+       */
       return {
         topic,
         reply:
-          'Payouts are shown in the Payments section of the seller dashboard: what has ' +
-          'cleared, what is pending, and the account it was sent to. Sign in as a seller ' +
-          'to see yours — I can only talk about the platform in general out here.',
+          'Your balance and payout history live in the Payments section of the seller ' +
+          'dashboard: what you have earned, what has already been paid out, and what is ' +
+          'still to come. Payouts are released by the Nexus team to the bank account you ' +
+          'set there, rather than on a fixed automatic schedule. Sign in as a seller to ' +
+          'see yours — out here I can only talk about the platform in general.',
         links: [{ label: 'Seller sign in', to: '/seller/login' }, SELL],
       };
 

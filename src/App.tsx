@@ -7,6 +7,7 @@ import { CartProvider } from './context/CartContext';
 import { AppRouter } from './app/router/AppRouter';
 import { ScrollRestoration } from './app/router/ScrollRestoration';
 import { AssistantDock } from './components/assistant/AssistantDock';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 /**
  * The shopping bag lives above the router, so it survives every navigation —
@@ -70,6 +71,15 @@ export default function App() {
   const basename = base || undefined;
 
   return (
+    /**
+     * The root backstop.
+     *
+     * AppRouter has its own boundary around the route table, which is the one
+     * that keeps the shell alive when a page throws. This one catches what
+     * that cannot: a provider throwing during its own initialisation, above
+     * the router, where there is no shell left to preserve.
+     */
+    <ErrorBoundary scope="root">
     <BrowserRouter basename={basename}>
       <ThemeProvider>
         {/* Must sit inside the router: it reads the location. */}
@@ -87,5 +97,6 @@ export default function App() {
         </AppProvider>
       </ThemeProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }

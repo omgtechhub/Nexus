@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { z } from 'zod';
 import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, OrderAddressType, ProductStatus, StoreStatus } from '@prisma/client';
+import { quoteOrder } from '../services/pricing/quote.service.js';
 
 const cartItemInputSchema = z.object({
   variantId: z.string().min(1),
@@ -10,6 +11,10 @@ const cartItemInputSchema = z.object({
 
 const validateCartSchema = z.object({
   items: z.array(cartItemInputSchema).min(1, 'Cart items are required'),
+  // Both optional, so an early cart with no address yet still gets a quote —
+  // it just falls back to the store's default delivery rather than a zone.
+  country: z.string().optional(),
+  shippingMethodId: z.string().optional(),
 });
 
 const storefrontCheckoutSchema = z.object({
@@ -31,6 +36,9 @@ const storefrontCheckoutSchema = z.object({
     phone: z.string().optional(),
   }),
   discountCode: z.string().optional(),
+  // The delivery option the shopper picked, from the quote's
+  // `shippingOptions`. Omitted, the cheapest option for their zone applies.
+  shippingMethodId: z.string().optional(),
 });
 
 /**
@@ -351,7 +359,8 @@ export async function getStorefrontCategories(req: Request, res: Response, next:
 export async function validateCart(req: Request, res: Response, next: NextFunction) {
   try {
     const { storeSlug } = req.params;
-    const { items } = validateCartSchema.parse(req.body);
+    const payload = validateCartSchema.parse(req.body);
+    const { items } = payload;
 
     const store = await findStoreBySlug(storeSlug);
     if (!store) {
@@ -444,17 +453,37 @@ export async function validateCart(req: Request, res: Response, next: NextFuncti
       });
     }
 
-    const taxEstimate = Number((subtotal * 0.08).toFixed(2));
-    const shippingEstimate = subtotal >= 100 || subtotal === 0 ? 0 : 15.00;
-    const totalEstimate = Number((subtotal + taxEstimate + shippingEstimate).toFixed(2));
+    /**
+     * Priced from the store's own tax and shipping configuration.
+     *
+     * This was `subtotal * 0.08` plus a flat $15 free over $100 — the same
+     * hardcoded figures the checkout below used, in a second copy. Both now
+     * call `quoteOrder`, so the quote a shopper sees here and the total they
+     * are charged at checkout come from one place and cannot drift.
+     */
+    const quote = await quoteOrder({
+      storeId: store.id,
+      subtotal,
+      country: payload.country,
+      shippingMethodId: payload.shippingMethodId,
+    });
 
     return res.json({
       isValid,
       items: validatedItems,
-      subtotal: Number(subtotal.toFixed(2)),
-      taxEstimate,
-      shippingEstimate,
-      totalEstimate,
+      subtotal: quote.subtotal,
+      taxEstimate: quote.tax,
+      shippingEstimate: quote.shipping,
+      totalEstimate: quote.total,
+      // So the cart can label the line "VAT" rather than "Tax", show nothing
+      // at all for a store that charges none, and offer delivery choices.
+      taxLabel: quote.taxLabel,
+      taxRate: quote.taxRate,
+      taxInclusive: quote.taxInclusive,
+      currency: quote.currency,
+      shippingMethodId: quote.shippingMethodId,
+      shippingMethodName: quote.shippingMethodName,
+      shippingOptions: quote.shippingOptions,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -643,9 +672,31 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
         }
       }
 
-      const tax = Number((subtotal * 0.08).toFixed(2));
-      const shipping = subtotal >= 100 ? 0 : 15.00;
-      const total = Number((subtotal - discountAmount + tax + shipping).toFixed(2));
+      /**
+       * The authoritative totals, from the store's own configuration.
+       *
+       * Was `subtotal * 0.08` tax and a flat $15 free over $100, applied to
+       * every store in the platform. `quoteOrder` reads the store's tax
+       * settings and its ShippingZone/ShippingMethod records — which checkout
+       * never consulted, so a merchant's configured delivery rates had no
+       * effect on what anyone was charged.
+       *
+       * Note this also fixes a quieter arithmetic bug: tax was applied to the
+       * subtotal *before* the discount, so a discount code did not reduce the
+       * tax it should have. `quoteOrder` takes the discount as input and taxes
+       * what is actually owed.
+       */
+      const quote = await quoteOrder({
+        storeId: store.id,
+        subtotal,
+        discountAmount,
+        country: payload.shippingAddress.country,
+        shippingMethodId: payload.shippingMethodId,
+      });
+
+      const tax = quote.tax;
+      const shipping = quote.shipping;
+      const total = quote.total;
 
       // Resolve or create the store's Customer record for this buyer.
       // When the buyer is signed in, stamp their account id so the purchase

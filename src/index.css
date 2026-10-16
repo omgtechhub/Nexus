@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
 /*
+ * Scan the application source, and only that.
+ *
+ * Tailwind v4 auto-detects sources from the project root, so it reads every
+ * file that is not gitignored — including Markdown notes, config and docs.
+ * That is not merely wasteful: its class scanner treats a backslash followed
+ * by hex digits as a CSS escape, so an ordinary **Windows path** pasted into
+ * any root-level file fails the whole build with
+ * `Invalid code point <n>` and no indication of which file is at fault.
+ *
+ * That is exactly what happened: a note at the repo root quoting
+ * `C:\Users\...\363fbe41-...` broke `npm run build` until the backslashes were
+ * removed. Restricting the scan to `src/` makes the build depend on the
+ * application's own files and nothing else.
+ */
+@source "./";
+
+/*
  * Rebind `dark:` to the app's own switch.
  *
  * Out of the box it keys off `prefers-color-scheme`, which is the OS setting —

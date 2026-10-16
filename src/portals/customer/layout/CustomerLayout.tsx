@@ -105,15 +105,25 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <ThemeToggle className="rounded-lg" />
 
+            {/*
+              `/products` — the marketplace — not `/storefront`.
+
+              This pointed at `/storefront`, which renders `StorefrontView`
+              with no slug: in the customer portal `useApp().store` is a
+              *seller's* store and is undefined for a customer account, and
+              there is no route param either. The page rendered "No storefront
+              specified. Open a store from its own link." So the one shopping
+              link in the signed-in customer's header was a dead end.
+            */}
             <Link
-              to="/storefront"
+              to="/products"
               className={cn(
                 'hidden items-center gap-1.5 rounded-lg border border-[var(--ink)]/10 bg-[var(--ink)]/5 px-3 py-1.5 text-xs font-medium text-body transition-colors hover:bg-[var(--ink)]/10 hover:text-primary sm:flex',
                 focusRing
               )}
             >
               <Store size={14} aria-hidden="true" />
-              Browse storefront
+              Browse the shop
             </Link>
 
             {user && (

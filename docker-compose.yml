@@ -91,6 +91,11 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
 
+      # The platform's cut of each merchant sale. 0 means merchants are owed
+      # 100% and subscriptions are the only platform revenue. Captured per
+      # payment at settlement, so a change affects new sales only.
+      PLATFORM_COMMISSION_PERCENT: ${PLATFORM_COMMISSION_PERCENT:-0}
+
       WHISPER_MODEL: ${WHISPER_MODEL:-onnx-community/whisper-base.en}
       VOICE_MODEL_DIR: ${VOICE_MODEL_DIR:-.models}
     volumes:

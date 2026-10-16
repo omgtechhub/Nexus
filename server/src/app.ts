@@ -125,8 +125,47 @@ app.use(
   })
 );
 
-if (!config.isProd && process.env.NODE_ENV !== 'test') {
-  app.use(pinoHttp({ logger }));
+/**
+ * Request logging, in production as well as development.
+ *
+ * This was gated behind `!config.isProd`, so a live deployment logged **no
+ * requests at all** — and `errorHandler` logged nothing either, so a 500 was
+ * returned to the client and then vanished. There was no way to answer "what
+ * happened at 14:02" on a running install.
+ *
+ * Only the test environment is excluded, where it is pure noise.
+ *
+ * The level per response keeps the volume survivable without losing anything
+ * that matters: a 5xx is an error, a 4xx is a warning (useful — a burst of
+ * 401s is an attack, a burst of 403s is a misconfigured FRONTEND_URL), and the
+ * health probes are silent so a 30-second Docker healthcheck does not become
+ * the entire log.
+ */
+if (process.env.NODE_ENV !== 'test') {
+  app.use(
+    pinoHttp({
+      logger,
+      customLogLevel: (_req, res, err) => {
+        if (err || res.statusCode >= 500) return 'error';
+        if (res.statusCode >= 400) return 'warn';
+        return 'info';
+      },
+      autoLogging: {
+        ignore: (req) => req.url === '/health' || req.url === '/ready',
+      },
+      // The default serialisers log every header on every request. These keep
+      // the useful fields and drop the rest; `logger`'s redact list covers
+      // what remains.
+      serializers: {
+        req: (req) => ({
+          method: req.method,
+          url: req.url,
+          remoteAddress: req.remoteAddress,
+        }),
+        res: (res) => ({ statusCode: res.statusCode }),
+      },
+    })
+  );
 }
 
 // CSRF defence: the session cookie is SameSite=None in production, so a

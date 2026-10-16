@@ -32,6 +32,7 @@ import { shopVoiceRouter } from './shopVoice.routes.js';
 import { shopAssistantRouter } from './shopAssistant.routes.js';
 import { adminVoiceRouter } from './adminVoice.routes.js';
 import { publicAssistantRouter } from './publicAssistant.routes.js';
+import { payoutsRouter, adminPayoutsRouter } from './payouts.routes.js';
 
 export const apiRouter = Router();
 
@@ -61,10 +62,12 @@ apiRouter.use('/audit-logs', auditLogsRouter);
 apiRouter.use('/plans', plansRouter);
 apiRouter.use('/subscriptions', subscriptionsRouter);
 apiRouter.use('/saas-webhooks', saasWebhooksRouter);
+apiRouter.use('/payouts', payoutsRouter);
 // Mounted before '/admin': Express matches prefixes in order, so the console
 // router would otherwise receive these requests, run its own guard against
 // them and only then fall through.
 apiRouter.use('/admin/voice', adminVoiceRouter);
+apiRouter.use('/admin/payouts', adminPayoutsRouter);
 apiRouter.use('/admin', platformAdminRouter);
 apiRouter.use('/iq', nexusIqRouter);
 apiRouter.use('/reviews', reviewsRouter);

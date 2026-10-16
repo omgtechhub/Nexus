@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { PaymentStatus, PaymentProvider, OrderStatus, PaymentStatus as PrismaPaymentStatus, InventoryMovementType } from '@prisma/client';
 import { getPaymentProvider } from '../services/payments/payment.factory.js';
 import { PaymentGatewayError, PaymentNotConfiguredError } from '../services/payments/errors.js';
+import { formatMoney } from '../services/email/email.service.js';
+import { recordCommissionForPayment } from '../services/payouts/payout.service.js';
 
 const initializePaymentSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -252,9 +254,15 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
             orderId: payment.orderId,
             fromStatus: OrderStatus.PENDING,
             toStatus: OrderStatus.CONFIRMED,
-            note: `Payment of $${payment.amount.toFixed(2)} verified via ${payment.provider}`,
+            // Was a hardcoded dollar sign on a platform billing in naira.
+            note: `Payment of ${formatMoney(payment.amount, payment.currency)} verified via ${payment.provider}`,
           },
         });
+
+        // The merchant's share, fixed at settlement — the same split the
+        // webhook path records, so an order settled either way counts toward
+        // the payout balance identically.
+        await recordCommissionForPayment(payment.id, tx);
       });
 
       // Only the request that actually settled the payment sends the receipt.

@@ -65,4 +65,24 @@ export const settingsSchema = z.object({
   activeTheme: z.string().optional(),
   primaryColor: z.string().optional(),
   customDomain: z.string().optional(),
+
+  /**
+   * Tax and delivery, which checkout now actually reads.
+   *
+   * Previously checkout applied a hardcoded 8% tax and a flat $15 delivery to
+   * every store, and there was nowhere to configure either — so these fields
+   * had no API surface at all.
+   *
+   * The rate is capped at 100: a percentage above that is a typo (someone
+   * entering 750 for 7.5%), and charging it would be worse than rejecting it.
+   */
+  taxEnabled: z.boolean().optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  taxLabel: z.string().min(1).max(30).optional(),
+  taxInclusive: z.boolean().optional(),
+
+  defaultShippingFee: z.number().min(0).optional(),
+  // Nullable, not just optional: clearing the threshold has to be expressible,
+  // and `undefined` in a Prisma update means "leave alone", not "unset".
+  freeShippingThreshold: z.number().min(0).nullable().optional(),
 });

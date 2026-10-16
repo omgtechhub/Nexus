@@ -43,6 +43,30 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     storeBCookie = resB.headers['set-cookie'][0];
     storeBSlug = resB.body.data.store.id;
 
+    /**
+     * Store A levies 8% tax, by configuration.
+     *
+     * Tax used to be a hardcoded `subtotal * 0.08` applied to every store on
+     * the platform, so these tests asserted 24.00 on a 300.00 subtotal without
+     * anything ever having been configured. Tax is now per-store and defaults
+     * to **off**, which is why the figures below have to be asked for.
+     *
+     * Setting it here keeps the original expectations meaningful — they now
+     * prove the *configured* rate is the one charged, rather than that a
+     * constant is still a constant. Store B is left unconfigured on purpose;
+     * the test at the end of this file asserts it charges nothing.
+     */
+    await prisma.storeSettings.upsert({
+      where: { storeId: storeASlug },
+      update: { taxEnabled: true, taxRate: 8, taxLabel: 'Sales tax' },
+      create: {
+        storeId: storeASlug,
+        taxEnabled: true,
+        taxRate: 8,
+        taxLabel: 'Sales tax',
+      },
+    });
+
     // 3. Create active product for Store A
     const skuA = `SKU-P4-A-${Date.now()}`;
     const prodARes = await request
@@ -115,9 +139,45 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     expect(res.status).toBe(200);
     expect(res.body.isValid).toBe(true);
     expect(res.body.subtotal).toBe(300.0);
-    expect(res.body.taxEstimate).toBe(24.0); // 8% of 300
-    expect(res.body.shippingEstimate).toBe(0); // Free shipping for >= $100
+    // The 8% Store A configured in beforeAll, not a platform-wide constant.
+    expect(res.body.taxEstimate).toBe(24.0);
+    expect(res.body.taxRate).toBe(8);
+    expect(res.body.taxLabel).toBe('Sales tax');
+    // No shipping zone configured, and defaultShippingFee is 0.
+    expect(res.body.shippingEstimate).toBe(0);
     expect(res.body.totalEstimate).toBe(324.0);
+  });
+
+  it('4b. Cart Quote: a store that has configured no tax charges none', async () => {
+    /**
+     * The case the hardcoded 8% made impossible to express.
+     *
+     * Store B has no tax settings, so it must quote zero — previously it would
+     * have charged a US-shaped sales tax it never configured and does not
+     * remit. This is the regression guard for that.
+     */
+    const skuB = `SKU-P4-B-TAX-${Date.now()}`;
+    const prodBRes = await request
+      .post('/api/products')
+      .set('Cookie', [storeBCookie])
+      .send({
+        title: 'Beta Untaxed Item',
+        price: 300.0,
+        sku: skuB,
+        status: 'ACTIVE',
+        inventory: 5,
+      });
+    expect(prodBRes.status).toBe(201);
+
+    const res = await request
+      .post(`/api/storefront/${storeBSlug}/cart/validate`)
+      .send({ items: [{ variantId: prodBRes.body.data.id, quantity: 1 }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.subtotal).toBe(300.0);
+    expect(res.body.taxEstimate).toBe(0);
+    expect(res.body.taxRate).toBe(0);
+    expect(res.body.totalEstimate).toBe(300.0);
   });
 
   it('5. Checkout Engine: executes atomic checkout, customer creation, stock reservation, and order creation', async () => {

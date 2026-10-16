@@ -1,5 +1,6 @@
 import { prisma } from '../../prisma.js';
 import { SubscriptionStatus } from '@prisma/client';
+import { resolveDefaultPlan } from './defaultPlan.js';
 
 export interface EntitlementUsage {
   productCount: number;
@@ -44,10 +45,7 @@ export class EntitlementService {
      * what an unpaid store is allowed to do.
      */
     if (!plan) {
-      plan = await prisma.subscriptionPlan.findFirst({
-        where: { isActive: true },
-        orderBy: { monthlyPrice: 'asc' },
-      }) ?? undefined;
+      plan = (await resolveDefaultPlan()) ?? undefined;
     }
 
     // No plans configured at all. Granting a generous default here is how the

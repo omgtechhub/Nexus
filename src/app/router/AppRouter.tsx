@@ -1,9 +1,10 @@
 import { lazy, Suspense, ComponentType } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { MarketingPage } from '../../pages/MarketingPage';
 import { useApp } from '../../context/AppContext';
 import { RequireCustomer } from '../auth/guards';
 import { RouteFallback } from './RouteFallback';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 /**
  * Route-level code splitting.
@@ -65,86 +66,111 @@ const AuthPage = lazyNamed(() => import('../../components/auth/AuthPage'), 'Auth
 
 export function AppRouter() {
   const { store } = useApp();
+  const location = useLocation();
 
   return (
-    // One boundary around the table rather than one per route: only ever a
-    // single route is resolving, and nesting them would not change what the
-    // user sees.
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        {/* PUBLIC MARKETING — only pages backed by something that exists.
-            The landing page is the root route; Shop, Pricing and Contact are
-            the whole of the public navigation. Anything else falls through to
-            the catch-all below. */}
-        <Route path="/" element={<MarketingPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/contact" element={<ContactPage />} />
+    /**
+     * An error boundary around the route table.
+     *
+     * Keyed on the pathname, so navigating away from a page that threw clears
+     * the error instead of leaving the user stuck on it until they reload.
+     * Inside the shell rather than around it, so the header, footer and bag
+     * survive — a failing product page should not cost the shopper their cart.
+     */
+    <ErrorBoundary scope="route" resetKey={location.pathname}>
+      {/* One Suspense boundary around the table rather than one per route:
+          only ever a single route is resolving, and nesting them would not
+          change what the user sees. */}
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          {/* PUBLIC MARKETING — only pages backed by something that exists.
+              The landing page is the root route; Shop, Pricing and Contact are
+              the whole of the public navigation. Anything else falls through to
+              the catch-all below. */}
+          <Route path="/" element={<MarketingPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/contact" element={<ContactPage />} />
 
-        {/* THE SHOP.
+          {/* THE SHOP.
 
-            `/products` is the storefront: a shopper browses, searches and fills
-            a bag here without an account, and only checkout asks who they are.
-            Every page below shares the shop's own header and footer. */}
-        <Route element={<MarketplaceLayout />}>
-          <Route path="/products" element={<MarketplaceHome />} />
-          {/* A static segment, so it is never confused with a store id — which
-              is why the detail route below needs two segments to match. */}
-          <Route path="/products/browse" element={<ProductsPage />} />
-          <Route path="/products/:storeId/:productSlug" element={<ProductDetailPage />} />
-          <Route path="/cart" element={<CartPage />} />
+              `/products` is the storefront: a shopper browses, searches and fills
+              a bag here without an account, and only checkout asks who they are.
+              Every page below shares the shop's own header and footer. */}
+          <Route element={<MarketplaceLayout />}>
+            <Route path="/products" element={<MarketplaceHome />} />
+            {/* A static segment, so it is never confused with a store id — which
+                is why the detail route below needs two segments to match. */}
+            <Route path="/products/browse" element={<ProductsPage />} />
+            <Route path="/products/:storeId/:productSlug" element={<ProductDetailPage />} />
+            <Route path="/cart" element={<CartPage />} />
 
-          {/* Checkout is the first thing that needs an identity. The guard
-              sends a guest to the customer sign-in and carries this location,
-              so they come back here instead of to a dashboard. */}
+            {/* Checkout is the first thing that needs an identity. The guard
+                sends a guest to the customer sign-in and carries this location,
+                so they come back here instead of to a dashboard. */}
+            <Route
+              path="/checkout"
+              element={
+                <RequireCustomer>
+                  <CheckoutPage />
+                </RequireCustomer>
+              }
+            />
+            {/* Deliberately public: this is where the payment gateway returns the
+                customer, and a lapsed session must not hide the outcome of a
+                charge behind a login form. It verifies server-side and shows
+                only what the server reports. */}
+            <Route path="/checkout/complete" element={<CheckoutCompletePage />} />
+          </Route>
+
+          {/* Order tracking is deliberately public: a guest checkout has no account,
+              and the order number plus its email is what proves entitlement. */}
+          <Route path="/track" element={<TrackOrderPage />} />
+
+          {/* LEGAL */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/cookies" element={<CookiePolicyPage />} />
+
+          {/* PUBLIC STOREFRONT — one merchant's own shop.
+
+              A storefront belongs to a store, so the slugged route is the real
+              one. The bare path only means anything to a signed-in merchant
+              previewing their own shop; for everyone else — including every
+              signed-in *customer*, whose `store` is always undefined — it
+              rendered "No storefront specified", so it sent shoppers to a dead
+              end. It now falls through to the marketplace instead. */}
           <Route
-            path="/checkout"
+            path="/storefront"
             element={
-              <RequireCustomer>
-                <CheckoutPage />
-              </RequireCustomer>
+              store?.id
+                ? <StorefrontView storeSlug={store.id} />
+                : <Navigate to="/products" replace />
             }
           />
-          {/* Deliberately public: this is where the payment gateway returns the
-              customer, and a lapsed session must not hide the outcome of a
-              charge behind a login form. It verifies server-side and shows
-              only what the server reports. */}
-          <Route path="/checkout/complete" element={<CheckoutCompletePage />} />
-        </Route>
+          <Route path="/storefront/:storeSlug" element={<StorefrontView />} />
 
-        {/* Order tracking is deliberately public: a guest checkout has no account,
-            and the order number plus its email is what proves entitlement. */}
-        <Route path="/track" element={<TrackOrderPage />} />
+          {/* PORTALS */}
+          <Route path="/account/*" element={<CustomerRoutes />} />
+          <Route path="/customer-portal" element={<Navigate to="/account/dashboard" replace />} />
 
-        {/* LEGAL */}
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsOfServicePage />} />
-        <Route path="/cookies" element={<CookiePolicyPage />} />
+          <Route path="/seller/*" element={<SellerRoutes />} />
+          <Route path="/dashboard/*" element={<Navigate to="/seller/dashboard" replace />} />
 
-        {/* PUBLIC STOREFRONT — one merchant's own shop */}
-        <Route path="/storefront" element={<StorefrontView storeSlug={store?.id} />} />
-        <Route path="/storefront/:storeSlug" element={<StorefrontView />} />
+          <Route path="/admin/*" element={<AdminRoutes />} />
 
-        {/* PORTALS */}
-        <Route path="/account/*" element={<CustomerRoutes />} />
-        <Route path="/customer-portal" element={<Navigate to="/account/dashboard" replace />} />
+          {/* ACCOUNT RECOVERY — reachable signed out; the token is the credential */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-        <Route path="/seller/*" element={<SellerRoutes />} />
-        <Route path="/dashboard/*" element={<Navigate to="/seller/dashboard" replace />} />
+          {/* LEGACY AUTH DIRECT PATH ALIASES */}
+          <Route path="/login" element={<AuthPage mode="login" portal="seller" />} />
+          <Route path="/signup" element={<AuthPage mode="signup" portal="seller" />} />
 
-        <Route path="/admin/*" element={<AdminRoutes />} />
-
-        {/* ACCOUNT RECOVERY — reachable signed out; the token is the credential */}
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-
-        {/* LEGACY AUTH DIRECT PATH ALIASES */}
-        <Route path="/login" element={<AuthPage mode="login" portal="seller" />} />
-        <Route path="/signup" element={<AuthPage mode="signup" portal="seller" />} />
-
-        {/* FALLBACK */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          {/* FALLBACK */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

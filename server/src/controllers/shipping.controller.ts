@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { z } from 'zod';
 import { ShippingRateType } from '@prisma/client';
+import { shippingOptionsFor, countryCode } from '../services/pricing/quote.service.js';
 
 const shippingMethodSchema = z.object({
   name: z.string().min(1, 'Method name is required'),
@@ -98,7 +99,7 @@ export async function deleteShippingZone(req: Request, res: Response, next: Next
 export async function calculateShippingRates(req: Request, res: Response, next: NextFunction) {
   try {
     const { storeSlug } = req.params;
-    const { country = 'US', subtotal = 0 } = req.body;
+    const { country = '', subtotal = 0 } = req.body;
 
     const store = await prisma.store.findFirst({
       where: {
@@ -110,54 +111,27 @@ export async function calculateShippingRates(req: Request, res: Response, next: 
       return res.status(404).json({ success: false, error: 'Store not found' });
     }
 
-    const zones = await prisma.shippingZone.findMany({
-      where: { storeId: store.id },
-      include: { methods: true },
-    });
-
-    // Find matching zone for country or default to first zone
-    let matchingZone = zones.find((z) => {
-      const countries = Array.isArray(z.countries) ? (z.countries as string[]) : [];
-      return countries.includes(country.toUpperCase()) || countries.includes('*');
-    });
-
-    if (!matchingZone && zones.length > 0) {
-      matchingZone = zones[0];
-    }
-
-    const methods = matchingZone ? matchingZone.methods : [];
-    const calculatedRates = methods.map((m) => {
-      let finalPrice = m.price;
-      if (m.freeThreshold && subtotal >= m.freeThreshold) {
-        finalPrice = 0;
-      }
-      return {
-        id: m.id,
-        name: m.name,
-        description: m.description,
-        price: finalPrice,
-        estimatedDays: m.estimatedDays,
-        isFree: finalPrice === 0,
-      };
-    });
-
-    // Fallback standard rate if no methods configured
-    if (calculatedRates.length === 0) {
-      calculatedRates.push({
-        id: 'std_default',
-        name: 'Standard Delivery',
-        description: 'Standard carrier ground shipping',
-        price: subtotal >= 100 ? 0 : 15.0,
-        estimatedDays: '3-5 business days',
-        isFree: subtotal >= 100,
-      });
-    }
+    /**
+     * Delegated to the pricing service, which is also what checkout uses.
+     *
+     * This had its own copy of the zone-matching and free-threshold logic, and
+     * its own hardcoded "$15, free over $100" fallback — so the rate quoted
+     * here and the rate charged at checkout were computed by different code
+     * from different constants and could disagree.
+     *
+     * Two bugs went with the duplication. It matched a zone on
+     * `country.toUpperCase()` against stored ISO codes, but checkout submits
+     * a display name ("Nigeria"), so a zone never matched what the form sent.
+     * And when no zone covered the destination it fell back to the *first*
+     * zone — quoting Lagos rates to a shopper in Berlin.
+     */
+    const rates = await shippingOptionsFor(store.id, Number(subtotal) || 0, country);
 
     return res.json({
       success: true,
       data: {
-        zoneName: matchingZone?.name || 'Standard Zone',
-        rates: calculatedRates,
+        country: countryCode(country) || null,
+        rates,
       },
     });
   } catch (error) {

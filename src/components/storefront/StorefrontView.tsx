@@ -16,7 +16,23 @@ import { initializePaymentApi } from '../../api/payments';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
 import { getAssetUrl } from '../../utils/assetPath';
+import { useCartQuote } from '../../marketplace/useCartValidation';
+import { formatPrice } from '../../marketplace/productHelpers';
+import { PAYMENT_REFERENCE_KEY, checkoutReturnUrl } from '../../marketplace/paymentReturn';
 import toast from 'react-hot-toast';
+
+/**
+ * The same list the marketplace checkout offers, so a shopper sees consistent
+ * options whichever door they came in by.
+ */
+const CHECKOUT_COUNTRIES = [
+  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Egypt',
+  'United States', 'Canada', 'United Kingdom', 'Ireland',
+  'Germany', 'France', 'Spain', 'Italy', 'Netherlands', 'Belgium',
+  'Sweden', 'Norway', 'Denmark', 'Poland', 'Portugal',
+  'United Arab Emirates', 'Saudi Arabia', 'India', 'Singapore',
+  'Australia', 'New Zealand', 'Japan', 'Brazil', 'Mexico',
+];
 
 interface StorefrontViewProps {
   /** Omit to read the slug from the `/storefront/:storeSlug` route parameter. */
@@ -47,19 +63,20 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
   // Checkout Form State
   const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
-  // TODO(checkout): no phone field on the form yet.
-  const customerPhone = '';
+  const [customerPhone, setCustomerPhone] = useState<string>('');
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
   const [address1, setAddress1] = useState<string>('');
-  // TODO(checkout): no apartment/suite field on the form yet.
-  const address2 = '';
+  const [address2, setAddress2] = useState<string>('');
   const [city, setCity] = useState<string>('');
   const [state, setState] = useState<string>('');
   const [zip, setZip] = useState<string>('');
-  // TODO(checkout): no country selector yet, so every order ships domestic.
-  const country = 'United States';
+  // Was hardcoded to 'United States', so every order on a platform that bills
+  // through Paystack and Flutterwave shipped to the wrong continent and never
+  // matched a merchant's shipping zone.
+  const [country, setCountry] = useState<string>(CHECKOUT_COUNTRIES[0]);
   const [discountCode, setDiscountCode] = useState<string>('');
+  const [shippingMethodId, setShippingMethodId] = useState<string>('');
 
   // Queries
   const infoQuery = useStorefrontInfoQuery(storeSlug);
@@ -112,8 +129,7 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
     setSelectedProduct(null);
   };
 
-  // TODO(checkout): no gateway picker yet.
-  const selectedProvider: 'PAYSTACK' | 'FLUTTERWAVE' = 'PAYSTACK';
+  const [selectedProvider, setSelectedProvider] = useState<'PAYSTACK' | 'FLUTTERWAVE'>('PAYSTACK');
   const [isInitializingPayment, setIsInitializingPayment] = useState<boolean>(false);
 
   // Handle Checkout submission
@@ -142,8 +158,10 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
           state,
           zip,
           country,
+          phone: customerPhone || undefined,
         },
         discountCode: discountCode || undefined,
+        shippingMethodId: effectiveShippingMethodId || undefined,
       });
 
       if (res.success && res.order) {
@@ -156,14 +174,25 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
           const initRes = await initializePaymentApi({
             orderId: res.order.id,
             provider: selectedProvider,
-            callbackUrl: window.location.href,
+            /**
+             * Return to `/checkout/complete`, which verifies the reference
+             * server-side before it says anything about the payment.
+             *
+             * This sent the gateway `window.location.href` — the storefront
+             * the customer had just submitted from, which has no verification
+             * logic at all. So the customer came back to a product grid, was
+             * told nothing about whether their payment had worked, and the
+             * order stayed unconfirmed unless the webhook happened to fire.
+             * The reference was parked in sessionStorage and never read.
+             */
+            callbackUrl: checkoutReturnUrl(),
           });
 
           if (initRes.success && initRes.data?.authorizationUrl) {
-            // Kept for the return leg, which verifies the reference server-side.
-            // TODO(checkout): no return-leg verification yet -- see Phase 4.
+            // Read back by CheckoutCompletePage for a gateway that returns
+            // without echoing the reference on the query string.
             try {
-              sessionStorage.setItem('nexus_payment_reference', initRes.data.reference);
+              sessionStorage.setItem(PAYMENT_REFERENCE_KEY, initRes.data.reference);
             } catch {
               // A blocked storage API must not stop the customer paying.
             }
@@ -191,9 +220,33 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
   const orderIsPaid = completedOrder?.paymentStatus === 'PAID'
     || completedOrder?.paymentStatus === 'SUCCESS';
 
-  const taxEstimate = Number((subtotal * 0.08).toFixed(2));
-  const shippingEstimate = subtotal >= 100 || subtotal === 0 ? 0 : 15.0;
-  const totalEstimate = Number((subtotal + taxEstimate + shippingEstimate).toFixed(2));
+  /**
+   * Totals come from the server, not from here.
+   *
+   * This computed `subtotal * 0.08` tax and a flat $15 delivery on the client
+   * — a third copy of figures the server also had in two places. So the page
+   * showed every store a US-shaped 8% tax it had never configured, ignored
+   * whatever delivery rates the merchant had set up, and could disagree with
+   * the amount actually charged.
+   *
+   * `POST /storefront/:slug/cart/validate` re-reads every price and the
+   * store's own tax and shipping configuration. Until it answers, the subtotal
+   * is shown on its own rather than a guess dressed up as a total.
+   */
+  const quoteQuery = useCartQuote(storeSlug, items, country, shippingMethodId);
+  const quote = quoteQuery.data;
+
+  const taxEstimate = quote?.taxEstimate ?? 0;
+  const shippingEstimate = quote?.shippingEstimate ?? 0;
+  const totalEstimate = quote?.totalEstimate ?? subtotal;
+  const taxLabel = quote?.taxLabel || 'Tax';
+  const showTaxLine = (quote?.taxRate ?? 0) > 0;
+  const shippingOptions = quote?.shippingOptions ?? [];
+  const quotePending = quoteQuery.isPending && items.length > 0;
+
+  // The server picks the cheapest option when the shopper has not chosen; echo
+  // that back so the radio group shows what will actually be charged.
+  const effectiveShippingMethodId = shippingMethodId || quote?.shippingMethodId || '';
 
   return (
     <div className="min-h-screen bg-[var(--surface-base)] text-primary flex flex-col font-sans">
@@ -578,19 +631,27 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     <span>Subtotal</span>
                     <span className="font-mono text-primary">${subtotal.toFixed(2)}</span>
                   </div>
+                  {showTaxLine && (
+                    <div className="flex justify-between text-secondary">
+                      <span>{taxLabel} ({quote?.taxRate}%)</span>
+                      <span className="font-mono text-primary">
+                        {formatPrice(taxEstimate, quote?.currency)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-secondary">
-                    <span>Estimated Tax (8%)</span>
-                    <span className="font-mono text-primary">${taxEstimate.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-secondary">
-                    <span>Shipping</span>
+                    <span>{quote?.shippingMethodName || 'Delivery'}</span>
                     <span className="font-mono text-primary">
-                      {shippingEstimate === 0 ? <span className="text-[var(--brand-green-ink)] font-bold">FREE</span> : `$${shippingEstimate.toFixed(2)}`}
+                      {shippingEstimate === 0
+                        ? <span className="text-[var(--brand-green-ink)] font-bold">FREE</span>
+                        : formatPrice(shippingEstimate, quote?.currency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-extrabold text-primary pt-2 border-t border-[var(--ink)]/10">
-                    <span>Total Estimate</span>
-                    <span className="font-mono text-[var(--brand-green-ink)]">${totalEstimate.toFixed(2)}</span>
+                    <span>Total</span>
+                    <span className="font-mono text-[var(--brand-green-ink)]">
+                      {quotePending ? '…' : formatPrice(totalEstimate, quote?.currency)}
+                    </span>
                   </div>
                 </div>
 
@@ -651,6 +712,23 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     />
                   </div>
                 </div>
+                {/* The form collected no phone number at all, while the
+                    checkout API accepts one and a courier needs it. */}
+                <div>
+                  <label htmlFor="sf-phone" className="block text-secondary mb-1">
+                    Phone number <span className="text-muted">(for delivery updates)</span>
+                  </label>
+                  <input
+                    id="sf-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="+234 801 234 5678"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-lg bg-[var(--surface-3)] border border-[var(--ink)]/10 text-primary focus:outline-none focus:border-[#FFBD2E]"
+                  />
+                </div>
               </div>
 
               {/* Shipping Address */}
@@ -693,6 +771,23 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                   />
                 </div>
 
+                {/* Was absent from the form while the API accepted it, so a
+                    flat or suite number had nowhere to go. */}
+                <div>
+                  <label htmlFor="sf-address2" className="block text-secondary mb-1">
+                    Apartment, suite, unit <span className="text-muted">(optional)</span>
+                  </label>
+                  <input
+                    id="sf-address2"
+                    type="text"
+                    autoComplete="address-line2"
+                    placeholder="Flat 4B"
+                    value={address2}
+                    onChange={(e) => setAddress2(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-lg bg-[var(--surface-3)] border border-[var(--ink)]/10 text-primary focus:outline-none focus:border-[#FFBD2E]"
+                  />
+                </div>
+
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-secondary mb-1">City *</label>
@@ -728,7 +823,100 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
                     />
                   </div>
                 </div>
+
+                {/* The country was hardcoded to 'United States'. It decides
+                    which of the merchant's shipping zones applies, so without
+                    it no zone could ever match and every order shipped to the
+                    wrong continent on a platform billing in naira. */}
+                <div>
+                  <label htmlFor="sf-country" className="block text-secondary mb-1">Country *</label>
+                  <select
+                    id="sf-country"
+                    required
+                    value={country}
+                    onChange={(e) => {
+                      setCountry(e.target.value);
+                      // The old zone's method no longer applies; let the server
+                      // pick the cheapest for the new destination.
+                      setShippingMethodId('');
+                    }}
+                    className="w-full px-3.5 py-2 rounded-lg bg-[var(--surface-3)] border border-[var(--ink)]/10 text-primary focus:outline-none focus:border-[#FFBD2E]"
+                  >
+                    {CHECKOUT_COUNTRIES.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              {/* Delivery — the merchant's own configured rates, which this
+                  page previously ignored in favour of a flat $15. */}
+              {shippingOptions.length > 1 && (
+                <fieldset className="space-y-3 p-4 rounded-2xl bg-[var(--ink)]/5 border border-[var(--ink)]/10">
+                  <legend className="font-bold text-primary text-xs uppercase tracking-wider text-[var(--brand-yellow-ink)]">
+                    Delivery
+                  </legend>
+                  {shippingOptions.map(option => (
+                    <label
+                      key={option.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-lg p-2 transition-colors hover:bg-[var(--ink)]/5"
+                    >
+                      <input
+                        type="radio"
+                        name="sf-shipping-method"
+                        value={option.id}
+                        checked={effectiveShippingMethodId === option.id}
+                        onChange={() => setShippingMethodId(option.id)}
+                        className="mt-0.5 accent-[#FFBD2E]"
+                      />
+                      <span className="flex-1">
+                        <span className="flex justify-between gap-3">
+                          <span className="font-semibold text-primary">{option.name}</span>
+                          <span className="font-mono text-primary">
+                            {option.isFree ? 'FREE' : formatPrice(option.price, quote?.currency)}
+                          </span>
+                        </span>
+                        {(option.estimatedDays || option.description) && (
+                          <span className="block text-xs text-muted">
+                            {option.estimatedDays || option.description}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+
+              {/* Gateway choice. Was pinned to Paystack, so a shopper whose
+                  card only works with Flutterwave simply could not pay. */}
+              <fieldset className="space-y-2 p-4 rounded-2xl bg-[var(--ink)]/5 border border-[var(--ink)]/10">
+                <legend className="font-bold text-primary text-xs uppercase tracking-wider text-[var(--brand-yellow-ink)]">
+                  Pay with
+                </legend>
+                <div className="flex gap-2">
+                  {(['PAYSTACK', 'FLUTTERWAVE'] as const).map(gateway => (
+                    <label
+                      key={gateway}
+                      className={cn(
+                        'flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-bold transition-colors',
+                        selectedProvider === gateway
+                          ? 'border-[#FFBD2E] bg-[#FFBD2E]/10 text-primary'
+                          : 'border-[var(--ink)]/10 text-secondary hover:bg-[var(--ink)]/5'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="sf-gateway"
+                        value={gateway}
+                        checked={selectedProvider === gateway}
+                        onChange={() => setSelectedProvider(gateway)}
+                        className="sr-only"
+                      />
+                      {gateway === 'PAYSTACK' ? 'Paystack' : 'Flutterwave'}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
               {/* Promo Code & Discount Application */}
               <div className="p-4 rounded-2xl bg-[var(--ink)]/5 border border-[var(--ink)]/10 space-y-2">
@@ -768,30 +956,53 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
               <div className="p-4 rounded-2xl bg-[var(--ink)]/5 border border-[var(--ink)]/10 space-y-2">
                 <div className="flex justify-between text-body">
                   <span>Subtotal ({itemCount} items)</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatPrice(subtotal, quote?.currency)}</span>
                 </div>
+                {/* Only when the store actually levies tax. Every store used
+                    to show "Tax (8%)" whether it charged any or not. */}
+                {showTaxLine && (
+                  <div className="flex justify-between text-body">
+                    <span>
+                      {taxLabel} ({quote?.taxRate}%)
+                      {quote?.taxInclusive ? ' — included' : ''}
+                    </span>
+                    <span>{formatPrice(taxEstimate, quote?.currency)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-body">
-                  <span>Tax (8%)</span>
-                  <span>${taxEstimate.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-body">
-                  <span>Shipping</span>
-                  <span>{shippingEstimate === 0 ? 'FREE' : `$${shippingEstimate.toFixed(2)}`}</span>
+                  <span>{quote?.shippingMethodName || 'Delivery'}</span>
+                  <span>
+                    {shippingEstimate === 0 ? 'FREE' : formatPrice(shippingEstimate, quote?.currency)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-base font-extrabold text-[var(--brand-green-ink)] pt-2 border-t border-[var(--ink)]/10">
                   <span>Total Amount</span>
-                  <span>${totalEstimate.toFixed(2)}</span>
+                  <span>
+                    {quotePending ? 'Calculating…' : formatPrice(totalEstimate, quote?.currency)}
+                  </span>
                 </div>
+                {quoteQuery.isError && (
+                  <p className="text-xs text-[var(--brand-red-ink)]">
+                    We could not confirm the total just now. You can still place the order — the
+                    amount charged is always the one the server calculates.
+                  </p>
+                )}
               </div>
 
               <Button
                 type="submit"
                 variant="primary"
                 size="lg"
+                // Not submittable while the total is unknown: the button used to
+                // advertise a client-computed figure that could differ from the
+                // amount actually charged.
+                disabled={quotePending}
                 loading={checkoutMut.isPending || isInitializingPayment}
                 className="w-full py-3.5 text-sm font-extrabold rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-slate-950"
               >
-                Place Order (${totalEstimate.toFixed(2)})
+                {quotePending
+                  ? 'Calculating total…'
+                  : `Place Order (${formatPrice(totalEstimate, quote?.currency)})`}
               </Button>
             </form>
           </div>

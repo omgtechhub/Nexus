@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { logAuditEvent } from '../../utils/auditLogger.js';
 import { getPaymentProvider } from '../payments/payment.factory.js';
 import { logger } from '../../utils/logger.js';
+import { resolveDefaultPlan } from './defaultPlan.js';
 
 /**
  * Platform subscription billing.
@@ -33,14 +34,13 @@ import { logger } from '../../utils/logger.js';
  */
 
 /**
- * What a brand-new store gets before it has paid anything.
+ * What a brand-new store gets before it has paid anything: the platform's
+ * entry tier, as a time-boxed trial rather than a standing entitlement.
  *
- * The cheapest active plan, as a time-boxed trial rather than a standing
- * entitlement — previously this was a permanent ACTIVE subscription to the
- * mid-tier plan. Change `NEW_STORE_PLAN_CODE` to a dedicated free tier if you
- * add one; `null` falls back to whichever active plan is cheapest.
+ * `resolveDefaultPlan` is shared with `entitlement.service.ts` so the two
+ * cannot disagree about what an unpaid store is allowed to do — see the note
+ * there on why this is resolved by an explicit plan code rather than by price.
  */
-const NEW_STORE_PLAN_CODE: string | null = null;
 
 export class PaymentRequiredError extends Error {
   readonly statusCode = 402;
@@ -80,12 +80,7 @@ export class SaaSBillingService {
 
     // A new store needs working entitlements before it can be asked to pay for
     // anything, but a trial is a dated grant, not a free paid plan.
-    const trialPlan = NEW_STORE_PLAN_CODE
-      ? await prisma.subscriptionPlan.findUnique({ where: { code: NEW_STORE_PLAN_CODE } })
-      : await prisma.subscriptionPlan.findFirst({
-          where: { isActive: true },
-          orderBy: { monthlyPrice: 'asc' },
-        });
+    const trialPlan = await resolveDefaultPlan();
 
     if (!trialPlan) return null;
 

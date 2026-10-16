@@ -62,6 +62,18 @@ describe('Nexus IQ: insights, chat and metering', () => {
         monthlyPrice: 0,
         annualPrice: 0,
         aiTokensPerMonth: 1_000_000,
+        /**
+         * Not sellable. This plan exists only so the usage summary has a plan
+         * name to report; it must never be offered to a real store.
+         *
+         * It was left active, and because it is priced at 0 it became the
+         * cheapest active plan in the table — which an earlier version of the
+         * default-tier logic then handed to every store created after this
+         * file ran, silently changing their entitlements and what they were
+         * charged to switch tier. `resolveDefaultPlan` no longer picks by
+         * price, and this flag closes the hole from the other side.
+         */
+        isActive: false,
       },
     });
     await prisma.subscription.create({
