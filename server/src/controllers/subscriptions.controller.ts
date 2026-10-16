@@ -1,7 +1,36 @@
 import { Request, Response, NextFunction } from 'express';
-import { saasBillingService } from '../services/billing/saasBilling.service.js';
+import { saasBillingService, PaymentRequiredError } from '../services/billing/saasBilling.service.js';
+import { PaymentGatewayError, PaymentNotConfiguredError } from '../services/payments/errors.js';
 import { entitlementService } from '../services/billing/entitlement.service.js';
 import { prisma } from '../prisma.js';
+
+/**
+ * Turn a billing refusal into the response the frontend can act on.
+ *
+ * A 402 carries the plan code and interval so the Billing tab can send the
+ * merchant straight into checkout instead of showing a dead error. Returns
+ * true when it handled the error.
+ */
+function handleBillingError(err: unknown, res: Response): boolean {
+  if (err instanceof PaymentRequiredError) {
+    res.status(err.statusCode).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      data: { planCode: err.planCode, interval: err.interval, requiresPayment: true },
+    });
+    return true;
+  }
+  if (err instanceof PaymentNotConfiguredError) {
+    res.status(503).json({ success: false, error: err.message, code: err.code });
+    return true;
+  }
+  if (err instanceof PaymentGatewayError) {
+    res.status(502).json({ success: false, error: err.message, code: err.code });
+    return true;
+  }
+  return false;
+}
 
 export async function getCurrentSubscription(req: Request, res: Response, next: NextFunction) {
   try {
@@ -43,8 +72,11 @@ export async function subscribeToPlan(req: Request, res: Response, next: NextFun
       provider || 'PAYSTACK'
     );
 
+    // 201 with an authorization URL and `requiresPayment: true`. The plan is
+    // NOT active yet — the caller has to send the merchant to the gateway.
     res.status(201).json({ success: true, data: result });
   } catch (err) {
+    if (handleBillingError(err, res)) return;
     next(err);
   }
 }
@@ -62,6 +94,8 @@ export async function changePlan(req: Request, res: Response, next: NextFunction
     const updatedSub = await saasBillingService.changePlan(storeId, planCode);
     res.json({ success: true, data: updatedSub });
   } catch (err) {
+    // An upgrade throws PaymentRequiredError; it is a 402, not a 500.
+    if (handleBillingError(err, res)) return;
     next(err);
   }
 }
@@ -79,6 +113,7 @@ export async function changeInterval(req: Request, res: Response, next: NextFunc
     const updatedSub = await saasBillingService.changeInterval(storeId, interval);
     res.json({ success: true, data: updatedSub });
   } catch (err) {
+    if (handleBillingError(err, res)) return;
     next(err);
   }
 }
@@ -99,6 +134,7 @@ export async function resumeSubscription(req: Request, res: Response, next: Next
     const updatedSub = await saasBillingService.resumeSubscription(storeId);
     res.json({ success: true, message: 'Subscription resumed successfully.', data: updatedSub });
   } catch (err) {
+    if (handleBillingError(err, res)) return;
     next(err);
   }
 }

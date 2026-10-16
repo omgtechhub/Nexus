@@ -14,6 +14,23 @@ import { prisma } from './prisma.js';
 
 export const app = express();
 
+/**
+ * Trust exactly as many proxy hops as the deployment actually has.
+ *
+ * Left unset, `req.ip` was the address of whatever spoke to the socket — in a
+ * container that is nginx, for every single request. The rate limiters key on
+ * `req.ip`, so the whole internet shared one bucket: 30 login attempts per 15
+ * minutes across all users, and a brute-force attempt that locked out
+ * legitimate traffic instead of itself.
+ *
+ * A hop count rather than `true`: trusting the entire X-Forwarded-For chain
+ * lets a client prepend a fabricated address and choose its own rate-limit
+ * identity. See the note on TRUST_PROXY in config/index.ts.
+ */
+if (config.trustProxy > 0) {
+  app.set('trust proxy', config.trustProxy);
+}
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: {
@@ -80,8 +97,33 @@ app.use(express.json({
 // "simple" content type would let a cross-site <form> post a state change
 // without the browser ever sending a preflight.
 
-// Serve uploaded image files statically
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+/**
+ * Uploaded images, served from the API's own origin.
+ *
+ * `storage.service.ts` now derives the stored extension from the file's actual
+ * magic bytes, so nothing reaching this directory should be markup. These
+ * options are the second line: they neutralise anything already written to
+ * disk by the version that trusted `file.originalname`.
+ *
+ *  - `nosniff` stops a browser rendering a `.jpg` as HTML on a content guess.
+ *  - A restrictive CSP on this path alone means even a served HTML file has no
+ *    script, no styles and no network of its own. The app-wide policy above
+ *    allows `'unsafe-inline'` for the SPA, which an uploaded document would
+ *    otherwise inherit.
+ *  - `index: false` keeps the directory from being listed or auto-served.
+ */
+app.use(
+  '/uploads',
+  express.static(path.join(process.cwd(), 'uploads'), {
+    index: false,
+    dotfiles: 'deny',
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox");
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  })
+);
 
 if (!config.isProd && process.env.NODE_ENV !== 'test') {
   app.use(pinoHttp({ logger }));

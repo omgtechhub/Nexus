@@ -91,24 +91,77 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     expect(subRes.status).toBe(201);
     expect(subRes.body.success).toBe(true);
     expect(subRes.body.data.subscription).toBeDefined();
+    /**
+     * Subscribing starts a checkout; it does not grant the plan.
+     *
+     * This test used to assert that an upgrade applied on a 200, which is
+     * precisely the hole: `changePlan` wrote the new plan with no charge, and
+     * `subscribeToPlan` wrote an ACTIVE subscription plus a PAID invoice
+     * straight after minting the authorization URL. Both are now gated on a
+     * confirmed payment, so the assertions below encode "costs more => pay
+     * first" rather than the old "ask and receive".
+     */
+    expect(subRes.body.data.requiresPayment).toBe(true);
+    expect(subRes.body.data.authorizationUrl).toBeTruthy();
 
-    // Change interval to ANNUAL
+    // Monthly -> annual multiplies what is owed, so it needs payment.
     const intervalRes = await request
       .post('/api/subscriptions/change-interval')
       .set('Cookie', [storeACookie])
       .send({ interval: 'ANNUAL' });
 
-    expect(intervalRes.status).toBe(200);
-    expect(intervalRes.body.data.billingInterval).toBe('ANNUAL');
+    expect(intervalRes.status).toBe(402);
+    expect(intervalRes.body.code).toBe('SUBSCRIPTION_PAYMENT_REQUIRED');
+    expect(intervalRes.body.data.interval).toBe('ANNUAL');
 
-    // Change plan to Growth (Upgrade)
+    // Growth costs more than Starter, so this is refused with the plan code
+    // the caller should take to checkout.
     const upgradeRes = await request
       .post('/api/subscriptions/change-plan')
       .set('Cookie', [storeACookie])
       .send({ planCode: 'growth' });
 
-    expect(upgradeRes.status).toBe(200);
-    expect(upgradeRes.body.data.plan.code).toBe('growth');
+    expect(upgradeRes.status).toBe(402);
+    expect(upgradeRes.body.data.planCode).toBe('growth');
+
+    const afterRefusal = await prisma.subscription.findUnique({
+      where: { storeId: storeAId },
+      include: { plan: true },
+    });
+    expect(afterRefusal!.plan.code).not.toBe('growth');
+
+    // A confirmed payment is what actually grants it. The sandbox provider
+    // stands in for the gateway here; `settlePaidInvoice` is the only path
+    // that moves a subscription onto a plan.
+    const { saasBillingService } = await import('../src/services/billing/saasBilling.service.js');
+    const growthCheckout = await saasBillingService.subscribeToPlan(
+      storeAId,
+      storeAEmail,
+      'Phase 8 Merchant Alpha',
+      'growth',
+      'MONTHLY'
+    );
+    const growthPlan = await prisma.subscriptionPlan.findUnique({ where: { code: 'growth' } });
+    const settled = await saasBillingService.settlePaidInvoice(growthCheckout.reference, {
+      verifiedAmount: growthPlan!.monthlyPrice,
+    });
+    expect(settled.settled).toBe(true);
+
+    const afterPayment = await prisma.subscription.findUnique({
+      where: { storeId: storeAId },
+      include: { plan: true },
+    });
+    expect(afterPayment!.plan.code).toBe('growth');
+    expect(afterPayment!.status).toBe('ACTIVE');
+
+    // A downgrade lowers what is owed, so it still applies immediately.
+    const downgradeRes = await request
+      .post('/api/subscriptions/change-plan')
+      .set('Cookie', [storeACookie])
+      .send({ planCode: 'starter' });
+
+    expect(downgradeRes.status).toBe(200);
+    expect(downgradeRes.body.data.plan.code).toBe('starter');
 
     // Cancel subscription at period end
     const cancelRes = await request

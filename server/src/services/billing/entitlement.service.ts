@@ -29,20 +29,35 @@ export class EntitlementService {
 
     let plan = sub?.plan;
 
-    // Fallback if no subscription record exists: get default growth or starter plan
+    /**
+     * No subscription row yet: fall back to the **cheapest** active plan.
+     *
+     * This used to resolve `growth` — the $79/mo mid-tier — and, failing that,
+     * a hardcoded object granting 500 products, 5 team members, custom domains
+     * and advanced analytics. So a store that had simply never loaded its
+     * billing page was entitled to the mid-tier for nothing, and the
+     * hardcoded figures silently outranked whatever the plans table actually
+     * said.
+     *
+     * The cheapest plan is the same one `saasBillingService` starts a trial
+     * on, so entitlements and the subscription can no longer disagree about
+     * what an unpaid store is allowed to do.
+     */
     if (!plan) {
-      const defaultPlan = await prisma.subscriptionPlan.findUnique({ where: { code: 'growth' } })
-        || await prisma.subscriptionPlan.findFirst({ where: { isActive: true } });
-      
-      plan = defaultPlan || {
-        id: 'fallback',
-        code: 'growth',
-        name: 'Growth Plan',
-        maxProducts: 500,
-        maxTeamMembers: 5,
-        customDomainAllowed: true,
-        advancedAnalyticsAllowed: true,
-      } as any;
+      plan = await prisma.subscriptionPlan.findFirst({
+        where: { isActive: true },
+        orderBy: { monthlyPrice: 'asc' },
+      }) ?? undefined;
+    }
+
+    // No plans configured at all. Granting a generous default here is how the
+    // limits became unenforceable; refusing is the safe direction.
+    if (!plan) {
+      const err: any = new Error(
+        'No active subscription plan is configured on this platform, so entitlements cannot be resolved.'
+      );
+      err.statusCode = 503;
+      throw err;
     }
 
     const status = sub?.status || SubscriptionStatus.ACTIVE;

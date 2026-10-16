@@ -150,6 +150,34 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
       });
     }
 
+    /**
+     * A settled failure is just as final as a settled success.
+     *
+     * This endpoint is unauthenticated — it has to be, because it is where the
+     * gateway returns a customer whose session may have lapsed — and the
+     * failure branch below increments every order line's stock back. Only
+     * SUCCESS was treated as terminal, so a FAILED payment fell through on
+     * every subsequent call, asked the gateway again, got the same "failed",
+     * and released the same inventory a second time. Repeating the request
+     * inflated stock without bound: an order for 5 units could be turned into
+     * hundreds of phantom units by anyone holding the reference.
+     *
+     * The release happens exactly once, on the transition into FAILED. After
+     * that this reports the stored outcome and touches nothing.
+     */
+    if (['FAILED', 'failed', 'CANCELLED', 'cancelled'].includes(payment.status as string)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment did not complete',
+        data: {
+          paymentStatus: payment.status,
+          orderStatus: payment.order.status,
+          orderNumber: payment.order.orderNumber,
+          simulated: (payment.metadata as any)?.simulated === true,
+        },
+      });
+    }
+
     let providerInstance;
     let verifyResult;
     try {
@@ -176,9 +204,13 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
 
     if (verifyResult.success && (verifyResult.status === 'SUCCESS' || (verifyResult.status as string) === 'PAID')) {
       // Transition Payment & Order to PAID/SUCCESS atomically
+      let alreadySettled = false;
       await prisma.$transaction(async (tx) => {
-        await tx.payment.update({
-          where: { id: payment.id },
+        // Claimed the same way as the failure branch: two concurrent returns
+        // from the gateway would otherwise each write a CHARGE row into the
+        // ledger and each enqueue a receipt, double-counting the revenue.
+        const claimed = await tx.payment.updateMany({
+          where: { id: payment.id, status: PaymentStatus.PENDING },
           data: {
             status: PaymentStatus.SUCCESS,
             metadata: {
@@ -188,6 +220,11 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
             },
           },
         });
+
+        if (claimed.count !== 1) {
+          alreadySettled = true;
+          return;
+        }
 
         await tx.order.update({
           where: { id: payment.orderId },
@@ -220,18 +257,21 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
         });
       });
 
-      try {
-        const { jobQueue } = await import('../jobs/jobQueue.js');
-        jobQueue.enqueue('SEND_EMAIL_PAYMENT_RECEIPT', {
-          orderNumber: payment.order.orderNumber,
-          customerEmail: payment.order.customerEmail,
-          customerName: payment.order.customerName,
-          total: payment.amount,
-          currency: payment.currency,
-          paymentReference: reference,
-        });
-      } catch (e) {
-        // non-blocking
+      // Only the request that actually settled the payment sends the receipt.
+      if (!alreadySettled) {
+        try {
+          const { jobQueue } = await import('../jobs/jobQueue.js');
+          jobQueue.enqueue('SEND_EMAIL_PAYMENT_RECEIPT', {
+            orderNumber: payment.order.orderNumber,
+            customerEmail: payment.order.customerEmail,
+            customerName: payment.order.customerName,
+            total: payment.amount,
+            currency: payment.currency,
+            paymentReference: reference,
+          });
+        } catch (e) {
+          // non-blocking
+        }
       }
 
       return res.json({
@@ -270,10 +310,21 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
     } else {
       // Payment verification failed or cancelled
       await prisma.$transaction(async (tx) => {
-        await tx.payment.update({
-          where: { id: payment.id },
+        /**
+         * Claim the transition before releasing anything.
+         *
+         * The guard above stops a *sequential* repeat from releasing stock
+         * twice, but two concurrent requests can both read PENDING before
+         * either writes. `updateMany` with the status in the predicate makes
+         * the second one match zero rows, so only the request that actually
+         * moved the payment into FAILED goes on to return the inventory.
+         */
+        const claimed = await tx.payment.updateMany({
+          where: { id: payment.id, status: PaymentStatus.PENDING },
           data: { status: PaymentStatus.FAILED },
         });
+
+        if (claimed.count !== 1) return;
 
         await tx.order.update({
           where: { id: payment.orderId },

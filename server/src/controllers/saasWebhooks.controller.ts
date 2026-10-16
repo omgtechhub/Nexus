@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { getPaymentProvider } from '../services/payments/payment.factory.js';
+import { saasBillingService } from '../services/billing/saasBilling.service.js';
 
 export async function handlePaystackSaaSWebhook(req: Request, res: Response, next: NextFunction) {
   try {
@@ -39,25 +40,31 @@ export async function handlePaystackSaaSWebhook(req: Request, res: Response, nex
       update: { eventType: event || 'subscription.create' },
     });
 
-    if ((event === 'charge.success' || event === 'subscription.create') && data.reference) {
-      const transaction = await prisma.billingTransaction.findUnique({
-        where: { providerReference: data.reference },
-        include: { subscription: true },
+    if (event === 'charge.success' && data.reference) {
+      /**
+       * `settlePaidInvoice` is the only thing that grants a plan: it checks the
+       * amount the gateway actually took against the invoice, claims the
+       * PENDING transaction so a redelivery cannot apply twice, and moves the
+       * subscription onto the paid invoice's plan.
+       *
+       * This used to set `status: 'ACTIVE'` and nothing else — leaving the
+       * invoice OPEN and the plan unchanged — which did not matter, because
+       * `subscribeToPlan` had already written the plan and a PAID invoice
+       * before the merchant ever reached the gateway.
+       */
+      await saasBillingService.settlePaidInvoice(data.reference, {
+        // Paystack reports in the minor unit.
+        verifiedAmount: typeof data.amount === 'number' ? data.amount / 100 : undefined,
+        rawResponse: data,
       });
-
-      if (transaction && transaction.subscription) {
-        await prisma.$transaction([
-          prisma.subscription.update({
-            where: { id: transaction.subscriptionId! },
-            data: { status: 'ACTIVE' },
-          }),
-          prisma.saasWebhookEvent.update({
-            where: { eventId },
-            data: { processed: true, processedAt: new Date() },
-          }),
-        ]);
-      }
     }
+
+    // Marked processed whatever the event was: the registry records delivery,
+    // and leaving non-charge events at `processed: false` made it useless.
+    await prisma.saasWebhookEvent.update({
+      where: { eventId },
+      data: { processed: true, processedAt: new Date() },
+    });
 
     res.status(200).json({ status: true, message: 'SaaS webhook processed' });
   } catch (err) {
@@ -101,25 +108,23 @@ export async function handleFlutterwaveSaaSWebhook(req: Request, res: Response, 
       update: { eventType: payload.event || 'charge.completed' },
     });
 
-    if (reference) {
-      const transaction = await prisma.billingTransaction.findUnique({
-        where: { providerReference: reference },
-        include: { subscription: true },
-      });
+    // The status check is the point. This branch ran on *any* delivered
+    // reference, so a `charge.failed` or a pending notification activated the
+    // subscription exactly as a successful charge would.
+    const succeeded = data.status === 'successful' || payload.event === 'charge.completed';
 
-      if (transaction && transaction.subscription) {
-        await prisma.$transaction([
-          prisma.subscription.update({
-            where: { id: transaction.subscriptionId! },
-            data: { status: 'ACTIVE' },
-          }),
-          prisma.saasWebhookEvent.update({
-            where: { eventId },
-            data: { processed: true, processedAt: new Date() },
-          }),
-        ]);
-      }
+    if (reference && succeeded) {
+      await saasBillingService.settlePaidInvoice(reference, {
+        // Flutterwave reports in the major unit.
+        verifiedAmount: typeof data.amount === 'number' ? data.amount : undefined,
+        rawResponse: data,
+      });
     }
+
+    await prisma.saasWebhookEvent.update({
+      where: { eventId },
+      data: { processed: true, processedAt: new Date() },
+    });
 
     res.status(200).json({ status: 'success', message: 'SaaS webhook processed' });
   } catch (err) {

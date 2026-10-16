@@ -63,12 +63,27 @@ export async function forgotPassword(req: Request, res: Response, next: NextFunc
 
     const token = await issuePasswordResetToken(user.id);
 
-    await emailService.sendPasswordReset({
+    const delivered = await emailService.sendPasswordReset({
       to: user.email,
       name: user.name,
       resetUrl: frontendUrl(`/reset-password?token=${token}`),
       expiresInMinutes: PASSWORD_RESET_TTL_MINUTES,
     });
+
+    /**
+     * The response stays generic either way — the enumeration oracle above is
+     * the reason — but a delivery failure must not pass in silence. This is
+     * the request where a broken transport is least survivable and hardest to
+     * notice: the caller is told a link is on its way whatever happens, so
+     * without this line a dead SMTP host looks exactly like a working one.
+     */
+    if (!delivered) {
+      logger.error({
+        msg: 'Password reset email was NOT delivered; the user cannot recover their account',
+        userId: user.id,
+        transport: emailService.providerName,
+      });
+    }
 
     res.json(genericResponse);
   } catch (err) {

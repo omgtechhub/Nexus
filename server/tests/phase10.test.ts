@@ -137,7 +137,28 @@ describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verificatio
       .send({ planCode: 'growth', interval: 'MONTHLY' });
 
     expect(subRes.status).toBe(201);
-    expect(subRes.body.data.subscription.plan.code).toBe('growth');
+    /**
+     * Subscribing opens a checkout; the plan is granted by the payment.
+     *
+     * This asserted `subscription.plan.code === 'growth'` immediately after
+     * subscribing, which passed only because the old implementation wrote the
+     * plan and a PAID invoice before the merchant had reached the gateway.
+     */
+    expect(subRes.body.data.requiresPayment).toBe(true);
+    expect(subRes.body.data.authorizationUrl).toBeTruthy();
+    expect(subRes.body.data.invoice.status).toBe('OPEN');
+
+    const { saasBillingService } = await import('../src/services/billing/saasBilling.service.js');
+    const growthPlan = await prisma.subscriptionPlan.findUnique({ where: { code: 'growth' } });
+    const settled = await saasBillingService.settlePaidInvoice(subRes.body.data.reference, {
+      verifiedAmount: growthPlan!.monthlyPrice,
+    });
+    expect(settled.settled).toBe(true);
+
+    const confirmedRes = await request
+      .get('/api/subscriptions/current')
+      .set('Cookie', [merchantCookie]);
+    expect(confirmedRes.body.data.subscription.plan.code).toBe('growth');
 
     const invRes = await request
       .get('/api/subscriptions/invoices')
@@ -145,6 +166,9 @@ describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verificatio
 
     expect(invRes.status).toBe(200);
     expect(invRes.body.data.length).toBeGreaterThanOrEqual(1);
+    // The invoice is PAID now because a payment settled it, not because it was
+    // created that way.
+    expect(invRes.body.data.some((i: any) => i.status === 'PAID')).toBe(true);
     expect(invRes.body.data[0].invoiceNumber).toMatch(/^NX-INV-/);
   });
 });
