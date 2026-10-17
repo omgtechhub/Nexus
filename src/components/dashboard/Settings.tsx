@@ -6,6 +6,8 @@ import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
+import { Modal } from '../ui/Modal';
+import { formatPrice } from '../../marketplace/productHelpers';
 import { cn } from '../../utils/cn';
 import { useAuditLogsQuery } from '../../hooks/useAuditLogs';
 import {
@@ -36,6 +38,8 @@ const settingsTabs = [
 export function Settings() {
   const { user, updateUser } = useApp();
   const [activeTab, setActiveTab] = useState('profile');
+  // Replaces a native confirm() for the one destructive action on this page.
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -177,7 +181,7 @@ export function Settings() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-primary">{user?.name}</p>
-                  <p className="text-xs text-muted mt-0.5">{user?.role || 'Owner'} · {entitlements?.planName || 'Pro Merchant'}</p>
+                  <p className="text-xs text-muted mt-0.5">{user?.role || 'Owner'}{entitlements?.planName ? ` · ${entitlements.planName}` : ''}</p>
                 </div>
               </div>
 
@@ -242,8 +246,24 @@ export function Settings() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-lg font-extrabold text-primary">{entitlements?.planName || sub?.plan?.name || 'Growth Plan'}</h4>
-                      <Badge variant="success" size="sm" dot>{sub?.status || 'ACTIVE'}</Badge>
+                      {/* No invented fallbacks. These read
+                          `|| 'Growth Plan'` and `|| 'ACTIVE'`, so a store
+                          whose subscription had not loaded — or had lapsed —
+                          was shown a plan it might not be on and a status it
+                          might not have. An em dash is honest about not
+                          knowing yet. */}
+                      <h4 className="text-lg font-extrabold text-primary">
+                        {entitlements?.planName || sub?.plan?.name || '—'}
+                      </h4>
+                      {sub?.status && (
+                        <Badge
+                          variant={sub.status === 'ACTIVE' || sub.status === 'TRIALING' ? 'success' : 'warning'}
+                          size="sm"
+                          dot
+                        >
+                          {sub.status}
+                        </Badge>
+                      )}
                       {sub?.cancelAtPeriodEnd && <Badge variant="warning" size="sm">Cancels at Period End</Badge>}
                     </div>
                     <p className="text-xs text-muted mt-1">
@@ -252,10 +272,17 @@ export function Settings() {
                   </div>
 
                   <div className="text-right">
+                    {/* `|| 79` invented a price for a plan whose real one
+                        had not arrived, and the `$` was hardcoded on a
+                        platform that bills in the store's own currency. */}
                     <span className="text-2xl font-black text-[var(--brand-green-ink)]">
-                      ${sub?.plan?.monthlyPrice || 79}
+                      {typeof sub?.plan?.monthlyPrice === 'number'
+                        ? formatPrice(sub.plan.monthlyPrice, sub.plan.currency)
+                        : '—'}
                     </span>
-                    <span className="text-xs text-muted">/month</span>
+                    <span className="text-xs text-muted">
+                      /{sub?.billingInterval === 'ANNUAL' ? 'year' : 'month'}
+                    </span>
                   </div>
                 </div>
 
@@ -308,12 +335,10 @@ export function Settings() {
                       variant="ghost"
                       size="sm"
                       loading={cancelSubMutation.isPending}
-                      onClick={async () => {
-                        if (confirm('Are you sure you want to cancel your subscription at period end?')) {
-                          await cancelSubMutation.mutateAsync();
-                          toast.success('Subscription cancellation scheduled for period end.');
-                        }
-                      }}
+                      // A native confirm() blocks the whole renderer, cannot
+                      // be styled or themed, and is the one dialog a user
+                      // cannot dismiss with the app's own Escape handling.
+                      onClick={() => setCancelDialogOpen(true)}
                     >
                       Cancel Subscription
                     </Button>
@@ -500,6 +525,57 @@ export function Settings() {
           </div>
         </div>
       )}
+
+      {/*
+        Cancelling a subscription, confirmed in the app's own dialog.
+
+        It used to be `confirm(...)`, which blocks the renderer, ignores the
+        theme, and is the one dialog the app's Escape handling cannot reach.
+        The copy also now says what actually happens — the plan runs to the
+        end of the period already paid for, rather than stopping at once.
+      */}
+      <Modal
+        isOpen={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        title="Cancel your subscription?"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-secondary">
+            Your plan stays active until{' '}
+            <span className="font-semibold text-primary">
+              {sub?.currentPeriodEnd
+                ? new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, {
+                    year: 'numeric', month: 'long', day: 'numeric',
+                  })
+                : 'the end of the current period'}
+            </span>
+            . Nothing is lost before then, and you can resume at any time up to that date.
+          </p>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setCancelDialogOpen(false)}>
+              Keep my plan
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={cancelSubMutation.isPending}
+              onClick={async () => {
+                try {
+                  await cancelSubMutation.mutateAsync();
+                  toast.success('Your subscription will end at the close of this period.');
+                  setCancelDialogOpen(false);
+                } catch (err: any) {
+                  toast.error(err?.message || 'Could not cancel the subscription');
+                }
+              }}
+            >
+              Cancel subscription
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

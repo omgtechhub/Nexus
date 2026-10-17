@@ -11,9 +11,37 @@
          one thing the product does not do. -->
     <meta name="description" content="Nexus Commerce is the marketplace where independent sellers list their products and shoppers buy from all of them with one account. List in minutes, reach buyers already here, and let Nexus run the checkout and delivery." />
     <meta name="keywords" content="online marketplace, sell products online, list products, multi-seller marketplace, shop online, Nigeria marketplace" />
+    <!--
+      Brand assets. There were none of these: no favicon (so every tab showed
+      the browser's blank document glyph), and no og:image, so a link shared to
+      WhatsApp, Slack or X rendered as a bare grey rectangle — on a marketplace
+      whose growth depends on sellers sharing their own product links.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#FFBD2E" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <meta property="og:title" content="Nexus Commerce — The Marketplace for Independent Sellers" />
     <meta property="og:description" content="List your products on Nexus and reach shoppers already browsing. One shopfront, one checkout, one account — run for you." />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Nexus Commerce" />
+    <meta property="og:image" content="/images/hero-bg.jpg" />
+    <meta property="og:image:width" content="1408" />
+    <meta property="og:image:height" content="768" />
+    <meta property="og:image:alt" content="The Nexus Commerce marketplace" />
+
+    <!--
+      Large summary card, so a shared link gets the image rather than a
+      thumbnail. og:title/description are reused by X and most other
+      unfurlers, so only the card type needs stating.
+    -->
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!--
+      og:url and rel=canonical are set per route at runtime by
+      `DocumentHead`. A static one here would be actively harmful: it would
+      tell every crawler that every route is the homepage.
+    -->
     <!-- Kept in step with the active theme by ThemeContext. -->
     <meta name="theme-color" content="#0B0D1B" />
     <script>
@@ -40,7 +68,12 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cal+Sans:wght@400;600&display=swap" rel="stylesheet" />
+    <!--
+      Inter only. The request also asked for `Cal+Sans`, which is not a Google
+      Fonts family and which no stylesheet in this app ever referenced — so it
+      was a dead name on a render-blocking request in front of first paint.
+    -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

@@ -6,6 +6,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { CartProvider } from './context/CartContext';
 import { AppRouter } from './app/router/AppRouter';
 import { ScrollRestoration } from './app/router/ScrollRestoration';
+import { DocumentHead } from './app/router/DocumentHead';
 import { AssistantDock } from './components/assistant/AssistantDock';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -82,8 +83,9 @@ export default function App() {
     <ErrorBoundary scope="root">
     <BrowserRouter basename={basename}>
       <ThemeProvider>
-        {/* Must sit inside the router: it reads the location. */}
+        {/* Both must sit inside the router: they read the location. */}
         <ScrollRestoration />
+        <DocumentHead />
         <AppProvider>
           <MarketplaceCart>
             <AppRouter />

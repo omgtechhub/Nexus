@@ -23,6 +23,50 @@ export default defineConfig({
   // no longer disagree about where the app lives.
   base: process.env.VITE_BASE || "/",
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        /**
+         * Split the vendor libraries out of the entry chunk.
+         *
+         * The entry was 513 kB because React, the router, react-query and
+         * GSAP were bundled together with the app's own code. That is a
+         * caching problem more than a size one: every deploy changes the app
+         * code, so the single combined chunk's hash changed too and returning
+         * visitors re-downloaded half a megabyte of unchanged framework on
+         * every release.
+         *
+         * Grouped rather than one-chunk-per-package: dozens of tiny chunks
+         * cost more in requests than they save in bytes. React and the router
+         * are deliberately together — the router imports React internals, and
+         * separating them is the usual cause of a "Cannot read properties of
+         * undefined (reading 'useState')" on a cold load, where the chunks
+         * initialise in the wrong order.
+         */
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)) {
+            return "vendor-react";
+          }
+          if (id.includes("@tanstack")) return "vendor-query";
+          if (id.includes("gsap")) return "vendor-gsap";
+
+          /**
+           * recharts and d3 are deliberately NOT named here.
+           *
+           * Naming them produced a `vendor-charts` chunk that Vite then
+           * emitted a `modulepreload` for in index.html — so every visitor to
+           * the marketing page downloaded 392 kB of charting library to render
+           * a page with no charts on it. Left alone, Vite keeps them inside
+           * the lazily-imported dashboard chunk that actually uses them, which
+           * is already the right answer.
+           */
+          return undefined;
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

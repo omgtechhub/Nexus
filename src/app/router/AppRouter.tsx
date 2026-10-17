@@ -64,6 +64,9 @@ const VerifyEmailPage = lazyNamed(() => import('../../pages/VerifyEmailPage'), '
 
 const AuthPage = lazyNamed(() => import('../../components/auth/AuthPage'), 'AuthPage');
 
+// The catch-all. Small, and reached from anywhere, so it is worth the chunk.
+const NotFoundPage = lazyNamed(() => import('../../pages/NotFoundPage'), 'NotFoundPage');
+
 export function AppRouter() {
   const { store } = useApp();
   const location = useLocation();
@@ -167,8 +170,14 @@ export function AppRouter() {
           <Route path="/login" element={<AuthPage mode="login" portal="seller" />} />
           <Route path="/signup" element={<AuthPage mode="signup" portal="seller" />} />
 
-          {/* FALLBACK */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* FALLBACK — a real 404, not a silent redirect home.
+
+              This was `<Navigate to="/" replace />`, so a mistyped or
+              truncated URL quietly became the homepage: the visitor thought
+              their link had worked, Back did not return them to where they
+              came from, and crawlers got a 200 with the homepage's content at
+              an address that does not exist. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

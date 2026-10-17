@@ -1,0 +1,18 @@
+{
+  "name": "Nexus Commerce",
+  "short_name": "Nexus",
+  "description": "The marketplace where independent sellers list their products and shoppers buy from all of them with one account.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B0D1B",
+  "theme_color": "#0B0D1B",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

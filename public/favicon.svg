@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Nexus Commerce">
+  <!--
+    The same mark the app's header uses: a rounded tile carrying the Nexus
+    bolt, in the brand's three-stop gradient.
+
+    There was no favicon at all, so every tab showed the browser's blank
+    document glyph — including the tab a merchant leaves open all day.
+  -->
+  <defs>
+    <linearGradient id="nexusMark" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF5F56" />
+      <stop offset="50%" stop-color="#FFBD2E" />
+      <stop offset="100%" stop-color="#27C93F" />
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="16" fill="url(#nexusMark)" />
+
+  <!-- Bolt, matching the lucide "zap" outline the header renders. -->
+  <path
+    d="M35.5 10 18 36h11l-.5 18L47 28H35.8z"
+    fill="#0B0D1B"
+    stroke="#0B0D1B"
+    stroke-width="2.5"
+    stroke-linejoin="round"
+  />
+</svg>

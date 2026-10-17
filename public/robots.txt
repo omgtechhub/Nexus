@@ -1,0 +1,39 @@
+# Nexus Commerce
+#
+# There was no robots.txt at all, so crawlers were free to spend the site's
+# crawl budget on signed-in surfaces that return a redirect to a login form —
+# and on the checkout and cart paths, which are per-session and worthless in an
+# index.
+#
+# Replace the Sitemap host with the real domain at deploy time.
+
+User-agent: *
+
+# The shop and the marketing pages are the point of being indexed.
+Allow: /
+Allow: /products
+Allow: /pricing
+Allow: /contact
+
+# Behind a login. A crawler only ever sees the sign-in page here.
+Disallow: /seller/
+Disallow: /account/
+Disallow: /admin/
+
+# Per-session and never meaningful to a visitor arriving from a search result.
+Disallow: /cart
+Disallow: /checkout
+Disallow: /checkout/complete
+
+# Carries an order number in the query string.
+Disallow: /track
+
+# Single-use, credential-bearing links.
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /forgot-password
+
+# Uploaded product images are served by the API, not indexed from here.
+Disallow: /uploads/
+
+Sitemap: https://nexuscommerce.io/sitemap.xml
