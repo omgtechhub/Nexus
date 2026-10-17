@@ -251,7 +251,12 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
     });
 
     it('flags the initialize response as simulated', async () => {
-      const res = await request.post('/api/payments/initialize').send({ orderId });
+      // customerEmail proves the caller placed this order. The endpoint is
+      // public for guest checkout, so it used to accept a bare orderId from
+      // anyone — a guessed id returned a stranger's total and gateway URL.
+      const res = await request
+        .post('/api/payments/initialize')
+        .send({ orderId, customerEmail: 'payer@example.com' });
       expect(res.status).toBe(201);
       expect(res.body.data.simulated).toBe(true);
       reference = res.body.data.reference;

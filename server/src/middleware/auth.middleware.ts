@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { AccountType } from '@prisma/client';
 import { logger } from '../utils/logger.js';
+import { hashSessionToken } from '../services/auth/tokens.service.js';
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
@@ -13,7 +14,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     const session = await prisma.session.findUnique({
-      where: { sessionToken: token },
+      // The raw token never touches the database; only its digest is stored.
+      where: { sessionToken: hashSessionToken(token) },
       include: {
         user: {
           include: {
@@ -65,7 +67,8 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     if (!token) return next();
 
     const session = await prisma.session.findUnique({
-      where: { sessionToken: token },
+      // The raw token never touches the database; only its digest is stored.
+      where: { sessionToken: hashSessionToken(token) },
       include: { user: { include: { memberships: { include: { store: true } } } } },
     });
 

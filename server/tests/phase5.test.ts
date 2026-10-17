@@ -109,6 +109,9 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
         orderId: createdOrderId,
         provider: 'PAYSTACK',
         callbackUrl: 'http://localhost:5173/#storefront',
+        // Proves the caller placed this order; the endpoint is public for
+        // guest checkout but no longer accepts a bare orderId from anyone.
+        customerEmail: 'buyer_p5@example.com',
       });
 
     expect(res.status).toBe(201);
@@ -155,7 +158,9 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
       });
     const orderId = checkoutRes.body.order.id;
 
-    const initRes = await request.post('/api/payments/initialize').send({ orderId, provider: 'PAYSTACK' });
+    const initRes = await request
+      .post('/api/payments/initialize')
+      .send({ orderId, provider: 'PAYSTACK', customerEmail: 'webhook_buyer@example.com' });
     const reference = initRes.body.data.reference;
 
     const webhookBody = {

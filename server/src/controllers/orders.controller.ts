@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
+import { currencyCodeOf } from '../config/currency.js';
 import { z } from 'zod';
 import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, OrderAddressType } from '@prisma/client';
 
@@ -323,7 +324,10 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
           discount: calculatedDiscount,
           discountCode: appliedCode,
           total: computedTotal,
-          currency: 'USD',
+          // The store's own trading currency, not a hardcoded USD. A manual
+          // order was stamped USD regardless of what the store sells in, so a
+          // naira merchant's phone order was recorded in dollars.
+          currency: currencyCodeOf(req.store!.currency),
           notes: body.notes,
           items: {
             create: lineItemDetails.map(l => ({

@@ -1,12 +1,21 @@
 import { Router } from 'express';
 import { initializePayment, verifyPayment, refundOrder, getPayments } from '../controllers/payments.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireStoreMembership, optionalAuth } from '../middleware/auth.middleware.js';
 import { paymentRateLimiter } from '../middleware/rateLimit.middleware.js';
 
 export const paymentsRouter = Router();
 
-// Public payment endpoints (used by storefront checkout)
-paymentsRouter.post('/initialize', paymentRateLimiter, initializePayment);
+/**
+ * Public, because a guest checkout has no account and this is the step
+ * immediately after placing an order.
+ *
+ * `optionalAuth` populates req.user when a session happens to be present, so
+ * a signed-in customer is recognised without a guest being turned away. The
+ * controller then requires the caller either to BE that customer or to quote
+ * the order's email address — it previously accepted a bare orderId from
+ * anyone.
+ */
+paymentsRouter.post('/initialize', paymentRateLimiter, optionalAuth, initializePayment);
 paymentsRouter.get('/:reference/verify', paymentRateLimiter, verifyPayment);
 
 // Authenticated merchant endpoints

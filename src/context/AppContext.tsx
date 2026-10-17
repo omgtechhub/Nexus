@@ -5,6 +5,7 @@ import {
   StoreSettings, ActivityItem, Store
 } from '../types';
 import { AuthService } from '../services/authService';
+import { setUnauthorizedHandler } from '../api/client';
 import toast from 'react-hot-toast';
 import {
   useCurrentUserQuery,
@@ -464,6 +465,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAccountType(null);
     routerNavigate(getUrlForView('marketing'));
   }, [routerNavigate]);
+
+  /**
+   * Clear the local session when the server says it is gone.
+   *
+   * Without this an expired cookie left the app convinced it was signed in:
+   * the shell rendered, the guards let the user through, and every query
+   * behind them failed with a 401 that surfaced as a page full of error
+   * panels. Dropping the local identity hands control back to the route
+   * guards, which send the user to the right sign-in page.
+   *
+   * Deliberately not `logout()`: that posts a logout to the API (pointless —
+   * the session is already invalid) and force-navigates to the marketing page,
+   * which would yank someone out of a page they could legitimately return to
+   * after signing in again.
+   */
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      try {
+        localStorage.removeItem('nexus_user');
+        localStorage.removeItem('nexus_store');
+        localStorage.removeItem('nexus_account_type');
+      } catch {}
+      setUser(null);
+      setStore(null);
+      setAccountType(null);
+    });
+
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   const updateUser = useCallback((fields: Partial<User>) => {
     setUser(prev => prev ? { ...prev, ...fields } : null);

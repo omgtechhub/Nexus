@@ -1,5 +1,6 @@
 import { prisma } from '../../prisma.js';
 import { ShippingRateType } from '@prisma/client';
+import { currencyCodeOf } from '../../config/currency.js';
 
 /**
  * One authority for what an order costs.
@@ -263,9 +264,9 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     shippingMethodId: chosen?.id ?? null,
     shippingMethodName: chosen?.name ?? null,
     total,
-    // StoreSettings.currency is a display string ("USD — US Dollar"); the code
-    // is the leading token.
-    currency: (settings?.currency || 'USD').split(/[\s—-]/)[0].trim().toUpperCase(),
+    // StoreSettings.currency is a display string ("NGN — Nigerian Naira");
+    // one shared helper recovers the code so the parsing is not duplicated.
+    currency: currencyCodeOf(settings?.currency),
     shippingOptions,
   };
 }

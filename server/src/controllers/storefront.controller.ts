@@ -547,17 +547,42 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
           sku = variant.sku;
           targetVariantId = variant.id;
 
-          if (variant.inventoryQuantity < item.quantity && product.inventoryPolicy !== 'CONTINUE') {
-            throw new Error(`Insufficient stock for "${title} - ${variant.title}". Available: ${variant.inventoryQuantity}`);
-          }
+          /**
+           * The decrement IS the stock check.
+           *
+           * It used to read `variant.inventoryQuantity`, compare it, and then
+           * decrement in a separate statement. Prisma runs this transaction at
+           * PostgreSQL's default READ COMMITTED, so two checkouts for the last
+           * unit both read 1, both passed the comparison, and both
+           * decremented — leaving `inventoryQuantity` at -1 and two customers
+           * holding the same item. The window is small and entirely real: it
+           * is the flash-sale case, which is exactly when it matters.
+           *
+           * `updateMany` with the quantity in the predicate pushes the
+           * comparison into the UPDATE's own row lock, so the second writer
+           * matches zero rows and is rejected. A store whose policy is
+           * CONTINUE is allowed to go negative, which is what overselling
+           * deliberately means.
+           */
+          const allowOversell = product.inventoryPolicy === 'CONTINUE';
 
-          // Decrement variant stock
-          await tx.productVariant.update({
-            where: { id: variant.id },
-            data: {
-              inventoryQuantity: { decrement: item.quantity },
-            },
+          const claimed = await tx.productVariant.updateMany({
+            where: allowOversell
+              ? { id: variant.id }
+              : { id: variant.id, inventoryQuantity: { gte: item.quantity } },
+            data: { inventoryQuantity: { decrement: item.quantity } },
           });
+
+          if (claimed.count !== 1) {
+            // Re-read for the message only: the authority was the predicate.
+            const current = await tx.productVariant.findUnique({
+              where: { id: variant.id },
+              select: { inventoryQuantity: true },
+            });
+            throw new Error(
+              `Insufficient stock for "${title} - ${variant.title}". Available: ${current?.inventoryQuantity ?? 0}`
+            );
+          }
 
           // Log movement if inventory item exists
           const invItem = await tx.inventoryItem.findFirst({
@@ -603,18 +628,33 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
 
           const primaryInvItem = prod.inventoryItems[0];
           const totalStock = prod.inventoryItems.reduce((acc, inv) => acc + inv.availableStock, 0);
+          const allowOversell = prod.inventoryPolicy === 'CONTINUE';
 
-          if (totalStock < item.quantity && prod.inventoryPolicy !== 'CONTINUE') {
+          if (totalStock < item.quantity && !allowOversell) {
             throw new Error(`Insufficient stock for "${title}". Available: ${totalStock}`);
           }
 
           if (primaryInvItem) {
-            await tx.inventoryItem.update({
-              where: { id: primaryInvItem.id },
-              data: {
-                availableStock: { decrement: item.quantity },
-              },
+            // Same atomic claim as the variant path above: the predicate does
+            // the comparison, so two concurrent checkouts cannot both take the
+            // last unit. The read-then-compare above stays as the friendly
+            // message for the ordinary case; this is what actually enforces it.
+            const claimed = await tx.inventoryItem.updateMany({
+              where: allowOversell
+                ? { id: primaryInvItem.id }
+                : { id: primaryInvItem.id, availableStock: { gte: item.quantity } },
+              data: { availableStock: { decrement: item.quantity } },
             });
+
+            if (claimed.count !== 1) {
+              const current = await tx.inventoryItem.findUnique({
+                where: { id: primaryInvItem.id },
+                select: { availableStock: true },
+              });
+              throw new Error(
+                `Insufficient stock for "${title}". Available: ${current?.availableStock ?? 0}`
+              );
+            }
 
             await tx.inventoryMovement.create({
               data: {

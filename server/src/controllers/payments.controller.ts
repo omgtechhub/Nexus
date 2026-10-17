@@ -6,6 +6,7 @@ import { getPaymentProvider } from '../services/payments/payment.factory.js';
 import { PaymentGatewayError, PaymentNotConfiguredError } from '../services/payments/errors.js';
 import { formatMoney } from '../services/email/email.service.js';
 import { recordCommissionForPayment } from '../services/payouts/payout.service.js';
+import { defaultCurrencyCode } from '../config/currency.js';
 
 const initializePaymentSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -35,8 +36,65 @@ export async function initializePayment(req: Request, res: Response, next: NextF
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
+    /**
+     * Prove the caller is the person who placed this order.
+     *
+     * The endpoint has to stay open — a guest checkout has no account, and
+     * this is the step straight after placing the order — but it took nothing
+     * except an `orderId`. Anyone who learned or guessed one could mint
+     * payment rows against a stranger's order and read back its total and
+     * gateway URL, and every call left another PENDING row behind.
+     *
+     * Two ways to satisfy it: be signed in as the customer the order belongs
+     * to, or quote the email address the order was placed with. A guest knows
+     * their own email; someone holding only a stray order id does not.
+     */
+    const signedInEmail = req.user?.email?.toLowerCase();
+    const claimedEmail = typeof req.body?.customerEmail === 'string'
+      ? req.body.customerEmail.toLowerCase().trim()
+      : undefined;
+    const orderEmail = order.customerEmail.toLowerCase();
+
+    if (signedInEmail !== orderEmail && claimedEmail !== orderEmail) {
+      // Deliberately the same shape as "not found": confirming that an id
+      // exists but belongs to someone else is itself the leak.
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
     if (order.paymentStatus === PrismaPaymentStatus.PAID) {
       return res.status(400).json({ success: false, error: 'Order has already been paid' });
+    }
+
+    /**
+     * Reuse a payment attempt that is still live rather than minting another.
+     *
+     * Each call created a fresh reference and a fresh PENDING row, so a
+     * shopper who pressed Pay twice left orphans behind for ever — and the
+     * endpoint was an unauthenticated way to grow the table without bound.
+     */
+    const existing = await prisma.payment.findFirst({
+      where: {
+        orderId: order.id,
+        status: PaymentStatus.PENDING,
+        provider: (provider as PaymentProvider) || PaymentProvider.PAYSTACK,
+        createdAt: { gt: new Date(Date.now() - 30 * 60 * 1000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existing && (existing.metadata as any)?.authorizationUrl) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          paymentId: existing.id,
+          reference: existing.providerReference,
+          authorizationUrl: (existing.metadata as any).authorizationUrl,
+          amount: existing.amount,
+          currency: existing.currency,
+          simulated: (existing.metadata as any)?.simulated === true,
+          reused: true,
+        },
+      });
     }
 
     const providerEnum = (provider as PaymentProvider) || PaymentProvider.PAYSTACK;
@@ -62,7 +120,7 @@ export async function initializePayment(req: Request, res: Response, next: NextF
         provider: providerEnum,
         providerReference: reference,
         amount: order.total, // Authoritative order total
-        currency: order.currency || 'USD',
+        currency: order.currency || defaultCurrencyCode(),
         status: PaymentStatus.PENDING,
         metadata: {
           customerName: order.customerName,
@@ -99,6 +157,19 @@ export async function initializePayment(req: Request, res: Response, next: NextF
       }
       throw err;
     }
+
+    // Recorded so a repeated Pay click can be handed the same gateway session
+    // instead of minting another reference and another PENDING row.
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        metadata: {
+          ...((payment.metadata as any) || {}),
+          authorizationUrl: result.authorizationUrl,
+          simulated: paymentProvider.isLive === false,
+        },
+      },
+    });
 
     return res.status(201).json({
       success: true,

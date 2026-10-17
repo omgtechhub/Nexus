@@ -192,6 +192,8 @@ export function CheckoutPage() {
           orderId: res.order.id,
           provider: 'PAYSTACK',
           callbackUrl: checkoutReturnUrl(),
+          // Proves this caller placed the order; see InitializePaymentParams.
+          customerEmail: values.customerEmail,
         });
       } catch (payErr: any) {
         /**

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import supertest from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/prisma.js';
+import { hashSessionToken } from '../src/services/auth/tokens.service.js';
 
 const request = supertest(app);
 
@@ -85,15 +86,24 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
     if (resAdminLogin.status === 200 && resAdminLogin.headers['set-cookie']) {
       adminCookie = (resAdminLogin.headers['set-cookie'] as string[])[0];
     } else {
-      // Create session manually for admin if password hash bypass needed
-      const session = await prisma.session.create({
+      /**
+       * Session rows store the token's SHA-256 digest, not the token.
+       *
+       * This wrote the raw value into the column and then sent that same
+       * value as the cookie, which worked only while sessions were stored in
+       * plaintext — a leaked snapshot was then directly replayable. The
+       * fixture now mirrors what the application does: hash on the way in,
+       * hand the raw token to the client.
+       */
+      const rawToken = `token_admin_${timestamp}`;
+      await prisma.session.create({
         data: {
-          sessionToken: `token_admin_${timestamp}`,
+          sessionToken: hashSessionToken(rawToken),
           userId: adminUser.id,
           expiresAt: new Date(Date.now() + 86400000),
         },
       });
-      adminCookie = `nexus_session=${session.sessionToken}`;
+      adminCookie = `nexus_session=${rawToken}`;
     }
 
     // Seed Order in Store 1 for Customer A

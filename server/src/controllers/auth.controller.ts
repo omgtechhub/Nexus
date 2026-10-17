@@ -7,7 +7,8 @@ import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import { emailService } from '../services/email/email.service.js';
-import { issueEmailVerificationToken } from '../services/auth/tokens.service.js';
+import { issueEmailVerificationToken, hashSessionToken } from '../services/auth/tokens.service.js';
+import { defaultCurrencyLabel } from '../config/currency.js';
 import { verifyOAuthToken, OAuthVerificationError } from '../services/auth/oauthVerifier.service.js';
 
 const SESSION_COOKIE_NAME = 'nexus_session';
@@ -35,7 +36,7 @@ async function createSessionFor(userId: string, req: Request): Promise<string> {
 
   await prisma.session.create({
     data: {
-      sessionToken,
+      sessionToken: hashSessionToken(sessionToken),
       userId,
       expiresAt,
       userAgent: req.headers['user-agent'] || null,
@@ -60,7 +61,7 @@ async function provisionStoreForUser(
     data: {
       name: storeName,
       domain,
-      currency: 'USD — US Dollar',
+      currency: defaultCurrencyLabel(),
       timezone: 'America/New_York',
       industry: 'General Commerce',
       status: StoreStatus.ACTIVE,
@@ -77,7 +78,7 @@ async function provisionStoreForUser(
       storeId: store.id,
       storeName: store.name,
       storeUrl: domainSlug,
-      currency: 'USD — US Dollar',
+      currency: defaultCurrencyLabel(),
       industry: 'General Commerce',
       announcementText: '🎉 Welcome to your new Nexus Commerce store!',
       activeTheme: 'nexus-dark',
@@ -189,7 +190,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 
         const session = await tx.session.create({
           data: {
-            sessionToken,
+            sessionToken: hashSessionToken(sessionToken),
             userId: user.id,
             expiresAt,
             userAgent: req.headers['user-agent'] || null,
@@ -237,7 +238,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
         data: {
           name: data.storeName ? data.storeName.trim() : `${user.name}'s Store`,
           domain,
-          currency: 'USD — US Dollar',
+          currency: defaultCurrencyLabel(),
           timezone: 'America/New_York',
           industry: 'General Commerce',
           status: StoreStatus.ACTIVE,
@@ -258,7 +259,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
           storeId: store.id,
           storeName: store.name,
           storeUrl: domainSlug,
-          currency: 'USD — US Dollar',
+          currency: defaultCurrencyLabel(),
           industry: 'General Commerce',
           announcementText: '🎉 Welcome to your new Nexus Commerce store!',
           activeTheme: 'nexus-dark',
@@ -273,7 +274,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 
       const session = await tx.session.create({
         data: {
-          sessionToken,
+          sessionToken: hashSessionToken(sessionToken),
           userId: user.id,
           expiresAt,
           userAgent: req.headers['user-agent'] || null,
@@ -343,7 +344,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     await prisma.session.create({
       data: {
-        sessionToken,
+        sessionToken: hashSessionToken(sessionToken),
         userId: user.id,
         expiresAt,
         userAgent: req.headers['user-agent'] || null,
@@ -408,7 +409,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
     const token = req.cookies?.nexus_session;
     if (token) {
       await prisma.session.updateMany({
-        where: { sessionToken: token },
+        where: { sessionToken: hashSessionToken(token) },
         data: { revokedAt: new Date() },
       });
     }

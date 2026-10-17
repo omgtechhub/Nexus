@@ -96,6 +96,15 @@ services:
       # payment at settlement, so a change affects new sales only.
       PLATFORM_COMMISSION_PERCENT: ${PLATFORM_COMMISSION_PERCENT:-0}
 
+      # The currency new stores trade in. MUST match a currency the gateway
+      # account has enabled — Paystack rejects anything else outright, which
+      # fails every checkout at initialize.
+      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
+
+      # Recurring jobs run in-process. Set false on all but one replica if you
+      # scale the API beyond a single instance.
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+
       WHISPER_MODEL: ${WHISPER_MODEL:-onnx-community/whisper-base.en}
       VOICE_MODEL_DIR: ${VOICE_MODEL_DIR:-.models}
     volumes:

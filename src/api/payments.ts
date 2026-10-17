@@ -4,6 +4,16 @@ export interface InitializePaymentParams {
   orderId: string;
   provider?: 'PAYSTACK' | 'FLUTTERWAVE';
   callbackUrl?: string;
+  /**
+   * The address the order was placed with.
+   *
+   * Proves the caller is the person who placed it. The endpoint has to stay
+   * open for guest checkout, but it used to accept a bare `orderId` from
+   * anyone — so a guessed id returned a stranger's total and gateway URL.
+   * Unnecessary when the buyer is signed in as that customer, and harmless
+   * to send anyway.
+   */
+  customerEmail?: string;
 }
 
 export interface InitializePaymentResponse {

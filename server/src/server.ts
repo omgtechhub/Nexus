@@ -5,6 +5,7 @@ import { prisma } from './prisma.js';
 import { selectEmailProvider } from './services/email/selectProvider.js';
 import { checkSessionCookieViability } from './utils/deploymentChecks.js';
 import { backfillMissingCommissions } from './services/payouts/payout.service.js';
+import { startScheduler, stopScheduler } from './jobs/scheduler.js';
 
 /**
  * Refuse to serve a production install that cannot hold a session.
@@ -64,6 +65,14 @@ try {
   logger.error({ err }, 'Commission backfill failed; merchant balances may read low until it succeeds');
 }
 
+/**
+ * Start the recurring jobs.
+ *
+ * Subscription renewals, grace periods and abandoned-checkout stock release
+ * were all implemented and never scheduled, so none of them had ever run.
+ */
+startScheduler();
+
 const server = app.listen(config.port, () => {
   logger.info(`Nexus Commerce Server listening on port ${config.port} [${config.nodeEnv}]`);
   logger.info(`CORS allowed frontend origins: ${allowedOrigins.join(', ')}`);
@@ -91,6 +100,8 @@ const handleShutdown = (signal: string) => {
   }, 10_000);
   // Do not let the timer itself hold the event loop open.
   forceExit.unref();
+
+  stopScheduler();
 
   server.close(async () => {
     try {

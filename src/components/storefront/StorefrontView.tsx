@@ -174,6 +174,8 @@ function StorefrontContent({ storeSlug, onClose }: StorefrontContentProps) {
           const initRes = await initializePaymentApi({
             orderId: res.order.id,
             provider: selectedProvider,
+            // Proves this caller placed the order; see InitializePaymentParams.
+            customerEmail,
             /**
              * Return to `/checkout/complete`, which verifies the reference
              * server-side before it says anything about the payment.

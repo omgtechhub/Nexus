@@ -116,3 +116,21 @@ export async function purgeExpiredTokens(): Promise<number> {
   ]);
   return resets.count + verifications.count;
 }
+
+/**
+ * The digest a session row is keyed by.
+ *
+ * Session tokens used to be stored verbatim, while password-reset and email
+ * verification tokens on this same file were correctly hashed. That asymmetry
+ * meant a leaked database snapshot was directly replayable: every row in
+ * `Session` was a live, ready-to-use credential that could be pasted straight
+ * into a `nexus_session` cookie. Hashing makes a snapshot useless for
+ * impersonation, exactly as it already did for the other two grant types.
+ *
+ * SHA-256 with no salt, deliberately: the token is 32 bytes of CSPRNG output,
+ * so there is nothing to brute-force and a lookup has to be a single indexed
+ * equality test.
+ */
+export function hashSessionToken(token: string): string {
+  return hashToken(token);
+}
