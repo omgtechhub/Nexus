@@ -578,7 +578,6 @@ describe('Blockers 7-9: the deployment artefacts match what the build produces',
     expect(compose).toContain('uploads_data:/app/uploads');
     // Payment and SMTP keys were absent entirely, so checkout 503'd.
     expect(compose).toContain('PAYSTACK_SECRET_KEY');
-    expect(compose).toContain('FLUTTERWAVE_WEBHOOK_SECRET');
     expect(compose).toContain('SMTP_HOST');
   });
 

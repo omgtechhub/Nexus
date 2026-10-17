@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
-import { PaymentProvider, PaymentStatus, OrderStatus, PaymentStatus as PrismaPaymentStatus } from '@prisma/client';
+import { PaymentProvider, PaymentStatus, OrderStatus, PaymentStatus as PrismaPaymentStatus, PayoutStatus } from '@prisma/client';
 import { getPaymentProvider } from '../services/payments/payment.factory.js';
 import { logger } from '../utils/logger.js';
 import { formatMoney } from '../services/email/email.service.js';
-import { recordCommissionForPayment } from '../services/payouts/payout.service.js';
+import { recordCommissionForPayment, updatePayoutStatus } from '../services/payouts/payout.service.js';
 
 /**
  * Order payment webhooks.
@@ -190,6 +190,62 @@ async function recordFailedPayment(providerReference: string, reason?: string): 
   return { status: 'settled' };
 }
 
+
+/**
+ * Apply a `transfer.*` webhook to the payout it names.
+ *
+ * Matched on our own payout reference rather than Paystack's transfer code:
+ * the reference is what we generated and stored first, so it survives a
+ * transfer code going missing between initiation and confirmation.
+ */
+async function settleTransfer(event: string, data: any): Promise<SettleResult> {
+  const reference = data?.reference;
+  const transferCode = data?.transfer_code;
+
+  const payout = reference
+    ? await prisma.payout.findUnique({ where: { reference } })
+    : transferCode
+      ? await prisma.payout.findFirst({ where: { providerReference: transferCode } })
+      : null;
+
+  if (!payout) return { status: 'skipped', reason: 'unknown_payout' };
+
+  const status =
+    event === 'transfer.success'
+      ? PayoutStatus.PAID
+      : event === 'transfer.reversed'
+        ? PayoutStatus.REVERSED
+        : event === 'transfer.failed'
+          ? PayoutStatus.FAILED
+          : null;
+
+  if (!status) return { status: 'skipped', reason: 'unhandled_transfer_event' };
+
+  try {
+    await updatePayoutStatus({
+      payoutId: payout.id,
+      status,
+      providerReference: transferCode,
+      failureReason: status === PayoutStatus.FAILED
+        ? (data?.gateway_response || data?.message || 'Paystack reported the transfer failed')
+        : undefined,
+    });
+  } catch (err: any) {
+    // An illegal transition means we already have a later, more settled
+    // answer; a redelivery of an earlier event must not undo it.
+    logger.warn({
+      msg: 'Transfer webhook did not apply',
+      reference: payout.reference,
+      event,
+      error: err?.message,
+    });
+    return { status: 'skipped', reason: 'invalid_transition' };
+  }
+
+  logger.info({ msg: 'Payout settled by webhook', reference: payout.reference, event });
+  return { status: 'settled' };
+}
+
 /** Flag the registry row as handled, whatever the outcome was. */
 async function markProcessed(eventId: string): Promise<void> {
   await prisma.webhookEvent.updateMany({
@@ -249,6 +305,16 @@ export async function handlePaystackWebhook(req: Request, res: Response, next: N
       });
     } else if ((event === 'charge.failed' || event === 'charge.abandoned') && reference) {
       outcome = await recordFailedPayment(reference, data.gateway_response);
+    } else if (event?.startsWith?.('transfer.')) {
+      /**
+       * A merchant payout reaching its conclusion.
+       *
+       * `executePayout` leaves the payout PROCESSING and these events are what
+       * settle it — the same discipline as a charge, where the initialize
+       * response is never the answer. Previously these arrived, matched
+       * nothing, and were filed as `unhandled_event`.
+       */
+      outcome = await settleTransfer(event, data);
     }
 
     // Outside every branch: a delivery we have finished with is processed,

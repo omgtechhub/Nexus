@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import supertest from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/prisma.js';
@@ -44,28 +44,17 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     storeBSlug = resB.body.data.store.id;
 
     /**
-     * Store A levies 8% tax, by configuration.
+     * The platform levies 8% tax for the duration of this suite.
      *
-     * Tax used to be a hardcoded `subtotal * 0.08` applied to every store on
-     * the platform, so these tests asserted 24.00 on a 300.00 subtotal without
-     * anything ever having been configured. Tax is now per-store and defaults
-     * to **off**, which is why the figures below have to be asked for.
-     *
-     * Setting it here keeps the original expectations meaningful — they now
-     * prove the *configured* rate is the one charged, rather than that a
-     * constant is still a constant. Store B is left unconfigured on purpose;
-     * the test at the end of this file asserts it charges nothing.
+     * Tax used to be a hardcoded `subtotal * 0.08` applied to every order, so
+     * these tests asserted 24.00 on a 300.00 subtotal without anything ever
+     * having been configured. It is now platform configuration that defaults
+     * to off — Nexus is one marketplace, so the rate is its decision rather
+     * than each merchant's — which is why the figures below have to be asked
+     * for. Restored in afterAll so no other suite inherits it.
      */
-    await prisma.storeSettings.upsert({
-      where: { storeId: storeASlug },
-      update: { taxEnabled: true, taxRate: 8, taxLabel: 'Sales tax' },
-      create: {
-        storeId: storeASlug,
-        taxEnabled: true,
-        taxRate: 8,
-        taxLabel: 'Sales tax',
-      },
-    });
+    process.env.PLATFORM_TAX_PERCENT = '8';
+    process.env.PLATFORM_TAX_LABEL = 'Sales tax';
 
     // 3. Create active product for Store A
     const skuA = `SKU-P4-A-${Date.now()}`;
@@ -103,6 +92,11 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
         status: 'DRAFT',
         category: 'Footwear',
       });
+  });
+
+  afterAll(() => {
+    delete process.env.PLATFORM_TAX_PERCENT;
+    delete process.env.PLATFORM_TAX_LABEL;
   });
 
   it('1. Public Storefront Info: resolves store metadata and settings by storeSlug', async () => {
@@ -148,14 +142,14 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     expect(res.body.totalEstimate).toBe(324.0);
   });
 
-  it('4b. Cart Quote: a store that has configured no tax charges none', async () => {
+  it('4b. Cart Quote: no tax is charged when the platform levies none', async () => {
     /**
-     * The case the hardcoded 8% made impossible to express.
-     *
-     * Store B has no tax settings, so it must quote zero — previously it would
-     * have charged a US-shaped sales tax it never configured and does not
-     * remit. This is the regression guard for that.
+     * The case the hardcoded 8% made impossible to express: a platform that
+     * charges no tax at all. Previously every order carried a US-shaped sales
+     * tax nobody had configured and nobody remits.
      */
+    const taxDuringSuite = process.env.PLATFORM_TAX_PERCENT;
+    delete process.env.PLATFORM_TAX_PERCENT;
     const skuB = `SKU-P4-B-TAX-${Date.now()}`;
     const prodBRes = await request
       .post('/api/products')
@@ -178,6 +172,8 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     expect(res.body.taxEstimate).toBe(0);
     expect(res.body.taxRate).toBe(0);
     expect(res.body.totalEstimate).toBe(300.0);
+
+    process.env.PLATFORM_TAX_PERCENT = taxDuringSuite;
   });
 
   it('5. Checkout Engine: executes atomic checkout, customer creation, stock reservation, and order creation', async () => {

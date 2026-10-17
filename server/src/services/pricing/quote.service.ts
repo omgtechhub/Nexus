@@ -1,6 +1,7 @@
 import { prisma } from '../../prisma.js';
 import { ShippingRateType } from '@prisma/client';
 import { currencyCodeOf } from '../../config/currency.js';
+import { platformTaxRate, platformTaxLabel, platformTaxInclusive } from '../../config/tax.js';
 
 /**
  * One authority for what an order costs.
@@ -209,13 +210,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
 
   const settings = await prisma.storeSettings.findUnique({
     where: { storeId: input.storeId },
-    select: {
-      currency: true,
-      taxEnabled: true,
-      taxRate: true,
-      taxLabel: true,
-      taxInclusive: true,
-    },
+    select: { currency: true },
   });
 
   const shippingOptions = await shippingOptionsFor(input.storeId, taxableBase, input.country);
@@ -232,9 +227,19 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
 
   const shipping = money(chosen?.price ?? 0);
 
-  const taxEnabled = settings?.taxEnabled ?? false;
-  const taxRate = taxEnabled ? Math.max(0, settings?.taxRate ?? 0) : 0;
-  const taxInclusive = settings?.taxInclusive ?? false;
+  /**
+   * Tax is the platform's, not the merchant's.
+   *
+   * These were per-store columns, which only made sense while each merchant
+   * was modelled as running an independent shop. On a single marketplace
+   * Nexus takes the money and issues the receipt, so one rate applies to
+   * every sale. The columns remain on StoreSettings, unread, rather than
+   * being dropped in a migration that would destroy whatever a merchant had
+   * already entered.
+   */
+  const taxRate = platformTaxRate();
+  const taxEnabled = taxRate > 0;
+  const taxInclusive = platformTaxInclusive();
 
   let tax = 0;
   let total = 0;
@@ -257,7 +262,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     subtotal,
     discountAmount,
     tax,
-    taxLabel: settings?.taxLabel || 'Tax',
+    taxLabel: platformTaxLabel(),
     taxRate,
     taxInclusive,
     shipping,

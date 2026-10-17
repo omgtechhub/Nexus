@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import crypto from 'crypto';
 import supertest from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/prisma.js';
@@ -7,14 +8,21 @@ import {
   merchantBalance,
   createPayout,
   updatePayoutStatus,
+  executePayout,
   recordCommissionForPayment,
   backfillMissingCommissions,
   PayoutError,
 } from '../src/services/payouts/payout.service.js';
 import { splitPayment, commissionRate } from '../src/services/payouts/commission.js';
 import { hashPassword } from '../src/utils/password.js';
+import { TEST_WEBHOOK_SECRET } from './testDatabaseUrl.js';
 
 const request = supertest(app);
+
+/** Sign a webhook body the way the sandbox provider expects. */
+function sign(body: unknown): string {
+  return crypto.createHmac('sha512', TEST_WEBHOOK_SECRET).update(JSON.stringify(body)).digest('hex');
+}
 
 /**
  * Merchant payouts.
@@ -436,5 +444,186 @@ describe('Merchant payouts', () => {
       expect(res.status).toBe(400);
       expect(res.body.error).toMatch(/exceeds the available balance/i);
     });
+  });
+});
+
+/**
+ * Automated transfers.
+ *
+ * Payouts used to be recorded only — an obligation a human settled by their
+ * own means and marked PAID by hand. `executePayout` sends them through
+ * Paystack Transfers. These cover what must hold whether or not a live key is
+ * present, because the suite runs without one.
+ */
+describe('Payout execution', () => {
+  const password = 'Password123!';
+  let execStoreId: string;
+  let execAdminCookie: string;
+  let execMerchantCookie: string;
+
+  beforeAll(async () => {
+    const reg = await request.post('/api/auth/register').send({
+      name: 'Transfer Merchant',
+      email: `transfer_${Date.now()}@nexus.io`,
+      password,
+      storeName: 'Transfer Store',
+    });
+    execMerchantCookie = reg.headers['set-cookie'][0];
+    execStoreId = reg.body.data.store.id;
+
+    const adminEmail = `transfer_admin_${Date.now()}@nexus.io`;
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: 'Transfer Admin',
+        passwordHash: await hashPassword(password),
+        platformRole: 'PLATFORM_OWNER',
+      },
+    });
+    execAdminCookie = (
+      await request.post('/api/auth/login').send({ email: adminEmail, password })
+    ).headers['set-cookie'][0];
+
+    // Something to be owed.
+    const order = await prisma.order.create({
+      data: {
+        storeId: execStoreId,
+        orderNumber: `#TR-${Date.now()}`,
+        customerName: 'T',
+        customerEmail: 't@example.com',
+        subtotal: 1000, tax: 0, shipping: 0, total: 1000, currency: 'USD',
+      },
+    });
+    const payment = await prisma.payment.create({
+      data: {
+        storeId: execStoreId,
+        orderId: order.id,
+        provider: PaymentProvider.PAYSTACK,
+        providerReference: `ref_tr_${Date.now()}`,
+        amount: 1000, currency: 'USD', status: PaymentStatus.SUCCESS,
+      },
+    });
+    await recordCommissionForPayment(payment.id);
+  });
+
+  it('refuses to send when there is no verified recipient, and keeps the debt', async () => {
+    const payout = await createPayout({ storeId: execStoreId, amount: 100 });
+
+    /**
+     * Without a Paystack recipient code there is nowhere to send the money,
+     * and the obligation must survive the refusal — a FAILED payout would drop
+     * out of the balance calculation and quietly write off what is owed.
+     */
+    await expect(executePayout(payout.id)).rejects.toThrow(
+      /payout account|not configured|verified/i
+    );
+
+    const after = await prisma.payout.findUnique({ where: { id: payout.id } });
+    expect(after!.status).toBe(PayoutStatus.PENDING);
+  });
+
+  it('saves a payout account even when Paystack cannot verify it', async () => {
+    // A merchant must still be payable by hand when verification is
+    // unavailable; what they lose is automation, and they are told so.
+    const res = await request
+      .put('/api/payouts/account')
+      .set('Cookie', [execMerchantCookie])
+      .send({
+        accountName: 'Transfer Store Ltd',
+        bankName: 'Guaranty Trust Bank',
+        bankCode: '058',
+        accountNumber: '0123456789',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.accountNumberLast4).toBe('6789');
+
+    const stored = await prisma.merchantPayoutAccount.findUnique({
+      where: { storeId: execStoreId },
+    });
+    // No live key in the suite, so no recipient and no verification.
+    expect(stored!.providerRecipientId).toBeNull();
+    expect(stored!.verifiedAt).toBeNull();
+    // And still no full account number anywhere.
+    expect(JSON.stringify(stored)).not.toContain('0123456789');
+  });
+
+  it('exposes send as an admin-only action that never fakes success', async () => {
+    const payout = await createPayout({ storeId: execStoreId, amount: 50 });
+
+    const asMerchant = await request
+      .post(`/api/admin/payouts/${payout.id}/send`)
+      .set('Cookie', [execMerchantCookie]);
+    expect(asMerchant.status).toBe(403);
+
+    const unauthenticated = await request.post(`/api/admin/payouts/${payout.id}/send`);
+    expect(unauthenticated.status).toBe(401);
+
+    // The admin reaches the handler; with no live Paystack key it refuses
+    // rather than pretending the money moved.
+    const asAdmin = await request
+      .post(`/api/admin/payouts/${payout.id}/send`)
+      .set('Cookie', [execAdminCookie]);
+    expect(asAdmin.status).toBeGreaterThanOrEqual(400);
+    expect(asAdmin.body.success).toBe(false);
+
+    const after = await prisma.payout.findUnique({ where: { id: payout.id } });
+    expect(after!.status).toBe(PayoutStatus.PENDING);
+  });
+
+  it('settles a payout only on the transfer webhook, never on initiation', async () => {
+    const payout = await createPayout({ storeId: execStoreId, amount: 25 });
+
+    // Stand in for executePayout having reached Paystack.
+    await prisma.payout.update({
+      where: { id: payout.id },
+      data: { status: PayoutStatus.PROCESSING, providerReference: 'TRF_test_code' },
+    });
+
+    const body = {
+      event: 'transfer.success',
+      id: `evt_tr_${Date.now()}`,
+      data: { reference: payout.reference, transfer_code: 'TRF_test_code', status: 'success' },
+    };
+
+    const res = await request
+      .post('/api/webhooks/paystack')
+      .set('x-paystack-signature', sign(body))
+      .send(body);
+
+    expect(res.status).toBe(200);
+
+    const after = await prisma.payout.findUnique({ where: { id: payout.id } });
+    expect(after!.status).toBe(PayoutStatus.PAID);
+    expect(after!.paidAt).toBeTruthy();
+  });
+
+  it('returns the money to the balance when a transfer fails', async () => {
+    const payout = await createPayout({ storeId: execStoreId, amount: 30 });
+    await prisma.payout.update({
+      where: { id: payout.id },
+      data: { status: PayoutStatus.PROCESSING },
+    });
+
+    const beforeBalance = await merchantBalance(execStoreId);
+
+    const body = {
+      event: 'transfer.failed',
+      id: `evt_trf_${Date.now()}`,
+      data: { reference: payout.reference, status: 'failed', gateway_response: 'Account closed' },
+    };
+
+    await request
+      .post('/api/webhooks/paystack')
+      .set('x-paystack-signature', sign(body))
+      .send(body);
+
+    const after = await prisma.payout.findUnique({ where: { id: payout.id } });
+    expect(after!.status).toBe(PayoutStatus.FAILED);
+    expect(after!.failureReason).toContain('Account closed');
+
+    // It never reached the merchant, so they are still owed it.
+    const afterBalance = await merchantBalance(execStoreId);
+    expect(afterBalance.available).toBe(beforeBalance.available + 30);
   });
 });

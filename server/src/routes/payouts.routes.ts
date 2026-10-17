@@ -8,6 +8,7 @@ import {
   listAllPayouts,
   createPayoutForStore,
   setPayoutStatus,
+  sendPayout,
 } from '../controllers/payouts.controller.js';
 import { authMiddleware, requireStoreMembership, requirePlatformAdmin } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/rbac.middleware.js';
@@ -52,3 +53,5 @@ adminPayoutsRouter.get('/payable', listPayableStores);
 adminPayoutsRouter.get('/', listAllPayouts);
 adminPayoutsRouter.post('/', sensitiveActionRateLimiter, createPayoutForStore);
 adminPayoutsRouter.patch('/:id', sensitiveActionRateLimiter, setPayoutStatus);
+// Sends the money. Separate from creating the obligation on purpose.
+adminPayoutsRouter.post('/:id/send', sensitiveActionRateLimiter, sendPayout);

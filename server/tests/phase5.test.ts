@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import supertest from 'supertest';
 import crypto from 'crypto';
 import { TEST_WEBHOOK_SECRET } from './testDatabaseUrl.js';
@@ -48,20 +48,16 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     storeBId = resB.body.data.store.id;
 
     /**
-     * Store A levies 8% tax, by configuration.
+     * The platform levies 8% tax for the duration of this suite.
      *
      * The order totals below (200.00 + 16.00 = 216.00, and the 21600-kobo
-     * webhook amounts that must match them) assumed the platform-wide
-     * hardcoded 8%. Tax is per-store now and defaults to off, so the rate has
-     * to be set for those figures to mean anything — and with the webhook
-     * handler verifying the amount against the order, a mismatch here would
-     * correctly refuse to mark the order paid.
+     * webhook amounts that must match them) assumed a hardcoded 8%. Tax is
+     * platform configuration now and defaults to off, so the rate has to be
+     * set for those figures to mean anything — and with the webhook handler
+     * verifying the amount against the order, a mismatch here would correctly
+     * refuse to mark the order paid.
      */
-    await prisma.storeSettings.upsert({
-      where: { storeId: storeAId },
-      update: { taxEnabled: true, taxRate: 8 },
-      create: { storeId: storeAId, taxEnabled: true, taxRate: 8 },
-    });
+    process.env.PLATFORM_TAX_PERCENT = '8';
 
     // 3. Create active product for Store A
     const skuP5 = `SKU-P5-${Date.now()}`;
@@ -100,6 +96,10 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     expect(checkoutRes.status).toBe(201);
     createdOrderId = checkoutRes.body.order.id;
     createdOrderNumber = checkoutRes.body.order.orderNumber;
+  });
+
+  afterAll(() => {
+    delete process.env.PLATFORM_TAX_PERCENT;
   });
 
   it('1. Payment Initialization: calculates authoritative order total server-side and creates payment reference', async () => {

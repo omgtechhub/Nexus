@@ -3,6 +3,11 @@ import { prisma } from '../../prisma.js';
 import { PaymentStatus, PayoutStatus, PayoutMethod, Prisma } from '@prisma/client';
 import { splitPayment, commissionRate } from './commission.js';
 import { logger } from '../../utils/logger.js';
+import {
+  initiateTransfer,
+  transfersConfigured,
+  TransferError,
+} from './paystackTransfer.service.js';
 
 /**
  * What the platform owes each merchant, and the record of settling it.
@@ -236,10 +241,127 @@ export async function createPayout(params: {
   };
 }
 
+/**
+ * Send a created payout to Paystack.
+ *
+ * Deliberately a separate step from `createPayout`. Creating the obligation
+ * and moving the money are different actions with different failure modes: a
+ * transfer that cannot start must not lose the record of what is owed, and an
+ * admin must be able to create a payout now and release it later.
+ *
+ * The payout goes to PROCESSING, never straight to PAID. Paystack transfers
+ * are asynchronous — the response says `otp`, `pending` or `success` and the
+ * real outcome arrives as a `transfer.success` / `transfer.failed` /
+ * `transfer.reversed` webhook. Treating the initial response as final is the
+ * same mistake as treating a charge's initialize response as a payment.
+ */
+export async function executePayout(payoutId: string): Promise<{ status: PayoutStatus; detail?: string }> {
+  const payout = await prisma.payout.findUnique({
+    where: { id: payoutId },
+    include: { store: { include: { payoutAccount: true } } },
+  });
+
+  if (!payout) throw new PayoutError('Payout not found', 404);
+
+  if (payout.status !== PayoutStatus.PENDING) {
+    throw new PayoutError(`Only a PENDING payout can be sent; this one is ${payout.status}.`);
+  }
+
+  if (!transfersConfigured()) {
+    throw new PayoutError(
+      'Paystack is not configured, so this payout cannot be sent automatically. Pay it by another means and mark it PAID.',
+      503
+    );
+  }
+
+  const account = payout.store.payoutAccount;
+
+  if (!account?.providerRecipientId) {
+    throw new PayoutError(
+      account
+        ? 'This payout account has not been verified with Paystack, so there is no recipient to send to.'
+        : 'This merchant has not added a payout account yet.',
+      409
+    );
+  }
+
+  // Claim the transition before calling out, so a double-click cannot send
+  // the same money twice.
+  const claimed = await prisma.payout.updateMany({
+    where: { id: payout.id, status: PayoutStatus.PENDING },
+    data: { status: PayoutStatus.PROCESSING, method: PayoutMethod.PROVIDER_TRANSFER },
+  });
+
+  if (claimed.count !== 1) {
+    throw new PayoutError('This payout is already being sent.');
+  }
+
+  try {
+    const result = await initiateTransfer({
+      recipientCode: account.providerRecipientId,
+      amount: payout.amount,
+      currency: payout.currency,
+      reference: payout.reference,
+      reason: payout.note || `Nexus payout ${payout.reference}`,
+    });
+
+    await prisma.payout.update({
+      where: { id: payout.id },
+      data: { providerReference: result.transferCode },
+    });
+
+    logger.info({
+      msg: 'Payout transfer initiated',
+      payoutId: payout.id,
+      reference: payout.reference,
+      transferCode: result.transferCode,
+      paystackStatus: result.status,
+    });
+
+    return {
+      status: PayoutStatus.PROCESSING,
+      detail: result.requiresOtp
+        ? 'Paystack is holding this transfer for OTP confirmation. It will not complete until the code is entered on the Paystack dashboard; turn OTP off there for fully automated payouts.'
+        : 'Transfer sent. Paystack will confirm by webhook.',
+    };
+  } catch (err: any) {
+    /**
+     * Put it back to PENDING rather than marking it FAILED.
+     *
+     * The money did not move, and the merchant is still owed it — a FAILED
+     * payout would drop out of the balance calculation and quietly write off
+     * the debt. An unreachable gateway in particular says nothing about
+     * whether a retry will work.
+     */
+    await prisma.payout.update({
+      where: { id: payout.id },
+      data: {
+        status: PayoutStatus.PENDING,
+        method: PayoutMethod.MANUAL,
+        failureReason: err?.message ?? 'Transfer could not be started',
+      },
+    });
+
+    logger.error({
+      msg: 'Payout transfer could not be started; returned to PENDING',
+      payoutId: payout.id,
+      error: err?.message,
+    });
+
+    throw new PayoutError(
+      err instanceof TransferError
+        ? `Paystack refused the transfer: ${err.message}`
+        : 'The transfer could not be started.',
+      502
+    );
+  }
+}
+
 /** Legal status transitions. Anything else is a mistake, not an instruction. */
 const ALLOWED_TRANSITIONS: Record<PayoutStatus, PayoutStatus[]> = {
   PENDING: [PayoutStatus.PROCESSING, PayoutStatus.PAID, PayoutStatus.FAILED],
-  PROCESSING: [PayoutStatus.PAID, PayoutStatus.FAILED],
+  // A reversal can arrive straight after a success, before anyone looks.
+  PROCESSING: [PayoutStatus.PAID, PayoutStatus.FAILED, PayoutStatus.PENDING, PayoutStatus.REVERSED],
   PAID: [PayoutStatus.REVERSED],
   FAILED: [PayoutStatus.PENDING],
   REVERSED: [],

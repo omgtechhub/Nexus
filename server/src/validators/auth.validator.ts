@@ -67,20 +67,14 @@ export const settingsSchema = z.object({
   customDomain: z.string().optional(),
 
   /**
-   * Tax and delivery, which checkout now actually reads.
+   * Delivery, which checkout reads. Tax is deliberately absent.
    *
-   * Previously checkout applied a hardcoded 8% tax and a flat $15 delivery to
-   * every store, and there was nowhere to configure either — so these fields
-   * had no API surface at all.
-   *
-   * The rate is capped at 100: a percentage above that is a typo (someone
-   * entering 750 for 7.5%), and charging it would be worse than rejecting it.
+   * Tax is a platform decision on a single marketplace — Nexus takes the
+   * money and issues the receipt — so it lives in `config/tax.ts` and is not
+   * something a merchant sets. Accepting these fields here would let a
+   * merchant believe they had changed what their customers are charged when
+   * nothing reads them.
    */
-  taxEnabled: z.boolean().optional(),
-  taxRate: z.number().min(0).max(100).optional(),
-  taxLabel: z.string().min(1).max(30).optional(),
-  taxInclusive: z.boolean().optional(),
-
   defaultShippingFee: z.number().min(0).optional(),
   // Nullable, not just optional: clearing the threshold has to be expressible,
   // and `undefined` in a Prisma update means "leave alone", not "unset".

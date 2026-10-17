@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import crypto from 'crypto';
 import supertest from 'supertest';
 import { app } from '../src/app.js';
@@ -243,8 +243,29 @@ describe('Item 15: a webhook only settles an order for the right amount', () => 
   });
 });
 
-describe('Item 14: tax and delivery come from the store, not from a constant', () => {
+describe('Item 14: tax and delivery are configured, not hardcoded', () => {
   let storeId: string;
+  const originalTax = process.env.PLATFORM_TAX_PERCENT;
+  const originalLabel = process.env.PLATFORM_TAX_LABEL;
+  const originalInclusive = process.env.PLATFORM_TAX_INCLUSIVE;
+
+  /**
+   * Tax moved from a per-store column to platform configuration.
+   *
+   * Nexus is a single marketplace — it takes the money and issues the
+   * receipt — so one rate applies to every sale rather than each merchant
+   * declaring their own. These tests therefore set the environment rather
+   * than a StoreSettings row.
+   */
+  afterAll(() => {
+    const restore = (key: string, value: string | undefined) => {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    };
+    restore('PLATFORM_TAX_PERCENT', originalTax);
+    restore('PLATFORM_TAX_LABEL', originalLabel);
+    restore('PLATFORM_TAX_INCLUSIVE', originalInclusive);
+  });
 
   beforeAll(async () => {
     const reg = await request.post('/api/auth/register').send({
@@ -257,8 +278,10 @@ describe('Item 14: tax and delivery come from the store, not from a constant', (
   });
 
   it('charges no tax and no delivery when nothing is configured', async () => {
+    delete process.env.PLATFORM_TAX_PERCENT;
+
     // The hardcoded 8% + $15 made this state impossible to express: every
-    // store charged a US sales tax it had never configured.
+    // order carried a US sales tax nobody had configured.
     const quote = await quoteOrder({ storeId, subtotal: 300 });
 
     expect(quote.tax).toBe(0);
@@ -268,11 +291,8 @@ describe('Item 14: tax and delivery come from the store, not from a constant', (
   });
 
   it('applies the configured rate and label', async () => {
-    await prisma.storeSettings.upsert({
-      where: { storeId },
-      update: { taxEnabled: true, taxRate: 7.5, taxLabel: 'VAT' },
-      create: { storeId, taxEnabled: true, taxRate: 7.5, taxLabel: 'VAT' },
-    });
+    process.env.PLATFORM_TAX_PERCENT = '7.5';
+    process.env.PLATFORM_TAX_LABEL = 'VAT';
 
     const quote = await quoteOrder({ storeId, subtotal: 200 });
     expect(quote.tax).toBe(15);
@@ -281,6 +301,8 @@ describe('Item 14: tax and delivery come from the store, not from a constant', (
   });
 
   it('taxes what is owed after the discount, not the gross subtotal', async () => {
+    process.env.PLATFORM_TAX_PERCENT = '7.5';
+
     // Tax was applied to the pre-discount subtotal, so a discount code did not
     // reduce the tax it should have.
     const quote = await quoteOrder({ storeId, subtotal: 200, discountAmount: 100 });
@@ -291,20 +313,16 @@ describe('Item 14: tax and delivery come from the store, not from a constant', (
   });
 
   it('extracts rather than adds tax when prices are tax-inclusive', async () => {
-    await prisma.storeSettings.update({
-      where: { storeId },
-      data: { taxInclusive: true, taxRate: 10 },
-    });
+    process.env.PLATFORM_TAX_PERCENT = '10';
+    process.env.PLATFORM_TAX_INCLUSIVE = 'true';
 
     const quote = await quoteOrder({ storeId, subtotal: 110 });
     // 110 gross at 10% inclusive => 10 of tax, total unchanged.
     expect(quote.tax).toBe(10);
     expect(quote.total).toBe(110);
 
-    await prisma.storeSettings.update({
-      where: { storeId },
-      data: { taxInclusive: false, taxEnabled: false, taxRate: 0 },
-    });
+    process.env.PLATFORM_TAX_INCLUSIVE = 'false';
+    process.env.PLATFORM_TAX_PERCENT = '0';
   });
 
   it("reads the merchant's own shipping zones, which checkout used to ignore", async () => {

@@ -67,16 +67,13 @@ services:
       # the proxy, so all clients share one rate-limit bucket.
       TRUST_PROXY: ${TRUST_PROXY:-1}
 
-      # Payments. Checkout returns 503 rather than faking a success when these
-      # are absent, so an unset key is a visibly broken checkout, not a silent
-      # one. FLUTTERWAVE_WEBHOOK_SECRET has no fallback — without it every
-      # Flutterwave webhook is rejected with a 401.
+      # Payments, via Paystack. Checkout returns 503 rather than faking a
+      # success when these are absent, so an unset key is a visibly broken
+      # checkout rather than a silent one. The secret key also signs webhooks
+      # and authorises merchant payout transfers.
       PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
       PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
       PAYSTACK_WEBHOOK_SECRET: ${PAYSTACK_WEBHOOK_SECRET:-}
-      FLUTTERWAVE_SECRET_KEY: ${FLUTTERWAVE_SECRET_KEY:-}
-      FLUTTERWAVE_PUBLIC_KEY: ${FLUTTERWAVE_PUBLIC_KEY:-}
-      FLUTTERWAVE_WEBHOOK_SECRET: ${FLUTTERWAVE_WEBHOOK_SECRET:-}
 
       # Email. The API exits on boot in production if these are unusable,
       # because a silently dead transport means nobody can reset a password.
@@ -94,12 +91,17 @@ services:
       # The platform's cut of each merchant sale. 0 means merchants are owed
       # 100% and subscriptions are the only platform revenue. Captured per
       # payment at settlement, so a change affects new sales only.
-      PLATFORM_COMMISSION_PERCENT: ${PLATFORM_COMMISSION_PERCENT:-0}
+      PLATFORM_COMMISSION_PERCENT: ${PLATFORM_COMMISSION_PERCENT:-5}
 
       # The currency new stores trade in. MUST match a currency the gateway
       # account has enabled — Paystack rejects anything else outright, which
       # fails every checkout at initialize.
       DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
+
+      # Platform-wide sales tax. 0 charges none.
+      PLATFORM_TAX_PERCENT: ${PLATFORM_TAX_PERCENT:-0}
+      PLATFORM_TAX_LABEL: ${PLATFORM_TAX_LABEL:-Tax}
+      PLATFORM_TAX_INCLUSIVE: ${PLATFORM_TAX_INCLUSIVE:-false}
 
       # Recurring jobs run in-process. Set false on all but one replica if you
       # scale the API beyond a single instance.
@@ -134,7 +136,6 @@ services:
         VITE_BASE: ${VITE_BASE:-/}
         VITE_APP_NAME: ${VITE_APP_NAME:-Nexus Commerce}
         VITE_PAYSTACK_PUBLIC_KEY: ${VITE_PAYSTACK_PUBLIC_KEY:-}
-        VITE_FLUTTERWAVE_PUBLIC_KEY: ${VITE_FLUTTERWAVE_PUBLIC_KEY:-}
         VITE_WHATSAPP_NUMBER: ${VITE_WHATSAPP_NUMBER:-}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     container_name: nexus_frontend

@@ -24,7 +24,6 @@ import toast from 'react-hot-toast';
  */
 const ACTIVE_PROVIDERS = [
   { name: 'Paystack', methods: 'Cards, bank transfer, USSD and mobile money' },
-  { name: 'Flutterwave', methods: 'Cards, bank transfer and wallet payments' },
 ];
 
 export function PaymentsSection() {
@@ -325,10 +324,8 @@ export function PaymentsSection() {
         * Which gateways are live — and why this is a statement, not a control.
         *
         * It used to be seven toggles: Shop Pay, Apple Pay, Google Pay, Klarna
-        * and crypto alongside Paystack and Flutterwave. Two problems with
-        * that. The platform only integrates Paystack and Flutterwave
-        * (`server/src/services/payments/payment.factory.ts`), so five of them
-        * named nothing. And the toggles wrote to local component state and
+        * and crypto alongside Paystack. Two problems with that. The platform
+        * settles through Paystack alone, so six of them named nothing. And the toggles wrote to local component state and
         * toasted "preference updated!", so even the two real ones were a
         * control that changed nothing and said it had.
         *

@@ -223,7 +223,7 @@ const ARTICLES: Article[] = [
     question: 'When do I get paid?',
     answer: [
       'A charge is confirmed by the payment provider, then settles into your payout balance. Payments shows each charge, each payout and the balance between them.',
-      'Settlement timing is the provider\'s, not ours: Paystack and Flutterwave each have their own schedule, and Payments names which provider handled a given charge.',
+      'Settlement timing follows Paystack\'s own schedule, not ours. Payments shows what each charge settled at and what your share of it was.',
     ],
     action: { label: 'Go to Payments', to: '/seller/payments' },
   },

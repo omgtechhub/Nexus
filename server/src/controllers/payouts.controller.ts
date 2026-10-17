@@ -6,9 +6,17 @@ import {
   merchantBalance,
   createPayout,
   updatePayoutStatus,
+  executePayout,
   PayoutError,
 } from '../services/payouts/payout.service.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
+import {
+  resolveBankAccount,
+  createTransferRecipient,
+  transfersConfigured,
+} from '../services/payouts/paystackTransfer.service.js';
+import { currencyCodeOf } from '../config/currency.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Merchant payouts.
@@ -112,32 +120,76 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
     const last4 = body.accountNumber.slice(-4);
 
     /**
-     * No provider recipient is registered here.
+     * Verify the account with Paystack, then register it as a recipient.
      *
-     * Registering the destination with Paystack and verifying that the account
-     * number resolves to `accountName` needs a live secret key and a funded
-     * transfer balance, which is a deployment decision rather than something
-     * to attempt silently. `verifiedAt` therefore stays null and payouts
-     * default to MANUAL — a platform admin pays by their own means and records
-     * it. See `services/payouts/README.md`.
+     * Both happen here, while the full account number is still in hand — it
+     * is never stored, so this is the only moment either is possible.
+     *
+     * The name Paystack resolves is kept in preference to the one the
+     * merchant typed: the point of asking the bank is to catch a transposed
+     * digit, and overwriting the bank's answer with the typist's would defeat
+     * it. A merchant whose typed name disagrees is told, rather than silently
+     * corrected.
      */
+    let resolvedName = body.accountName;
+    let recipientCode: string | null = null;
+    let verifiedAt: Date | null = null;
+    let verificationNote: string | undefined;
+
+    if (transfersConfigured()) {
+      try {
+        const resolved = await resolveBankAccount(body.accountNumber, body.bankCode);
+        resolvedName = resolved.accountName;
+
+        recipientCode = await createTransferRecipient({
+          accountName: resolved.accountName,
+          accountNumber: body.accountNumber,
+          bankCode: body.bankCode,
+          currency: currencyCodeOf(req.store!.currency),
+        });
+        verifiedAt = new Date();
+
+        if (resolved.accountName.trim().toLowerCase() !== body.accountName.trim().toLowerCase()) {
+          verificationNote =
+            `This account is registered to "${resolved.accountName}". We have saved that name.`;
+        }
+      } catch (err: any) {
+        /**
+         * A failed verification is not a failed save.
+         *
+         * The merchant still needs their details recorded so an admin can pay
+         * them manually; what they lose is automated transfer, and they are
+         * told so rather than left to wonder. A wrong account number lands
+         * here, which is the common case and the one worth being clear about.
+         */
+        logger.warn({
+          msg: 'Could not verify a payout account with Paystack',
+          storeId,
+          error: err?.message,
+        });
+        verificationNote = `We could not verify this account with Paystack: ${err?.message ?? 'unknown error'}. `
+          + 'Your details are saved, but payouts will be released manually until it verifies.';
+      }
+    }
+
     const account = await prisma.merchantPayoutAccount.upsert({
       where: { storeId },
       update: {
-        accountName: body.accountName,
+        accountName: resolvedName,
         bankName: body.bankName,
         bankCode: body.bankCode,
         accountNumberLast4: last4,
-        // Details changed, so any previous verification no longer applies.
-        verifiedAt: null,
-        providerRecipientId: null,
+        providerRecipientId: recipientCode,
+        verifiedAt,
       },
       create: {
         storeId,
-        accountName: body.accountName,
+        accountName: resolvedName,
         bankName: body.bankName,
         bankCode: body.bankCode,
         accountNumberLast4: last4,
+        providerRecipientId: recipientCode,
+        verifiedAt,
       },
     });
 
@@ -162,6 +214,9 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
         accountNumberLast4: account.accountNumberLast4,
         verifiedAt: account.verifiedAt,
       },
+      // Present when the bank's answer differs from what was typed, or when
+      // verification could not be completed.
+      message: verificationNote,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -290,6 +345,40 @@ export async function setPayoutStatus(req: Request, res: Response, next: NextFun
       res.status(400).json({ success: false, error: err.errors[0].message });
       return;
     }
+    if (err instanceof PayoutError) {
+      res.status(err.statusCode).json({ success: false, error: err.message });
+      return;
+    }
+    next(err);
+  }
+}
+
+/**
+ * Release a created payout to Paystack.
+ *
+ * Separate from creating it, so an admin can queue what is owed now and send
+ * it when they choose — and so a transfer that cannot start never destroys the
+ * record of the debt.
+ */
+export async function sendPayout(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await executePayout(req.params.id);
+
+    const payout = await prisma.payout.findUnique({ where: { id: req.params.id } });
+
+    await logAuditEvent({
+      storeId: payout!.storeId,
+      userId: req.user!.id,
+      actorName: req.user!.name,
+      actorEmail: req.user!.email,
+      action: 'PAYOUT_SENT',
+      resource: 'payout',
+      resourceId: payout!.id,
+      metadata: { reference: payout!.reference, amount: payout!.amount },
+    });
+
+    res.json({ success: true, data: payout, message: result.detail });
+  } catch (err) {
     if (err instanceof PayoutError) {
       res.status(err.statusCode).json({ success: false, error: err.message });
       return;

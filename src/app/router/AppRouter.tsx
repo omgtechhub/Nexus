@@ -1,7 +1,6 @@
 import { lazy, Suspense, ComponentType } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { MarketingPage } from '../../pages/MarketingPage';
-import { useApp } from '../../context/AppContext';
 import { RequireCustomer } from '../auth/guards';
 import { RouteFallback } from './RouteFallback';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
@@ -44,9 +43,6 @@ const CartPage = lazyNamed(() => import('../../marketplace/pages/CartPage'), 'Ca
 const CheckoutPage = lazyNamed(() => import('../../marketplace/pages/CheckoutPage'), 'CheckoutPage');
 const CheckoutCompletePage = lazyNamed(() => import('../../marketplace/pages/CheckoutCompletePage'), 'CheckoutCompletePage');
 
-// A single merchant's own storefront: a separate audience from the marketplace.
-const StorefrontView = lazyNamed(() => import('../../components/storefront/StorefrontView'), 'StorefrontView');
-
 // Marketing pages past the homepage.
 const PricingPage = lazyNamed(() => import('../../pages/PricingPage'), 'PricingPage');
 const ContactPage = lazyNamed(() => import('../../pages/ContactPage'), 'ContactPage');
@@ -68,7 +64,6 @@ const AuthPage = lazyNamed(() => import('../../components/auth/AuthPage'), 'Auth
 const NotFoundPage = lazyNamed(() => import('../../pages/NotFoundPage'), 'NotFoundPage');
 
 export function AppRouter() {
-  const { store } = useApp();
   const location = useLocation();
 
   return (
@@ -134,23 +129,20 @@ export function AppRouter() {
           <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/cookies" element={<CookiePolicyPage />} />
 
-          {/* PUBLIC STOREFRONT — one merchant's own shop.
+          {/*
+            No per-merchant storefront.
 
-              A storefront belongs to a store, so the slugged route is the real
-              one. The bare path only means anything to a signed-in merchant
-              previewing their own shop; for everyone else — including every
-              signed-in *customer*, whose `store` is always undefined — it
-              rendered "No storefront specified", so it sent shoppers to a dead
-              end. It now falls through to the marketplace instead. */}
-          <Route
-            path="/storefront"
-            element={
-              store?.id
-                ? <StorefrontView storeSlug={store.id} />
-                : <Navigate to="/products" replace />
-            }
-          />
-          <Route path="/storefront/:storeSlug" element={<StorefrontView />} />
+            Nexus is a single marketplace: merchants sell from a merchant
+            account into one shared shopfront, they do not get an independent
+            shop of their own to send people to. `/storefront/:slug` rendered
+            exactly that — a second, separate catalogue and a second checkout —
+            which is a product this platform does not offer. Both routes and
+            the component are gone; `/products` is the shop.
+
+            The `/api/storefront/:merchant/*` endpoints stay: despite the name
+            they are the merchant-scoped cart-validation and checkout API that
+            the marketplace checkout runs on.
+          */}
 
           {/* PORTALS */}
           <Route path="/account/*" element={<CustomerRoutes />} />
