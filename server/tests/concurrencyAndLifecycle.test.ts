@@ -392,3 +392,74 @@ describe('Trading currency is configurable, not hardcoded USD', () => {
     }
   });
 });
+
+describe('One merchant account per seller', () => {
+  const password = 'Password123!';
+
+  it('refuses a second merchant account for the same user, with an explanation', async () => {
+    const email = `one_account_${Date.now()}@nexus.io`;
+
+    const first = await request.post('/api/auth/register').send({
+      name: 'Single Account Merchant',
+      email,
+      password,
+      storeName: 'First Merchant Account',
+    });
+    expect(first.status).toBe(201);
+    const cookie = first.headers['set-cookie'][0];
+
+    /**
+     * Nexus is a single marketplace: a merchant sells from their merchant
+     * account and does not run several independent shops. Nothing used to say
+     * so — `@@unique([userId, storeId])` only stopped joining the same record
+     * twice — which is why the code that resolves "the current merchant" had
+     * to fall back to `memberships[0]`, i.e. whichever row came back first.
+     */
+    const second = await request
+      .post('/api/auth/register')
+      .set('Cookie', [cookie])
+      .send({
+        name: 'Single Account Merchant',
+        email,
+        password,
+        storeName: 'Second Merchant Account',
+      });
+
+    expect(second.status).toBeGreaterThanOrEqual(400);
+    expect(second.status).toBeLessThan(500);
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { memberships: true },
+    });
+    const owned = user!.memberships.filter(m => m.role === 'OWNER');
+    expect(owned).toHaveLength(1);
+  });
+
+  it('resolves the owned account over one the user was invited onto', async () => {
+    const { activeMembershipOf } = await import('../src/services/auth/membership.js');
+
+    const older = new Date('2026-01-01');
+    const newer = new Date('2026-06-01');
+
+    // A merchant invited onto someone else's account as STAFF must keep
+    // acting for their own; an invitation cannot take over their session.
+    expect(
+      activeMembershipOf([
+        { role: 'STAFF', createdAt: older },
+        { role: 'OWNER', createdAt: newer },
+      ])!.role
+    ).toBe('OWNER');
+
+    // Same role on two rows resolves to the older one, so the answer is
+    // stable across requests rather than dependent on row order.
+    const sameRole = activeMembershipOf([
+      { role: 'STAFF', createdAt: newer },
+      { role: 'STAFF', createdAt: older },
+    ]);
+    expect(sameRole!.createdAt).toBe(older);
+
+    expect(activeMembershipOf([])).toBeUndefined();
+    expect(activeMembershipOf(null)).toBeUndefined();
+  });
+});

@@ -6,6 +6,7 @@ import { selectEmailProvider } from './services/email/selectProvider.js';
 import { checkSessionCookieViability } from './utils/deploymentChecks.js';
 import { backfillMissingCommissions } from './services/payouts/payout.service.js';
 import { startScheduler, stopScheduler } from './jobs/scheduler.js';
+import { shutdownTranscriber } from './services/voice/stt.service.js';
 
 /**
  * Refuse to serve a production install that cannot hold a session.
@@ -105,6 +106,9 @@ const handleShutdown = (signal: string) => {
 
   server.close(async () => {
     try {
+      // Worker threads keep the process alive on their own, so a pool left
+      // running turns a graceful shutdown into a SIGKILL after the timeout.
+      await shutdownTranscriber();
       await prisma.$disconnect();
     } catch (err) {
       logger.warn({ err }, 'Error disconnecting Prisma during shutdown');

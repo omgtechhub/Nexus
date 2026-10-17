@@ -186,3 +186,71 @@ describe.skipIf(!modelsPresent)('Spoken commands reach an answer on all three si
     expect(res.status).not.toBe(500);
   }, 120_000);
 });
+
+/**
+ * The reason the worker pool exists.
+ *
+ * Transcription used to run on the main thread: ~1.3 s of solid ONNX
+ * inference during which the event loop could not serve anything. One spoken
+ * command froze every other request on the server. Voice is core to this
+ * platform, so the work had to move rather than be switched off.
+ */
+describe.skipIf(!modelsPresent)('transcription does not block the API', () => {
+  it('keeps the event loop responsive while a clip is being transcribed', async () => {
+    const samples = decodeToMono16k(clip('speaker-a-0.wav'));
+
+    /**
+     * A 20 ms heartbeat, measured for how late it actually fires.
+     *
+     * On the main thread, inference pushes every pending timer to the back of
+     * a single blocked turn, so the worst gap was the whole inference —
+     * comfortably over a second. Off-thread, the loop keeps ticking.
+     */
+    const gaps: number[] = [];
+    let last = Date.now();
+
+    const heartbeat = setInterval(() => {
+      const now = Date.now();
+      gaps.push(now - last);
+      last = now;
+    }, 20);
+
+    try {
+      const text = await transcribe(samples);
+      expect(text).toBeTruthy();
+    } finally {
+      clearInterval(heartbeat);
+    }
+
+    expect(gaps.length).toBeGreaterThan(5);
+
+    const worstGap = Math.max(...gaps);
+    // Generously above the 20 ms interval to tolerate GC and a loaded CI box,
+    // and still far below the ~1300 ms a main-thread run would produce.
+    expect(worstGap).toBeLessThan(500);
+  }, 120_000);
+
+  it('refuses rather than queueing without bound when saturated', async () => {
+    const { transcriberPool, TranscriberBusyError } = await import(
+      '../src/services/voice/transcriberPool.js'
+    );
+    const samples = decodeToMono16k(clip('speaker-a-0.wav'));
+
+    /**
+     * An unbounded queue would accept work faster than it can ever be done,
+     * hold every caller's audio in memory, and answer them all with a timeout
+     * minutes later. A refusal the caller can act on is the better failure.
+     */
+    const flood = Array.from({ length: 40 }, () => transcriberPool.run(samples));
+    const results = await Promise.allSettled(flood);
+
+    const refused = results.filter(
+      r => r.status === 'rejected' && r.reason instanceof TranscriberBusyError
+    );
+
+    expect(refused.length).toBeGreaterThan(0);
+    // And the ones that got through still produced real transcripts.
+    const fulfilled = results.filter(r => r.status === 'fulfilled');
+    expect(fulfilled.length).toBeGreaterThan(0);
+  }, 180_000);
+});

@@ -1,4 +1,8 @@
-import path from 'path';
+import {
+  transcriberPool,
+  TranscriberBusyError,
+  TranscriberTimeoutError,
+} from './transcriberPool.js';
 
 /**
  * Speech to text, on this server.
@@ -53,52 +57,24 @@ export function isEnglishOnly(model: string): boolean {
   return /\.en$/i.test(model);
 }
 
-type AsrPipeline = (
-  audio: Float32Array,
-  options?: Record<string, unknown>
-) => Promise<{ text: string } | { text: string }[]>;
-
-let pipelinePromise: Promise<AsrPipeline> | null = null;
-
 /**
- * Load Whisper once, lazily.
+ * Transcription runs in a worker pool, not here.
  *
- * Lazily because the first call downloads the model, and a server that fetches
- * 42 MB during boot fails to start on a metered or offline machine for a
- * feature most requests never touch.
+ * This module used to load Whisper into the API process and run inference on
+ * the main thread — ~1.3 s of solid CPU per command, during which the event
+ * loop could not serve anything else. One spoken command froze every other
+ * request on the server; a handful at once took the API down for seconds at a
+ * time. Voice is core to this platform, so the answer was to move the work,
+ * not to switch the feature off.
+ *
+ * `transcriberPool` owns the threads, the model loading, the queue and the
+ * restarts. Everything below is the same public surface the controllers
+ * already called, so nothing else changed.
  */
-async function getPipeline(): Promise<AsrPipeline> {
-  if (pipelinePromise) return pipelinePromise;
-
-  pipelinePromise = (async () => {
-    const { pipeline, env } = await import('@huggingface/transformers');
-    // Keep the download beside the speaker model rather than in a home
-    // directory, so one `.models/` holds everything the voice path needs.
-    env.cacheDir = process.env.VOICE_MODEL_DIR || path.join(process.cwd(), '.models');
-
-    return (await pipeline('automatic-speech-recognition', modelId(), {
-      dtype: { encoder_model: 'q8', decoder_model_merged: 'q8' },
-    })) as unknown as AsrPipeline;
-  })();
-
-  try {
-    return await pipelinePromise;
-  } catch (err) {
-    // Let the next request try again rather than caching the failure for the
-    // lifetime of the process: the usual cause is a dropped download.
-    pipelinePromise = null;
-    throw err;
-  }
-}
 
 /** Warm the model ahead of the first spoken command. */
 export async function warmUpTranscriber(): Promise<boolean> {
-  try {
-    await getPipeline();
-    return true;
-  } catch {
-    return false;
-  }
+  return transcriberPool.warmUp();
 }
 
 /**
@@ -107,42 +83,37 @@ export async function warmUpTranscriber(): Promise<boolean> {
  * Whisper hallucinates fluently on silence — it will happily return "you" or
  * "Thank you." for a clip with no speech in it — so near-empty results are
  * filtered by the caller against the clip's own amplitude rather than trusted.
+ *
+ * Busy and timeout conditions carry their own error types with a status code,
+ * so a caller can tell "try again in a moment" apart from "this recording
+ * cannot be transcribed".
  */
 export async function transcribe(samples: Float32Array): Promise<string> {
-  let asr: AsrPipeline;
   try {
-    asr = await getPipeline();
+    return await transcriberPool.run(samples);
   } catch (err: any) {
-    throw new TranscriptionError(
-      `Speech recognition is not available: ${err?.message ?? err}. The model ` +
-        'downloads on first use, so this usually means no network on that first run.'
-    );
-  }
+    if (err instanceof TranscriberBusyError || err instanceof TranscriberTimeoutError) {
+      throw err;
+    }
 
-  /*
-   * `language` and `task` are only legal on a multilingual checkpoint.
-   *
-   * The default model is `whisper-base.en`, which is English-only and rejects
-   * both outright -- "Cannot specify `task` or `language` for an English-only
-   * model" -- so passing them unconditionally made every spoken command fail
-   * after the voice had already been matched. An English-only model needs no
-   * language hint anyway: there is only one language it can produce.
-   */
-  const options = isEnglishOnly(modelId()) ? {} : { language: 'en', task: 'transcribe' };
-
-  let result: Awaited<ReturnType<AsrPipeline>>;
-  try {
-    result = await asr(samples, options);
-  } catch (err: any) {
-    // Wrapped, so a decoding failure reaches the caller as a 503 it can
-    // explain rather than a 500 that reads as the whole feature being broken.
+    // Wrapped, so a decoding failure or a missing model reaches the caller as
+    // something it can explain rather than a 500 that reads as the whole
+    // feature being broken. The model downloads on first use, so the usual
+    // cause on a fresh install is no network during that first request.
     throw new TranscriptionError(
       `The recording could not be transcribed: ${err?.message ?? err}`
     );
   }
+}
 
-  const text = Array.isArray(result) ? result.map(r => r.text).join(' ') : result.text;
-  return (text || '').trim();
+/** Queue depth, for the readiness probe and the voice status endpoint. */
+export function transcriberQueueDepth(): number {
+  return transcriberPool.depth;
+}
+
+/** Stop the worker threads. Called from the server's shutdown path. */
+export async function shutdownTranscriber(): Promise<void> {
+  await transcriberPool.shutdown();
 }
 
 /** What the UI shows about the recogniser. */
@@ -151,5 +122,7 @@ export function transcriberInfo() {
     engine: 'whisper',
     model: modelId(),
     local: true,
+    // Visible so a slow response can be told apart from a stuck one.
+    queued: transcriberPool.depth,
   };
 }

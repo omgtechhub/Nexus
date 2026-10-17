@@ -269,6 +269,16 @@ model StoreMember {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, storeId])
+  /// A user may OWN at most one merchant account.
+  ///
+  /// Enforced by a partial unique index that Prisma cannot express here —
+  /// `CREATE UNIQUE INDEX ... ON "StoreMember" ("userId") WHERE "role" =
+  /// 'OWNER'`, added in `20261017120000_one_merchant_account_per_owner`.
+  /// STAFF and ADMIN memberships are deliberately unconstrained so a person
+  /// can still be invited onto someone else's merchant account.
+  ///
+  /// Without it nothing stopped one user owning several merchant records, and
+  /// the code that resolves "the current merchant" had to guess.
 }
 
 model Session {

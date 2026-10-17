@@ -7,6 +7,42 @@
 3. **Database**: PostgreSQL 16, multi-tenant row isolation.
 4. **Cache**: Redis 7.
 
+## Release order for the first deploy
+
+Two changes in this release interact badly if they land together. Deploy in
+this order.
+
+### 1. Email first, and prove it works
+
+The session-token change below signs everybody out. If SMTP is misconfigured
+at that moment, every user is simultaneously logged out **and** unable to reset
+their password — the one failure that turns a routine deploy into a lockout.
+
+So: deploy with SMTP configured, confirm a real reset email arrives, and only
+then proceed. The API refuses to boot in production without usable
+credentials, which catches the blatant case; it cannot tell you the mailbox
+actually receives.
+
+### 2. Session hashing signs everyone out, once
+
+Session tokens are now stored as SHA-256 digests, so existing rows no longer
+match the cookies clients hold. Every user signs in again — once.
+
+There is deliberately no dual-read migration. Accepting both the old and new
+formats during a transition would mean shipping code that still honours the
+exact plaintext credential the change exists to eliminate, which is a strange
+thing to do for the sake of one forced re-login. Pick a low-traffic window
+instead.
+
+### 3. One merchant account per seller
+
+A partial unique index now enforces at most one OWNER membership per user. No
+existing account violated it when this was written; if yours does, the
+migration fails loudly rather than silently dropping a membership. Resolve the
+duplicate first.
+
+---
+
 > **Note on background jobs.** `server/src/jobs/jobQueue.ts` is an in-process
 > queue: an array, drained by the same process that serves requests. It has no
 > persistence, no retries and no scheduler. Redis is in the stack and
@@ -21,6 +57,15 @@
 >   their own. Drive them from an external cron hitting an admin endpoint, or
 >   move the queue onto Redis, before relying on recurring billing.
 > - Running more than one API replica means each one has its own queue.
+>
+> **Recommendation: run a single API instance and leave `SCHEDULER_ENABLED`
+> at `true`.** The jobs are safe against double-running — each claims its row
+> before acting — so a second replica is wasteful rather than wrong, but there
+> is no reason to take on that shape before you need it.
+>
+> Revisit when you add a replica, or when losing a queued email to a restart
+> stops being acceptable. At that point the fix is not the flag: it is moving
+> the queue onto Redis, which is already in the stack and used by nothing.
 
 ---
 
@@ -147,6 +192,14 @@ Three volumes hold state that must survive a redeploy:
 | `uploads_data` | product images (`/app/uploads`) | every image a merchant uploaded |
 | `voice_models` | Whisper/speaker ONNX models | re-downloaded on each cold start |
 
+### Sizing for voice
+
+Transcription runs in worker threads so it cannot block the API. **Each worker
+holds its own copy of the model (~76 MB for base.en)**, so `VOICE_WORKERS=2`
+costs roughly 150 MB on top of the Node runtime. Raise it only alongside the
+container's memory limit; `VOICE_MAX_QUEUE` refuses excess work with a 503
+rather than letting a backlog grow unbounded.
+
 `uploads_data` is the one worth checking after any compose edit. Images are
 written to the API container's local disk, so without the mount they are
 deleted with the container on the next `up --build`. Back it up alongside the
@@ -222,4 +275,6 @@ is wrong in a way no health check will catch:
 | `Password reset email was NOT delivered` | an account is unrecoverable |
 | `SaaS subscription underpaid; plan not granted` | gateway took less than the invoice; needs a human |
 | `Blocked a cross-origin state change` | CSRF guard fired, or `FRONTEND_URL` is wrong |
+| `Transcriber worker errored` / `exited` | a voice worker died; the pool respawns it, but repeated entries mean the model or the host is unhealthy |
+| `Payout transfer could not be started` | a merchant payout did not reach Paystack; the obligation is back at PENDING and still owed |
 | `CORS rejected origin` | `FRONTEND_URL` does not match the origin actually serving the app |

@@ -109,6 +109,13 @@ services:
 
       WHISPER_MODEL: ${WHISPER_MODEL:-onnx-community/whisper-base.en}
       VOICE_MODEL_DIR: ${VOICE_MODEL_DIR:-.models}
+
+      # Transcription runs in worker threads so it cannot block the API.
+      # Each worker holds its own copy of the model (~76MB), so raising this
+      # raises the container's memory accordingly — size the host for it.
+      VOICE_WORKERS: ${VOICE_WORKERS:-2}
+      VOICE_TIMEOUT_MS: ${VOICE_TIMEOUT_MS:-60000}
+      VOICE_MAX_QUEUE: ${VOICE_MAX_QUEUE:-12}
     volumes:
       # Product images live on disk. Without this volume every image a merchant
       # uploaded vanished on the next redeploy.

@@ -3,6 +3,7 @@ import { prisma } from '../prisma.js';
 import { AccountType } from '@prisma/client';
 import { logger } from '../utils/logger.js';
 import { hashSessionToken } from '../services/auth/tokens.service.js';
+import { activeMembershipOf } from '../services/auth/membership.js';
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
@@ -35,7 +36,9 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     const { passwordHash, ...safeUser } = session.user;
-    const activeMembership = session.user.memberships[0];
+    // Deterministic: their own merchant account wins over one they were
+    // invited onto. `memberships[0]` was whichever row came back first.
+    const activeMembership = activeMembershipOf(session.user.memberships);
 
     req.user = safeUser;
     if (activeMembership && activeMembership.store) {
@@ -77,7 +80,9 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     }
 
     const { passwordHash, ...safeUser } = session.user;
-    const activeMembership = session.user.memberships[0];
+    // Deterministic: their own merchant account wins over one they were
+    // invited onto. `memberships[0]` was whichever row came back first.
+    const activeMembership = activeMembershipOf(session.user.memberships);
 
     req.user = safeUser;
     req.store = activeMembership?.store ?? undefined;

@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import { emailService } from '../services/email/email.service.js';
 import { issueEmailVerificationToken, hashSessionToken } from '../services/auth/tokens.service.js';
+import { activeMembershipOf } from '../services/auth/membership.js';
 import { defaultCurrencyLabel } from '../config/currency.js';
 import { verifyOAuthToken, OAuthVerificationError } from '../services/auth/oauthVerifier.service.js';
 
@@ -47,12 +48,34 @@ async function createSessionFor(userId: string, req: Request): Promise<string> {
   return sessionToken;
 }
 
-/** A store, its OWNER membership and default settings — created together. */
+/**
+ * A merchant account, its OWNER membership and default settings — created
+ * together.
+ *
+ * Refuses outright if the user already owns one. A partial unique index
+ * enforces the same rule in the database, but reaching it would surface as a
+ * raw constraint violation; a merchant who already has an account deserves to
+ * be told that, not a 500.
+ */
 async function provisionStoreForUser(
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   user: { id: string; name: string },
   storeName: string
 ) {
+  const existingOwnership = await tx.storeMember.findFirst({
+    where: { userId: user.id, role: 'OWNER' },
+    include: { store: { select: { name: true } } },
+  });
+
+  if (existingOwnership) {
+    const err: any = new Error(
+      `This account already sells on Nexus as "${existingOwnership.store.name}". `
+      + 'One merchant account per seller — sign in to the one you have.'
+    );
+    err.statusCode = 409;
+    throw err;
+  }
+
   const domainSlug =
     storeName.toLowerCase().replace(/[^a-z0-9]/g, '') || `store${Date.now()}`;
   const domain = `${domainSlug}-${crypto.randomBytes(2).toString('hex')}.nexuscommerce.io`;
@@ -336,7 +359,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       return;
     }
 
-    const activeMembership = user.memberships[0] || null;
+    const activeMembership = activeMembershipOf(user.memberships) ?? null;
 
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
@@ -468,7 +491,7 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
       const sessionToken = await createSessionFor(existingUser.id, req);
       setSessionCookie(res, sessionToken);
 
-      const activeMembership = existingUser.memberships[0] || null;
+      const activeMembership = activeMembershipOf(existingUser.memberships) ?? null;
       const { passwordHash, ...safeUser } = existingUser;
 
       res.json({

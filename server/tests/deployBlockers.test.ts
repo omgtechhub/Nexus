@@ -591,7 +591,14 @@ describe('Blockers 7-9: the deployment artefacts match what the build produces',
     // Checked per fenced command block rather than over the whole document,
     // because the guide now explains the old command in order to warn against
     // it — and that explanation must not make this test fail.
-    const commands = (guide.match(/```bash\n[\s\S]*?```/g) || []).join('\n');
+    // `\r?\n`, because the file is edited on Windows and git normalises on
+    // commit rather than in the working tree — a CRLF checkout made this
+    // match nothing and the assertion pass vacuously against an empty string.
+    const commands = (guide.match(/```bash\r?\n[\s\S]*?```/g) || []).join('\n');
+
+    // Guard against the vacuous pass directly: if the blocks stop being found
+    // for any reason, that is a broken test, not a clean guide.
+    expect(commands.length).toBeGreaterThan(0);
 
     expect(commands).not.toContain('--accept-data-loss');
     expect(commands).not.toMatch(/prisma db push/);
