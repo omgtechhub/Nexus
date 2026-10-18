@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { formatPrice } from '../../marketplace/productHelpers';
+import { formatCurrency } from '../../utils/money';
 import { cn } from '../../utils/cn';
 import { useAuditLogsQuery } from '../../hooks/useAuditLogs';
 import {
@@ -365,7 +366,7 @@ export function Settings() {
                           {sub?.planId === p.id && <Badge variant="success" size="sm">Current Plan</Badge>}
                         </div>
                         <p className="text-[11px] text-muted leading-relaxed">{p.description}</p>
-                        <div className="text-lg font-black text-primary">${p.monthlyPrice} <span className="text-xs text-muted">/mo</span></div>
+                        <div className="text-lg font-black text-primary">{formatPrice(p.monthlyPrice, p.currency)} <span className="text-xs text-muted">/mo</span></div>
                       </div>
 
                       <div className="pt-4">
@@ -408,7 +409,7 @@ export function Settings() {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <span className="font-bold text-[var(--brand-green-ink)]">${inv.total.toFixed(2)}</span>
+                          <span className="font-bold text-[var(--brand-green-ink)]">{formatPrice(inv.total, inv.currency)}</span>
                           <Badge variant="success" size="sm">{inv.status}</Badge>
                           <Button
                             variant="ghost"
@@ -508,14 +509,14 @@ export function Settings() {
               {viewingInvoice.items?.map((item: any, idx: number) => (
                 <div key={idx} className="p-2 border-t border-[var(--ink)]/5 flex justify-between text-strong">
                   <span>{item.description} (x{item.quantity})</span>
-                  <span className="font-mono">${item.amount.toFixed(2)}</span>
+                  <span className="font-mono">{formatCurrency(item.amount)}</span>
                 </div>
               ))}
             </div>
 
             <div className="flex justify-between items-center pt-2 font-bold text-sm text-primary">
               <span>Total Paid</span>
-              <span className="text-[var(--brand-green-ink)] font-mono">${viewingInvoice.total.toFixed(2)} {viewingInvoice.currency}</span>
+              <span className="text-[var(--brand-green-ink)] font-mono">{formatPrice(viewingInvoice.total, viewingInvoice.currency)}</span>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

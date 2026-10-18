@@ -81,11 +81,18 @@ export function CTA() {
                   /privacy and a status page; the status page no longer exists,
                   and a compliance claim is a statement rather than a
                   navigation affordance either way. */}
+              {/* Claims we can stand behind. These were 'PCI DSS Level 1',
+                  'SOC 2 Type II', '99.99% Uptime' and 'GDPR Compliant' —
+                  two named certifications Nexus does not hold and which
+                  have public registers, an availability guarantee the
+                  Terms explicitly do not give, and a blanket compliance
+                  assertion. Each badge below is a fact about how the
+                  product is built. */}
               {[
-                { icon: '🔒', label: 'PCI DSS Level 1' },
-                { icon: '🛡️', label: 'SOC 2 Type II' },
-                { icon: '⚡', label: '99.99% Uptime' },
-                { icon: '🌍', label: 'GDPR Compliant' },
+                { icon: '🔒', label: 'Card details never reach us' },
+                { icon: '🛡️', label: 'No tracking, no data sold' },
+                { icon: '⚡', label: '0% sales commission' },
+                { icon: '🌍', label: 'Naira-native checkout' },
               ].map(badge => (
                 <span
                   key={badge.label}

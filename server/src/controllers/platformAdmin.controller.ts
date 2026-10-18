@@ -159,14 +159,75 @@ export async function createPlatformPlan(req: Request, res: Response, next: Next
   }
 }
 
+/**
+ * The plan columns the console may edit, and how each is coerced.
+ *
+ * This handler passed `req.body` straight through as `data`. Even behind
+ * `requirePlatformAdmin` that is wider than it should be, because `code` is
+ * not a label — `DEFAULT_PLAN_CODE` resolves the platform's default
+ * entitlement against it, so renaming `starter` makes `entitlement.service`
+ * answer 503 for every store on the platform. `id`, `createdAt` and the
+ * subscription back-relations were writable for the same reason.
+ *
+ * `code` is deliberately absent: a plan's code is its identity, and existing
+ * subscriptions point at the row. Create a new plan instead.
+ */
+const PLAN_FIELD_COERCIONS: Record<string, (v: unknown) => unknown> = {
+  name: (v) => String(v),
+  description: (v) => String(v),
+  monthlyPrice: (v) => Number(v),
+  annualPrice: (v) => Number(v),
+  currency: (v) => String(v),
+  trialDays: (v) => Number(v),
+  displayOrder: (v) => Number(v),
+  maxProducts: (v) => Number(v),
+  maxTeamMembers: (v) => Number(v),
+  maxStores: (v) => Number(v),
+  storageMb: (v) => Number(v),
+  customDomainAllowed: (v) => Boolean(v),
+  advancedAnalyticsAllowed: (v) => Boolean(v),
+  features: (v) => (Array.isArray(v) ? v.map(String) : []),
+  isActive: (v) => Boolean(v),
+};
+
+const NUMERIC_PLAN_FIELDS = new Set([
+  'monthlyPrice',
+  'annualPrice',
+  'trialDays',
+  'displayOrder',
+  'maxProducts',
+  'maxTeamMembers',
+  'maxStores',
+  'storageMb',
+]);
+
 export async function updatePlatformPlan(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const body = (req.body ?? {}) as Record<string, unknown>;
 
     const plan = await prisma.subscriptionPlan.findUnique({ where: { id } });
     if (!plan) {
       res.status(404).json({ success: false, error: 'Subscription plan not found' });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(body)) {
+      const coerce = PLAN_FIELD_COERCIONS[key];
+      if (!coerce || value === undefined) continue;
+      const coerced = coerce(value);
+      // A price that arrives as "abc" becomes NaN, and Prisma stores NaN
+      // without complaint on a Float column — a plan nobody can be billed for.
+      if (NUMERIC_PLAN_FIELDS.has(key) && !Number.isFinite(coerced as number)) {
+        res.status(400).json({ success: false, error: `"${key}" must be a number.` });
+        return;
+      }
+      updates[key] = coerced;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ success: false, error: 'No editable plan fields were supplied.' });
       return;
     }
 

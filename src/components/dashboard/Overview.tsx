@@ -7,12 +7,12 @@ import { useApp } from '../../context/AppContext';
 import { useAnalyticsQuery } from '../../hooks/useQueries';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../utils/cn';
+import {
+  formatCurrencyWhole as formatCurrency,
+  formatCurrencyCompact,
+  formatCompact,
+} from '../../utils/money';
 
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
-
-const formatCompact = (v: number) =>
-  new Intl.NumberFormat('en-US', { notation: 'compact' }).format(v);
 
 const colorConfig: Record<string, { bg: string; text: string; border: string; fill: string }> = {
   emerald: { bg: 'bg-[#FF5F56]/10', text: 'text-[var(--brand-red-ink)]', border: 'border-[#FF5F56]/30', fill: '#FF5F56' },
@@ -169,7 +169,7 @@ export function Overview() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
               <XAxis dataKey="date" tick={chart.tick} axisLine={false} tickLine={false} />
-              <YAxis tick={chart.tick} axisLine={false} tickLine={false} tickFormatter={v => `$${v/1000}k`} />
+              <YAxis tick={chart.tick} axisLine={false} tickLine={false} tickFormatter={formatCurrencyCompact} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="revenue" stroke={chart.revenue} strokeWidth={2.5} fill="url(#revenueGradient)" dot={false} />
             </AreaChart>

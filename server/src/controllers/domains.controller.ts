@@ -9,6 +9,42 @@ import { logAuditEvent } from '../utils/auditLogger.js';
 const resolveTxtAsync = promisify(dns.resolveTxt);
 const resolveCnameAsync = promisify(dns.resolveCname);
 
+/**
+ * The host a custom domain is expected to CNAME to.
+ *
+ * Configurable because it differs per deployment, with the production default
+ * as the fallback.
+ */
+const PLATFORM_CNAME_TARGET = (process.env.PLATFORM_CNAME_TARGET || 'shops.nexuscommerce.io')
+  .toLowerCase()
+  .replace(/\.$/, '');
+
+/** Exact host, or a subdomain of it — never a substring match. */
+function isPlatformCnameTarget(candidate: string): boolean {
+  const host = (candidate || '').toLowerCase().replace(/\.$/, '');
+  return host === PLATFORM_CNAME_TARGET || host.endsWith(`.${PLATFORM_CNAME_TARGET}`);
+}
+
+/**
+ * A registrable hostname, and nothing else.
+ *
+ * `domain` arrived unvalidated, so the table accepted arbitrary strings, and
+ * `resolveTxt` was then called on whatever was stored. Labels are
+ * alphanumeric with inner hyphens; at least two of them; no trailing dot.
+ */
+const HOSTNAME_PATTERN =
+  /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/;
+
+/** Hosts a merchant may never claim: they resolve to platform infrastructure. */
+const RESERVED_DOMAIN_SUFFIXES = (process.env.RESERVED_DOMAINS || 'nexuscommerce.io')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
+
+function isReservedDomain(host: string): boolean {
+  return RESERVED_DOMAIN_SUFFIXES.some((r) => host === r || host.endsWith(`.${r}`));
+}
+
 export async function getDomains(req: Request, res: Response, next: NextFunction) {
   try {
     const storeId = req.store!.id;
@@ -37,7 +73,35 @@ export async function addDomain(req: Request, res: Response, next: NextFunction)
       return;
     }
 
-    const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (typeof domain !== 'string') {
+      res.status(400).json({ success: false, error: 'Domain name is required' });
+      return;
+    }
+
+    const cleanDomain = domain
+      .toLowerCase()
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '')
+      .replace(/\.$/, '');
+
+    if (!HOSTNAME_PATTERN.test(cleanDomain) || cleanDomain.length > 253) {
+      res.status(400).json({
+        success: false,
+        error: 'Enter a valid domain name, for example shop.example.com.',
+      });
+      return;
+    }
+
+    // A merchant claiming a platform hostname would be handed a verified
+    // record for infrastructure it does not own.
+    if (isReservedDomain(cleanDomain)) {
+      res.status(400).json({
+        success: false,
+        error: 'That domain is reserved by the platform and cannot be added.',
+      });
+      return;
+    }
 
     // Prevent duplicate domain across all stores
     const existing = await prisma.customDomain.findUnique({
@@ -105,13 +169,35 @@ export async function verifyDomain(req: Request, res: Response, next: NextFuncti
     } catch (e) {
       // Fallback CNAME check
       try {
+        /**
+         * The CNAME must point at this platform's ingress host, not merely
+         * contain "nexus" or "shops" somewhere in it — `nexus.attacker.test`
+         * satisfied that substring test.
+         */
         const cnames = await resolveCnameAsync(customDomain.domain);
-        if (cnames.some((c) => c.includes('nexus') || c.includes('shops'))) {
+        if (cnames.some((c) => isPlatformCnameTarget(c))) {
           isDnsVerified = true;
         }
       } catch (cnameErr) {
-        // Dev fallback: auto-verify if domain contains example/test or localhost
-        if (customDomain.domain.includes('example.com') || customDomain.domain.includes('auraapparel') || customDomain.domain.includes('nexus') || process.env.NODE_ENV === 'test') {
+        /**
+         * No fallback in a real deployment. A domain is verified by DNS or it
+         * is not verified.
+         *
+         * What stood here was a "dev fallback" that was never gated on the
+         * environment:
+         *
+         *     domain.includes('example.com') || domain.includes('auraapparel')
+         *       || domain.includes('nexus') || NODE_ENV === 'test'
+         *
+         * Three of those four clauses were live in production. Any seller
+         * could add a hostname containing the substring `nexus` — including
+         * `nexuscommerce.io` itself — and have it marked ACTIVE with no DNS
+         * record anywhere, because the lookups fail for a domain you do not
+         * control and failure was the branch that granted verification.
+         *
+         * Only the test environment is exempt now, and explicitly so.
+         */
+        if (process.env.NODE_ENV === 'test') {
           isDnsVerified = true;
         }
       }

@@ -204,7 +204,11 @@ describe('Nexus Commerce Phase 7 Integration Tests (Storefront Builder, Pages, N
 
   it('5. Custom Domains API: Adds domain, verifies DNS simulation/lookup, sets primary, and enforces store isolation', async () => {
     // Add custom domain
-    const domainName = `shop-${Date.now()}.nexuscommerce.io`;
+    // A domain the merchant would actually own. This used to be
+    // `shop-<ts>.nexuscommerce.io`, which the reserved-domain check now
+    // refuses: a merchant claiming a platform hostname would be handed a
+    // verified record for infrastructure it does not control.
+    const domainName = `shop-${Date.now()}.merchant-example.com`;
     const addRes = await request
       .post('/api/domains')
       .set('Cookie', [storeACookie])

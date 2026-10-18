@@ -8,11 +8,16 @@
     "dev": "npx tsx watch src/server.ts",
     "build": "npx tsc",
     "start": "node dist/server.js",
+    "bootstrap": "node dist/scripts/bootstrap.js",
+    "bootstrap:dev": "npx tsx src/scripts/bootstrap.ts",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:seed": "npx tsx prisma/seed.ts",
     "test": "npx vitest run",
-    "voice:fetch-model": "node scripts/fetch-voice-model.mjs"
+    "voice:fetch-model": "node scripts/fetch-voice-model.mjs",
+    "fixtures:remove": "node scripts/remove-test-fixtures.mjs",
+    "catalogue:add": "node scripts/add-catalogue-products.mjs",
+    "catalogue:reprice-ngn": "node scripts/reprice-catalogue-ngn.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.1",

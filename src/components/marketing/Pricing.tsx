@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Check, Zap, Star } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { pricingPlans } from '../../data/marketingContent';
+import { usePlansQuery } from '../../hooks/useBillingQueries';
+import { formatCurrency } from '../../utils/money';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
@@ -10,6 +12,15 @@ import { cn } from '../../utils/cn';
 export function Pricing() {
   const { navigate } = useApp();
   const [annual, setAnnual] = useState(false);
+
+  const { data: livePlans } = usePlansQuery();
+  const livePricing = new Map((livePlans ?? []).map(lp => [lp.code, lp]));
+
+  const samplePlan = (livePlans ?? [])[0];
+  const annualSavingPercent =
+    samplePlan && samplePlan.monthlyPrice > 0 && samplePlan.annualPrice < samplePlan.monthlyPrice
+      ? Math.round((1 - samplePlan.annualPrice / samplePlan.monthlyPrice) * 100)
+      : null;
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.05 });
 
   return (
@@ -53,12 +64,25 @@ export function Pricing() {
               )}
             >
               Annual
-              <span className="text-xs bg-[#27C93F] text-slate-950 px-1.5 py-0.5 rounded-full font-bold">-20%</span>
+              {/* Derived, not asserted: this said a flat -20% while the plans
+                  encoded a different gap between monthly and annual. */}
+              {annualSavingPercent !== null && (
+                <span className="text-xs bg-[#27C93F] text-slate-950 px-1.5 py-0.5 rounded-full font-bold">
+                  -{annualSavingPercent}%
+                </span>
+              )}
             </button>
           </div>
         </div>
 
         {/* Plans */}
+        {/*
+          Prices come from the rows that bill, matched to the copy below by id.
+          `marketingContent.ts` carried its own 29/24/79/66/199/166/499/416 in
+          dollars, so the homepage advertised a different price from the pricing
+          page AND from the database — the exact drift its own header comment
+          warns about.
+        */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {pricingPlans.map((plan, index) => (
             <div
@@ -93,15 +117,25 @@ export function Pricing() {
                 <p className="text-xs text-muted mb-5">{plan.description}</p>
 
                 <div className="mb-6">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-primary">
-                      ${annual ? plan.annualPrice : plan.price}
-                    </span>
-                    <span className="text-muted text-sm">/mo</span>
+                  <div className="min-w-0">
+                    <div className="text-[clamp(1.5rem,2.6vw,2.25rem)] font-extrabold text-primary tabular-nums leading-none">
+                      {livePricing.get(plan.id)
+                        ? formatCurrency(
+                            annual
+                              ? livePricing.get(plan.id)!.annualPrice
+                              : livePricing.get(plan.id)!.monthlyPrice
+                          )
+                        : '—'}
+                    </div>
+                    <div className="text-muted text-xs mt-1.5">per {annual ? 'year' : 'month'}</div>
                   </div>
-                  {annual && (
-                    <div className="text-xs text-[var(--brand-green-ink)] mt-1 font-medium">
-                      Save ${(plan.price - plan.annualPrice) * 12}/year
+                  {annual && livePricing.get(plan.id) && (
+                    <div className="text-xs text-[var(--brand-green-ink)] mt-2 font-medium">
+                      Saves{' '}
+                      {formatCurrency(
+                        livePricing.get(plan.id)!.monthlyPrice - livePricing.get(plan.id)!.annualPrice
+                      )}{' '}
+                      vs monthly
                     </div>
                   )}
                 </div>

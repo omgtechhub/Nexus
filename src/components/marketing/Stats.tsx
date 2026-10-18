@@ -1,44 +1,60 @@
 import CountUp from 'react-countup';
 import { useInView } from 'react-intersection-observer';
-import { TrendingUp, ShoppingCart, Globe2, Star } from 'lucide-react';
+import { Wallet, ShieldCheck, Layers, RotateCcw } from 'lucide-react';
 
+/**
+ * Facts about the product, not invented scale.
+ *
+ * This section used to read "$200B+ in merchant revenue", "2.1M+ active
+ * merchants", "175+ countries", "99.99% uptime guaranteed" and "50% higher
+ * conversions vs. standard checkout" under the heading "Trusted by millions,
+ * proven at scale" — on a platform that has not launched. Two of those are
+ * quantified performance and availability claims, which is advertising a
+ * buyer can rely on and a regulator can act on; the uptime figure also
+ * contradicted the Terms, which now state plainly that there is no uptime
+ * guarantee.
+ *
+ * Each number below is checkable against the code: commission defaults to
+ * zero, card details are entered with the payment provider and never reach
+ * our servers, there are four plan tiers, and the 14-day annual refund
+ * window is the one written into section 3 of the Terms. Replace any of
+ * these only with something equally checkable.
+ */
 const stats = [
   {
-    icon: <TrendingUp size={28} />,
-    prefix: '$',
-    value: 200,
-    suffix: 'B+',
-    label: 'In merchant revenue',
-    description: 'Powered by Nexus worldwide',
+    icon: <Wallet size={28} />,
+    prefix: '',
+    value: 0,
+    suffix: '%',
+    label: 'Commission on your sales',
+    description: 'Subscriptions fund the platform, not a cut of your revenue',
     color: 'emerald',
   },
   {
-    icon: <ShoppingCart size={28} />,
+    icon: <ShieldCheck size={28} />,
     prefix: '',
-    value: 2.1,
-    decimals: 1,
-    suffix: 'M+',
-    label: 'Active merchants',
-    description: 'In 175+ countries',
+    value: 0,
+    suffix: '',
+    label: 'Card numbers we store',
+    description: 'Card details are entered with our payment provider, never on Nexus',
     color: 'blue',
   },
   {
-    icon: <Globe2 size={28} />,
+    icon: <Layers size={28} />,
     prefix: '',
-    value: 99.99,
-    decimals: 2,
-    suffix: '%',
-    label: 'Uptime guaranteed',
-    description: 'Enterprise-grade reliability',
+    value: 4,
+    suffix: '',
+    label: 'Plans, priced in naira',
+    description: 'Starter to Enterprise, monthly or annual',
     color: 'purple',
   },
   {
-    icon: <Star size={28} />,
+    icon: <RotateCcw size={28} />,
     prefix: '',
-    value: 50,
-    suffix: '%',
-    label: 'Higher conversions',
-    description: 'vs. standard checkout',
+    value: 14,
+    suffix: ' days',
+    label: 'To change your mind',
+    description: 'Full refund on a new annual plan, no questions',
     color: 'amber',
   },
 ];
@@ -61,11 +77,11 @@ export function Stats() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6" ref={ref}>
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
-            Trusted by millions,
-            <span className="text-gradient"> proven at scale</span>
+            Built so the terms
+            <span className="text-gradient"> match the product</span>
           </h2>
           <p className="text-muted max-w-xl mx-auto">
-            The numbers behind why the world's fastest-growing brands choose Nexus Commerce.
+            Four numbers you can hold us to. Every one of them is in our Terms.
           </p>
         </div>
 
@@ -88,7 +104,7 @@ export function Stats() {
                       <CountUp
                         end={stat.value}
                         duration={2.5}
-                        decimals={stat.decimals || 0}
+                        decimals={0}
                         delay={idx * 0.2}
                       />
                       {stat.suffix}
@@ -104,17 +120,6 @@ export function Stats() {
           })}
         </div>
 
-        {/* Logos strip */}
-        <div className="mt-16 text-center">
-          <p className="text-xs text-muted uppercase tracking-widest mb-6 font-medium">Featured in & trusted by</p>
-          <div className="flex flex-wrap items-center justify-center gap-8">
-            {['TechCrunch', 'Forbes', 'Wired', 'The Verge', 'Fast Company', 'Entrepreneur'].map(name => (
-              <div key={name} className="text-muted hover:text-body transition-colors font-bold text-sm tracking-wide">
-                {name}
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );

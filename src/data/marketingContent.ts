@@ -9,6 +9,8 @@ import { getAssetUrl } from '../utils/assetPath';
  *
  * Both figures and features are taken from the `SubscriptionPlan` rows that
  * actually charge a card (see `server/prisma/seed.ts`). Three surfaces used to
+ * NOTE: prices are no longer here. They are read from the billing rows at
+ * render time (`usePlansQuery`), because three copies used to exist and
  * quote three different prices for the same plan — this file said Growth was
  * $59, the pricing page said $79, and the database billed $79 — so a seller
  * could be charged a number they had never been shown. One source wins, and it
@@ -26,8 +28,6 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 29,
-    annualPrice: 24,
     description: 'Everything you need to start listing.',
     features: [
       'Up to 50 active listings',
@@ -44,8 +44,6 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'growth',
     name: 'Growth',
-    price: 79,
-    annualPrice: 66,
     description: 'For sellers with real order volume.',
     features: [
       'Up to 500 active listings',
@@ -63,8 +61,6 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 199,
-    annualPrice: 166,
     description: 'For established catalogues and teams.',
     features: [
       'Up to 2,500 active listings',
@@ -82,8 +78,6 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 499,
-    annualPrice: 416,
     description: 'For high-volume and wholesale sellers.',
     features: [
       'Up to 10,000 active listings',
@@ -92,7 +86,7 @@ export const pricingPlans: PricingPlan[] = [
       'Dedicated account manager',
       'Custom integrations',
       'Advanced security & compliance',
-      '99.99% uptime SLA',
+      'Priority support with a named contact',
     ],
     highlighted: false,
     cta: 'Contact sales',
@@ -175,7 +169,12 @@ export const faqs = [
     answer: "Every plan includes email support. Growth gets priority response times, Pro gets VIP support around the clock, and Enterprise adds a dedicated account manager. There is also a WhatsApp button on every page that reaches a person directly.",
   },
   {
-    question: "Is Nexus Commerce PCI compliant?",
-    answer: "Yes. Nexus Commerce is Level 1 PCI DSS compliant and SOC 2 Type II certified, and card data is tokenised rather than stored. All data is encrypted in transit and at rest.",
+    // Was: "Yes. Nexus Commerce is Level 1 PCI DSS compliant and SOC 2 Type II
+    // certified." Nexus holds neither. Both schemes publish registers, so the
+    // claim was checkable and wrong. The true answer is better anyway: the
+    // reason Nexus is not in PCI scope for card data is that it never sees a
+    // card number.
+    question: "How are card payments kept secure?",
+    answer: "Card details are entered on our payment provider's own secure page and never reach Nexus servers — we never receive or store a card number, so there is no card data with us to lose. Our provider is PCI DSS certified for the card handling it does. All traffic to Nexus is encrypted with HTTPS, passwords are hashed, and session tokens are stored only as digests.",
   },
 ];

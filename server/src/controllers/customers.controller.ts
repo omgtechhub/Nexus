@@ -24,6 +24,37 @@ const createCustomerSchema = z.object({
   addresses: z.array(addressSchema).optional().default([]),
 });
 
+/**
+ * The fields a merchant may change on one of its own customer records.
+ *
+ * This replaced `data: req.body` passed straight to `prisma.customer.update`.
+ * Prisma rejects unknown keys, but every *known* column was writable, and the
+ * Customer model carries two that are not the merchant's to set:
+ *
+ *   - `storeId` is the tenant boundary. `{"storeId": "<another store>"}` moved
+ *     the customer and its addresses into somebody else's store — a write
+ *     across the isolation line that every other handler in this file is
+ *     careful to enforce on the read side.
+ *   - `userId` links a customer row to a Nexus account. Pointing it at an
+ *     arbitrary user id attached that shopper's portal view to records they
+ *     never created.
+ *
+ * `totalOrders`, `totalSpent` and `lastOrderAt` are derived from real orders
+ * and are likewise absent: they are reporting outputs, not inputs.
+ *
+ * `.strict()` so an unexpected key is a 400 that names itself, rather than
+ * being silently dropped and leaving the caller thinking it took effect.
+ */
+const updateCustomerSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required').optional(),
+    email: z.string().email('Invalid email address').optional(),
+    phone: z.string().nullable().optional(),
+    location: z.string().nullable().optional(),
+    avatar: z.string().nullable().optional(),
+  })
+  .strict();
+
 export async function getCustomers(req: Request, res: Response, next: NextFunction) {
   try {
     const storeId = req.store!.id;
@@ -142,9 +173,18 @@ export async function updateCustomer(req: Request, res: Response, next: NextFunc
       return;
     }
 
+    const body = updateCustomerSchema.parse(req.body);
+
+    // Normalised the same way `createCustomer` does, so the two paths cannot
+    // disagree about what is stored — and so the `@@unique([storeId, email])`
+    // constraint sees the same casing on both.
+    const data: Record<string, unknown> = { ...body };
+    if (body.email !== undefined) data.email = body.email.toLowerCase().trim();
+    if (body.name !== undefined) data.name = body.name.trim();
+
     const updated = await prisma.customer.update({
       where: { id },
-      data: req.body,
+      data,
       include: { addresses: true },
     });
 

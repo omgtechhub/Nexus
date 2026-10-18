@@ -181,11 +181,15 @@ export interface ActivityItem {
   icon: string;
 }
 
+/**
+ * Marketing copy for a plan. Deliberately carries **no price**: the figures
+ * come from the `SubscriptionPlan` rows via `usePlansQuery`, because a price
+ * duplicated into the bundle is a price that drifts from the one that bills.
+ * `id` matches the plan's `code`.
+ */
 export interface PricingPlan {
   id: string;
   name: string;
-  price: number;
-  annualPrice: number;
   description: string;
   features: string[];
   highlighted: boolean;

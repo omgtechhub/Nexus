@@ -63,7 +63,7 @@ const mainFeatures = [
   {
     icon: <ShieldCheck size={24} />,
     title: 'Paid, and Protected',
-    description: 'PCI DSS Level 1 and SOC 2 Type II. Verified buyers, held funds on disputes, and payouts on a schedule you can plan around.',
+    description: 'Card details are entered with our payment provider and never reach Nexus. Verified buyers, held funds on disputes, and payouts on a schedule you can plan around.',
     color: 'red',
     tag: 'Trust',
   },

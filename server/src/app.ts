@@ -9,6 +9,7 @@ import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { apiRouter } from './routes/index.js';
 import { createOriginGuard, isAllowedOrigin } from './middleware/origin.middleware.js';
+import { apiRateLimiter } from './middleware/rateLimit.middleware.js';
 
 import { prisma } from './prisma.js';
 
@@ -171,7 +172,10 @@ if (process.env.NODE_ENV !== 'test') {
 // CSRF defence: the session cookie is SameSite=None in production, so a
 // cross-site page can make the browser attach it. Writes must come from an
 // origin we serve.
-app.use('/api', createOriginGuard(allowedOrigins), apiRouter);
+// A default ceiling for every route, including the ones with no limiter of
+// their own. Declared before the origin guard so a flood costs a counter
+// increment rather than a guard evaluation.
+app.use('/api', apiRateLimiter, createOriginGuard(allowedOrigins), apiRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

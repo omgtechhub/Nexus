@@ -93,8 +93,55 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 The session cookie is issued `SameSite=None; Secure` when `NODE_ENV=production`
 (`auth.controller.ts`). A browser **silently discards a Secure cookie sent over
 plain HTTP**, so on an `http://` deployment every login appears to succeed and
-the next request is unauthenticated. Terminate TLS in front of the frontend
-container and set `FRONTEND_URL=https://...`.
+the next request is unauthenticated. `server.ts` calls
+`assertSessionCookieCanWork()` on boot to catch the obvious case, but it cannot
+tell whether the thing in front of it actually terminates TLS.
+
+`nginx.conf` now serves 443 itself and redirects 80. It needs two files in
+`TLS_CERT_DIR` (default `./certs`), and **nginx will not start without them** —
+the correct failure, since the alternative is a stack that reports itself up
+and cannot log anyone in.
+
+#### Cloudflare Origin Certificate (recommended)
+
+Valid 15 years, no renewal cron, and no need to open port 80 to the world for
+an ACME challenge. It is not publicly trusted, which is fine: Cloudflare is the
+only thing that should ever connect to the origin.
+
+1. Add your domain to Cloudflare (free plan) and point its nameservers there.
+2. **SSL/TLS → Origin Server → Create Certificate.** Accept the defaults
+   (RSA, 15 years). Cloudflare shows the certificate and the private key once.
+3. On the box, save them as `origin.pem` and `origin.key`:
+
+   ```bash
+   mkdir -p ~/nexus/certs && chmod 700 ~/nexus/certs
+   nano ~/nexus/certs/origin.pem   # paste the certificate
+   nano ~/nexus/certs/origin.key   # paste the private key
+   chmod 600 ~/nexus/certs/origin.key
+   ```
+
+4. **SSL/TLS → Overview → set the mode to "Full (strict)".** Anything less
+   either refuses the origin cert or talks to your origin in plaintext.
+5. In DNS, the `A` record for the apex (and `www`) must be **Proxied** (orange
+   cloud). Grey-cloud it and traffic bypasses Cloudflare, which both exposes
+   the origin IP and breaks the real-client-IP restoration below.
+
+#### Why the real client IP matters here
+
+Behind Cloudflare every request arrives from a Cloudflare edge address.
+`nginx.conf` trusts `CF-Connecting-IP` **only from the published Cloudflare
+ranges** (`set_real_ip_from`), then forwards exactly one address as
+`X-Forwarded-For`, so `TRUST_PROXY=1` resolves `req.ip` to the real client.
+
+Without that, every rate limiter in the API sees one client for the entire
+internet and a single visitor can lock out everybody. Do **not** "fix" it by
+raising `TRUST_PROXY` or using `$proxy_add_x_forwarded_for`: both let a caller
+who reaches the origin directly prepend a forged address and choose its own
+rate-limit identity.
+
+As hardening, restrict inbound 443 to the Cloudflare ranges in the Oracle
+security list, and enable **Authenticated Origin Pulls** so the origin accepts
+only Cloudflare's client certificate.
 
 ### 3. Point the webhooks at the API
 
@@ -105,12 +152,135 @@ into `.env`:
 |---|---|---|
 | Paystack | `https://yourdomain.com/api/webhooks/paystack` | signs with the secret key; `PAYSTACK_WEBHOOK_SECRET` optional |
 | Paystack (plans) | `https://yourdomain.com/api/saas-webhooks/paystack` | as above |
-| Flutterwave | `https://yourdomain.com/api/webhooks/flutterwave` | `FLUTTERWAVE_WEBHOOK_SECRET` — **required** |
-| Flutterwave (plans) | `https://yourdomain.com/api/saas-webhooks/flutterwave` | as above |
 
-Flutterwave verification has no fallback: with the secret hash unset, every
-Flutterwave webhook is rejected with a 401 and those orders never move to
-CONFIRMED.
+Paystack signs with the secret key it already has, so `PAYSTACK_WEBHOOK_SECRET`
+may be left blank (`paystack.provider.ts` falls back to `PAYSTACK_SECRET_KEY`).
+
+Flutterwave is **off the merchant-facing surface** — the provider class and its
+webhook route survive and fail closed on an unusable key, so there is nothing
+to configure and no route money can take through an account that does not
+exist. Do not re-add it to the gateway list without wiring
+`FLUTTERWAVE_WEBHOOK_SECRET`, which has no fallback.
+
+**Webhooks are what confirms an order.** The return leg verifies too, but a
+shopper who closes the tab after paying leaves the webhook as the only path to
+`CONFIRMED`. Send a test event from the Paystack dashboard and confirm a 200
+before taking a real order.
+
+---
+
+## Host: Oracle Cloud Always Free (ARM)
+
+The stack is designed for one box that stays running: the job scheduler is an
+in-process `setInterval`, uploads live on a disk, and the voice workers hold
+their models in memory. A serverless or sleep-on-idle host breaks all three —
+most visibly, abandoned-checkout stock release stops and reserved inventory is
+never returned.
+
+Oracle's Always Free ARM tier fits because it is a real VM, so
+`docker-compose.yml` runs unmodified, Postgres included.
+
+### 1. Create the instance
+
+| Setting | Value |
+|---|---|
+| Shape | `VM.Standard.A1.Flex` (Ampere ARM) |
+| OCPU / memory | 2 OCPU / 12 GB — the whole Always Free allowance |
+| Image | Ubuntu 24.04 (**aarch64** build) |
+| Boot volume | 50 GB default is ample; the models are ~143 MB |
+
+**The allowance was halved on 15 June 2026**, from 4 OCPU/24 GB to 2 OCPU/12 GB,
+with no announcement. Guides still quoting the old figures are stale. 12 GB is
+roughly ten times what this stack needs, so the cut does not affect it.
+
+Expect **"Out of Capacity"** on your first attempts — ARM capacity in popular
+regions is routinely exhausted. Try the other availability domains in your home
+region, and retry; it is a queue, not a refusal. Note also that Oracle reclaims
+instances it considers idle, which this one will not be.
+
+### 2. Open the firewall — in *both* places
+
+This is the single most common way an Oracle deploy appears broken. Adding an
+ingress rule to the VCN security list is **not enough**: the instance image
+also ships its own `iptables` rules with a `REJECT` at the end of the `INPUT`
+chain, so the port stays shut and every request simply times out with no error
+anywhere.
+
+1. **VCN → Security Lists → Default → Add Ingress Rules:** source `0.0.0.0/0`,
+   TCP, destination ports 80 and 443. (For hardening, use the Cloudflare ranges
+   as the source instead of `0.0.0.0/0`.)
+2. **On the instance**, insert the rules ahead of that `REJECT` and persist
+   them:
+
+   ```bash
+   sudo iptables -I INPUT -p tcp --dport 80  -j ACCEPT
+   sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+   sudo netfilter-persistent save
+   ```
+
+   `-I` inserts at the top of the chain, which is what puts them before the
+   `REJECT`. Appending with `-A` puts them after it and changes nothing.
+
+Leave 5432 and 6379 closed. Compose binds Postgres and Redis to `127.0.0.1`
+only, so they are already unreachable from outside the host.
+
+### 3. Install Docker
+
+```bash
+curl -fsSL https://get.docker.com | sh      # arm64 is supported
+sudo usermod -aG docker "$USER" && newgrp docker
+```
+
+### 4. Build on the box, not on your laptop
+
+```bash
+git clone <your repo> ~/nexus && cd ~/nexus
+cp .env.example .env && nano .env           # fill in every required value
+docker compose up -d --build
+docker compose exec api npx prisma migrate deploy
+
+# Provision the first platform owner and the subscription tiers. Without this
+# the install is unusable - see "First-run provisioning" below.
+docker compose exec   -e BOOTSTRAP_OWNER_EMAIL=you@yourdomain.com   -e BOOTSTRAP_OWNER_PASSWORD='<a real password>'   api npm run bootstrap
+```
+
+**Build on the ARM host.** `server/prisma/schema.prisma` declares no
+`binaryTargets`, so Prisma generates engines for the platform it is generated
+on — a native build gets `linux-arm64` automatically, while an image
+cross-built on an x86 machine ships the wrong engine and the API fails at its
+first query.
+
+The images are already ARM-ready: `node:20-bookworm-slim`, `postgres:16-alpine`
+and `redis:7-alpine` are all multi-arch, and `onnxruntime-node` publishes
+CPU builds for `linux-arm64`. The API image is Debian slim rather than Alpine
+because that runtime needs glibc — do not "optimise" it to Alpine.
+
+### 5. Confirm
+
+```bash
+curl -fsS http://localhost/health                      # nginx, port 80
+curl -fsSk https://localhost/health                     # nginx, TLS
+docker compose exec api node -e "fetch('http://127.0.0.1:5000/ready').then(r=>r.json()).then(console.log)"
+docker compose logs api | grep -i "scheduler\|email"   # jobs started, SMTP chosen
+```
+
+Then, from outside, confirm through Cloudflare that a deep link works
+(`https://yourdomain.com/seller/orders` on a hard refresh, not just `/`) — that
+is the `try_files` fallback, and it is the thing that silently breaks.
+
+### What you own on this host
+
+There is no managed layer here, so: OS patching (`unattended-upgrades` is on by
+default on Ubuntu), `docker compose pull && up -d` for image updates, and
+**backups are yours**. Nothing else in this guide will remind you:
+
+```bash
+docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > db-$(date +%F).sql.gz
+docker run --rm -v nexus_uploads_data:/u -v "$PWD":/out alpine tar czf /out/uploads-$(date +%F).tar.gz -C /u .
+```
+
+A database dump without the uploads archive restores to a site full of dead
+image URLs. Take both, and keep them off the box.
 
 ---
 
@@ -131,7 +301,10 @@ docker compose up -d --build
 # 4. Apply migrations (see the warning below — never `db push` here)
 docker compose exec api npx prisma migrate deploy
 
-# 5. Confirm
+# 5. Provision the first owner and the plans (once per install)
+docker compose exec   -e BOOTSTRAP_OWNER_EMAIL=you@yourdomain.com   -e BOOTSTRAP_OWNER_PASSWORD='<a real password>'   api npm run bootstrap
+
+# 6. Confirm
 curl -fsS http://localhost/health          # nginx
 docker compose exec api node -e "fetch('http://127.0.0.1:5000/ready').then(r=>r.json()).then(console.log)"
 ```
@@ -165,7 +338,7 @@ This guide previously said to run `npx prisma db push --accept-data-loss`.
 That command ignores the migration history entirely and reshapes the live
 schema to match `schema.prisma` — and `--accept-data-loss` is the flag that
 authorises it to **drop columns and tables** to get there. The repository has a
-proper migration history (`server/prisma/migrations/`, baseline + 4), so:
+proper migration history (`server/prisma/migrations/`, baseline + 7), so:
 
 | Situation | Command |
 |---|---|
@@ -179,6 +352,65 @@ a no-op when there is nothing pending.
 
 Do not run `prisma:seed` against production — it is written for a test
 database and deletes rows.
+
+---
+
+## First-run provisioning
+
+**A migrated database is not yet a working install.** Run this once, after
+`prisma migrate deploy`:
+
+```bash
+docker compose exec   -e BOOTSTRAP_OWNER_EMAIL=you@yourdomain.com   -e BOOTSTRAP_OWNER_PASSWORD='<a real password>'   api npm run bootstrap
+```
+
+Add `-e BOOTSTRAP_DRY_RUN=true` first to see exactly what it would do without
+writing anything.
+
+### What it fixes
+
+An empty database is deadlocked, and every symptom looks like a different bug:
+
+| Symptom | Cause |
+|---|---|
+| Nobody can reach `/admin` | `platformRole` is set in **one place in the codebase** — `prisma/seed.ts`, which is forbidden here because it `deleteMany`s every table. No signup path reaches the role. |
+| Every gated merchant action answers **503** | `entitlement.service.ts` refuses on an empty plans table rather than granting a generous default — correct, but fatal when the table is empty. |
+| New merchants have no subscription | `saasBilling.service.ts` returns `null` when no plan resolves, silently. |
+| The pricing page is blank | `GET /api/plans` has nothing to return. |
+| Plans can't be created to fix it | `POST /api/admin/plans` is behind `requirePlatformAdmin`. No admin, no plans. |
+
+Before this command the only way out was hand-written SQL against production.
+
+### What it does, and what it refuses to do
+
+It is **not a seed**: no deletes, no truncation, no downgrades. Every step is
+create-if-missing, so it is safe to re-run on a live install.
+
+- Creates the four tiers — `starter` ₦50,000, `growth` ₦80,000, `pro`
+  ₦150,000, `enterprise` ₦450,000 per month, annual at ten months for twelve.
+- **Leaves an existing tier alone.** Prices are editable at
+  `PATCH /api/admin/plans/:id`, and restoring these figures on every run would
+  make this script a second pricing authority that overrules the console. Pass
+  `BOOTSTRAP_UPDATE_PLANS=true` to overwrite deliberately.
+- Promotes the named account to `PLATFORM_OWNER`, or creates it when the
+  database has nobody to promote. The created account is `isVerified` on
+  purpose: it is the account you use to prove SMTP works, so it cannot depend
+  on a verification email arriving first.
+- **Never overwrites an existing `platformRole`.** Re-promoting an account
+  somebody deliberately reduced is not a provisioning decision.
+- **Never prints the password.** The pre-deploy audit found reset tokens
+  written to stdout in full, which turns a log aggregator into a credential
+  store.
+- Fails loudly if no active `starter` tier exists afterwards, because
+  `DEFAULT_PLAN_CODE` resolves against it and entitlements would keep
+  answering 503.
+
+### After it runs
+
+Sign in with that address, open `/admin`, and check the plan prices read in
+naira. If `DEFAULT_CURRENCY` and the plan rows disagree on currency, the dry
+run says so — Paystack rejects a currency the account has not enabled, so that
+mismatch fails at initialize rather than merely displaying oddly.
 
 ---
 

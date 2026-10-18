@@ -507,7 +507,7 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
               'Shoppers already browsing, from the day you publish',
               'Nexus IQ on your own stock, orders and margins',
               'Checkout, delivery and payouts run by the platform',
-              'Enterprise security with 99.99% uptime',
+              'Card details never touch our servers',
             ].map(feature => (
               <div key={feature} className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-[#27C93F]/20 border border-[#27C93F]/30 flex items-center justify-center flex-shrink-0 mt-0.5">

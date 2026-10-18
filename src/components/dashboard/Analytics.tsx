@@ -6,9 +6,7 @@ import {
 import { useAnalyticsQuery } from '../../hooks/useQueries';
 import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { useChartTheme } from './chartTheme';
-
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+import { formatCurrencyWhole as formatCurrency, formatCurrencyCompact } from '../../utils/money';
 
 
 const trafficData = [
@@ -119,7 +117,7 @@ export function Analytics() {
           <LineChart data={analytics.chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
             <XAxis dataKey="date" tick={chart.tick} axisLine={false} tickLine={false} />
-            <YAxis yAxisId="left" tick={chart.tick} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+            <YAxis yAxisId="left" tick={chart.tick} axisLine={false} tickLine={false} tickFormatter={formatCurrencyCompact} />
             <YAxis yAxisId="right" orientation="right" tick={chart.tick} axisLine={false} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Line yAxisId="left" type="monotone" dataKey="revenue" stroke={chart.revenue} strokeWidth={2.5} dot={false} name="revenue" />

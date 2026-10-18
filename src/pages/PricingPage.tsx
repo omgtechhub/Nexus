@@ -7,24 +7,74 @@ import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../context/AppContext';
+import { usePlansQuery } from '../hooks/useBillingQueries';
+import { formatCurrency, formatCurrencyCompact } from '../utils/money';
+
+/*
+ * The "Find Your Plan" slider, in naira.
+ *
+ * Every figure here was on a dollar scale — a ₦2,000 to ₦300,000 range with
+ * tier breaks at 10k/50k/200k — which was invisible while the readout printed
+ * a "$", and nonsense the moment it printed a "₦": it offered an Enterprise
+ * seller a ceiling of ₦300,000 of monthly sales, about two Pro subscriptions.
+ *
+ * Rounded to naira figures a seller would recognise rather than converted
+ * literally, since these are conversation-starters, not quotes.
+ */
+const GMV_MIN = 2_500_000;
+const GMV_MAX = 400_000_000;
+const GMV_STEP = 2_500_000;
+const GMV_DEFAULT = 45_000_000;
+
+/** Monthly sales above which each tier is the better fit. */
+const GMV_FOR_GROWTH = 15_000_000;
+const GMV_FOR_PRO = 65_000_000;
+const GMV_FOR_ENTERPRISE = 250_000_000;
 
 export function PricingPage() {
   const { navigate } = useApp();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [gmv, setGmv] = useState<number>(35000);
+  const [gmv, setGmv] = useState<number>(GMV_DEFAULT);
   const [staffSeats, setStaffSeats] = useState<number>(5);
 
-  const discountMultiplier = billingCycle === 'annual' ? 0.8 : 1;
+  /*
+   * The prices come from the rows that actually bill.
+   *
+   * This page hardcoded 29/79/199/499 and multiplied by 0.8 for annual. Three
+   * things were wrong with that: the figures were a stale copy of an older
+   * seed, so once the plans were repriced in naira the page advertised dollars
+   * nobody would be charged; the currency symbol was a literal "$"; and the
+   * annual price was invented by the browser instead of read from the plan —
+   * against the "one pricing authority" rule this codebase holds everywhere
+   * else.
+   *
+   * The array below keeps editorial copy only: wording, feature lists, which
+   * card is highlighted. Money comes from the API.
+   */
+  const { data: livePlans, isLoading: plansLoading, isError: plansError } = usePlansQuery();
+
+  const liveByCode = new Map((livePlans ?? []).map(lp => [lp.code, lp]));
+
+  /*
+   * The annual saving, derived rather than asserted. The old badge and FAQ
+   * both promised "20%" while the plan rows encoded a different discount.
+   */
+  const sampleLive = (livePlans ?? [])[0];
+  const annualSavingPercent =
+    sampleLive && sampleLive.monthlyPrice > 0 && sampleLive.annualPrice < sampleLive.monthlyPrice
+      ? Math.round((1 - sampleLive.annualPrice / sampleLive.monthlyPrice) * 100)
+      : null;
 
   /*
    * The seller plans.
    *
-   * Prices and limits come from the `SubscriptionPlan` rows that actually bill
-   * (see `server/prisma/seed.ts`), and match `src/data/marketingContent.ts`
-   * which the homepage renders. The three used to disagree — this page said
-   * Pro was $299, the homepage said $79, the database charged $199 — and a
-   * seller could be billed a figure no page had shown them.
+   * Editorial copy only — no prices. The limits quoted in the feature lists
+   * mirror the plans' real `maxProducts` / `maxTeamMembers`; the money is
+   * fetched above. This page, the homepage and the database once disagreed
+   * three ways — this page said Pro was $299, the homepage said $79, the
+   * database charged $199 — and a seller could be billed a figure no page had
+   * ever shown them.
    *
    * The feature lists are also off the store-builder pitch: "Online
    * Storefronts", POS register connections, social store sync, 99.99% *store*
@@ -36,7 +86,6 @@ export function PricingPage() {
       id: 'starter',
       name: 'Starter',
       description: 'For sellers putting their first products in front of buyers.',
-      monthlyPrice: 29,
       features: [
         'Up to 50 active listings',
         '2 Team Accounts',
@@ -53,7 +102,6 @@ export function PricingPage() {
       id: 'growth',
       name: 'Growth',
       description: 'For sellers with steady order volume and a growing catalogue.',
-      monthlyPrice: 79,
       features: [
         'Up to 500 active listings',
         '5 Team Accounts',
@@ -70,7 +118,6 @@ export function PricingPage() {
       id: 'pro',
       name: 'Pro',
       description: 'For established catalogues that need room and answers fast.',
-      monthlyPrice: 199,
       features: [
         'Up to 2,500 active listings',
         '15 Team Accounts',
@@ -88,7 +135,6 @@ export function PricingPage() {
       id: 'enterprise',
       name: 'Enterprise',
       description: 'For high-volume, wholesale and distributor-scale selling.',
-      monthlyPrice: 499,
       features: [
         'Up to 10,000 active listings',
         '50 Team Accounts',
@@ -96,7 +142,10 @@ export function PricingPage() {
         'Custom Data Warehouse & ERP Sync',
         'Dedicated Solutions Architect',
         'Advanced Security & Compliance',
-        '99.99% Platform Uptime SLA',
+        // Was '99.99% Platform Uptime SLA'. Section 5 of the Terms states
+        // there is no uptime guarantee on current plans; selling one as a
+        // plan feature would contradict the contract it is sold under.
+        'Priority Support with a Named Contact',
       ],
       cta: 'Talk to Enterprise Sales',
       highlighted: false,
@@ -111,9 +160,9 @@ export function PricingPage() {
    * the visitor just described.
    */
   const getRecommendedPlan = () => {
-    if (gmv > 200000 || staffSeats > 15) return 'Enterprise';
-    if (gmv > 50000 || staffSeats > 5) return 'Pro';
-    if (gmv > 10000 || staffSeats > 2) return 'Growth';
+    if (gmv > GMV_FOR_ENTERPRISE || staffSeats > 15) return 'Enterprise';
+    if (gmv > GMV_FOR_PRO || staffSeats > 5) return 'Pro';
+    if (gmv > GMV_FOR_GROWTH || staffSeats > 2) return 'Growth';
     return 'Starter';
   };
 
@@ -134,7 +183,7 @@ export function PricingPage() {
     },
     {
       q: 'How do annual billing discounts work?',
-      a: 'When you choose annual billing, you pay upfront for 12 months and receive an instant 20% discount off the standard monthly rate across all seller plans.',
+      a: 'Annual billing is charged once for the year and costs less than the monthly plan on every tier. The exact figures are on the cards above — switch the toggle to compare them.',
     },
     {
       q: 'What happens when I pass my plan’s included AI tokens?',
@@ -197,7 +246,7 @@ export function PricingPage() {
             >
               <span>Annual Billing</span>
               <span className="px-2 py-0.5 rounded-full bg-[var(--surface-3)] text-[var(--brand-green-ink)] text-[10px] uppercase tracking-wider font-extrabold">
-                Save 20%
+                {annualSavingPercent !== null ? `Save ${annualSavingPercent}%` : 'Best value'}
               </span>
             </button>
           </div>
@@ -209,9 +258,13 @@ export function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {plans.map((plan) => {
-              const price = typeof plan.monthlyPrice === 'number'
-                ? Math.round(plan.monthlyPrice * discountMultiplier)
-                : plan.monthlyPrice;
+              const live = liveByCode.get(plan.id);
+              // What this card actually charges on the selected cycle.
+              const amount = live
+                ? billingCycle === 'annual'
+                  ? live.annualPrice
+                  : live.monthlyPrice
+                : null;
 
               return (
                 <div
@@ -233,17 +286,37 @@ export function PricingPage() {
                     <p className="text-xs text-muted mb-6 min-h-[36px]">{plan.description}</p>
 
                     <div className="mb-6 pb-6 border-b border-[var(--ink)]/10">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl sm:text-5xl font-extrabold text-primary">
-                          {typeof price === 'number' ? `$${price}` : price}
-                        </span>
-                        {typeof price === 'number' && (
-                          <span className="text-xs text-muted">/ month</span>
+                      {/*
+                        `min-w-0` plus wrapping, and a price that scales with the
+                        card instead of a fixed 5xl. A naira figure is far longer
+                        than the dollar one this was built for: "₦450,000" at
+                        text-5xl overflowed the card and pushed the "/ year" unit
+                        outside its rounded border entirely.
+                      */}
+                      <div className="min-w-0">
+                        <div className="text-[clamp(1.65rem,3.4vw,2.5rem)] font-extrabold text-primary tabular-nums leading-none">
+                          {amount !== null
+                            ? formatCurrency(amount)
+                            : plansLoading
+                              ? '—'
+                              : 'Unavailable'}
+                        </div>
+                        {amount !== null && (
+                          <div className="text-xs text-muted mt-1.5">
+                            per {billingCycle === 'annual' ? 'year' : 'month'}
+                          </div>
                         )}
                       </div>
-                      {billingCycle === 'annual' && typeof price === 'number' && (
-                        <div className="text-[11px] text-[var(--brand-green-ink)] font-semibold mt-1">
-                          Billed annually (${price * 12}/yr)
+                      {/* What committing for the year actually saves, read off
+                          the two prices rather than computed from one of them. */}
+                      {billingCycle === 'annual' && live && live.monthlyPrice > live.annualPrice && (
+                        <div className="text-[11px] text-[var(--brand-green-ink)] font-semibold mt-2">
+                          Saves {formatCurrency(live.monthlyPrice - live.annualPrice)} vs monthly
+                        </div>
+                      )}
+                      {plansError && (
+                        <div className="text-[11px] text-muted font-semibold mt-1">
+                          Prices could not be loaded. Please refresh.
                         </div>
                       )}
                     </div>
@@ -294,15 +367,15 @@ export function PricingPage() {
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-sm font-semibold text-strong">Estimated Monthly Sales (GMV):</label>
                     <span className="text-xl font-bold text-[var(--brand-yellow-ink)]">
-                      ${gmv.toLocaleString()} / mo
+                      {formatCurrencyCompact(gmv)} / mo
                     </span>
                   </div>
                   <input
                     type="range"
                     aria-label="Monthly sales volume"
-                    min={2000}
-                    max={300000}
-                    step={5000}
+                    min={GMV_MIN}
+                    max={GMV_MAX}
+                    step={GMV_STEP}
                     value={gmv}
                     onChange={(e) => setGmv(Number(e.target.value))}
                     className="w-full h-2 bg-[var(--ink)]/10 rounded-lg appearance-none cursor-pointer accent-[#FFBD2E]"
@@ -333,7 +406,7 @@ export function PricingPage() {
                 <div className="text-xs text-muted uppercase font-mono mb-1">Recommended Seller Plan</div>
                 <div className="text-3xl font-extrabold text-primary mb-2">{recommended} Plan</div>
                 <div className="text-xs text-[var(--brand-green-ink)] font-semibold mb-4">
-                  Fits your ${gmv.toLocaleString()} GMV & {staffSeats} staff seats.
+                  Fits your {formatCurrencyCompact(gmv)} GMV & {staffSeats} staff seats.
                 </div>
                 <Button
                   variant="primary"

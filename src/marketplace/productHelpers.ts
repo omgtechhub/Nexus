@@ -1,6 +1,7 @@
 import type { MarketplaceProduct } from '../api/marketplace';
 import type { StorefrontProductVariant } from '../api/storefront';
 import type { CartItem } from '../context/CartContext';
+import { PLATFORM_CURRENCY } from '../utils/money';
 
 /**
  * Shared product helpers for the marketplace surfaces. Kept out of the
@@ -8,15 +9,25 @@ import type { CartItem } from '../context/CartContext';
  * provably the same object.
  */
 
-export function formatPrice(amount: number, currency = 'USD') {
+export function formatPrice(amount: number, currency = PLATFORM_CURRENCY) {
+  // Kobo only when there are kobo; see utils/money.ts for why the minimum
+  // follows the amount rather than being pinned at 0 or 2.
+  const minimumFractionDigits = Number.isInteger(amount) ? 0 : 2;
+
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
       currency,
+      minimumFractionDigits,
+      // See utils/money.ts: the default display spells NGN out as "NGN" under
+      // a non-NG locale, which is not what a shopper expects to see on a price.
+      currencyDisplay: 'narrowSymbol',
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `$${amount.toFixed(2)}`;
+    // Never a `$` fallback: the only way to reach this branch is an
+    // unrecognised code, and guessing dollars is wrong in precisely that case.
+    return `${amount.toFixed(2)} ${currency}`;
   }
 }
 

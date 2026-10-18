@@ -7,8 +7,7 @@ import { useCustomersQuery } from '../../hooks/useQueries';
 import toast from 'react-hot-toast';
 
 import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+import { formatCurrency } from '../../utils/money';
 
 export function Customers() {
   const { navigate, customers: customersList, addCustomer } = useApp();

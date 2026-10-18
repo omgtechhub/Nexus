@@ -95,8 +95,10 @@ services:
 
       # The currency new stores trade in. MUST match a currency the gateway
       # account has enabled — Paystack rejects anything else outright, which
-      # fails every checkout at initialize.
-      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
+      # fails every checkout at initialize. Required rather than defaulted:
+      # a wrong currency is a stack that boots cleanly and cannot take money,
+      # which is exactly what the ":?" form exists to prevent.
+      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:?set DEFAULT_CURRENCY in .env to a currency enabled on your Paystack account (e.g. NGN)}
 
       # Platform-wide sales tax. 0 charges none.
       PLATFORM_TAX_PERCENT: ${PLATFORM_TAX_PERCENT:-0}
@@ -143,12 +145,23 @@ services:
         VITE_BASE: ${VITE_BASE:-/}
         VITE_APP_NAME: ${VITE_APP_NAME:-Nexus Commerce}
         VITE_PAYSTACK_PUBLIC_KEY: ${VITE_PAYSTACK_PUBLIC_KEY:-}
+        # Fed by the SAME .env line as the API's DEFAULT_CURRENCY above, so the
+        # browser and the server cannot disagree about what a price means.
+        # Five dashboard sections used to hardcode USD; see src/utils/money.ts.
+        VITE_DEFAULT_CURRENCY: ${DEFAULT_CURRENCY}
         VITE_WHATSAPP_NUMBER: ${VITE_WHATSAPP_NUMBER:-}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     container_name: nexus_frontend
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      # The Cloudflare Origin Certificate, read-only. nginx will not start
+      # without both files, which is the right failure: the session cookie is
+      # Secure, so a stack serving plain HTTP cannot log anyone in and should
+      # not pretend to be up. See DEPLOYMENT.md for how to generate them.
+      - ${TLS_CERT_DIR:-./certs}:/etc/nginx/certs:ro
     depends_on:
       - api
 

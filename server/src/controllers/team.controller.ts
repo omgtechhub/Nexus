@@ -3,6 +3,46 @@ import { prisma } from '../prisma.js';
 import { Role, InvitationStatus } from '@prisma/client';
 import crypto from 'crypto';
 import { logAuditEvent } from '../utils/auditLogger.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
+
+/**
+ * Role assignment rules.
+ *
+ * `requireRole(['OWNER', 'ADMIN'])` on the routes answers "may this person
+ * manage the team at all". It does **not** bound which role they may hand
+ * out, and nothing else did either, so an ADMIN could:
+ *
+ *   - promote themselves to OWNER (`PATCH /team/members/:ownId/role`);
+ *   - demote the actual OWNER to VIEWER — `removeMember` refuses to delete an
+ *     OWNER, but the role endpoint happily neutralised one, after which the
+ *     owner could not remove the ADMIN either; and
+ *   - mint an OWNER-level invitation for an outside address.
+ *
+ * Any one of those is a complete store takeover by a staff-level account.
+ *
+ * The rules below are the missing half:
+ *   1. only an OWNER may grant OWNER — ownership transfer is the owner's call;
+ *   2. only an OWNER may change a member who currently holds OWNER;
+ *   3. the last OWNER cannot be demoted, so a store always has one.
+ */
+const ASSIGNABLE_ROLES = [Role.OWNER, Role.ADMIN, Role.STAFF, Role.VIEWER] as const;
+
+/**
+ * Parse a role from request input.
+ *
+ * Previously `role.toUpperCase() as Role` — a cast, which checks nothing. A
+ * non-string body value (`{"role": 1}`) threw a TypeError and surfaced as a
+ * 500, and an unrecognised string reached Prisma and failed there instead of
+ * being reported as the bad request it is.
+ */
+function parseRole(input: unknown, fallback?: Role): Role | null {
+  if (input === undefined || input === null || input === '') return fallback ?? null;
+  if (typeof input !== 'string') return null;
+  const candidate = input.toUpperCase();
+  return (ASSIGNABLE_ROLES as readonly string[]).includes(candidate) ? (candidate as Role) : null;
+}
+
+const ROLE_LIST = ASSIGNABLE_ROLES.join(', ');
 
 export async function getTeam(req: Request, res: Response, next: NextFunction) {
   try {
@@ -61,17 +101,38 @@ import { entitlementService } from '../services/billing/entitlement.service.js';
 export async function createInvitation(req: Request, res: Response, next: NextFunction) {
   try {
     const storeId = req.store!.id;
-    await entitlementService.assertCanAddTeamMember(storeId);
     const user = req.user!;
     const { email, role } = req.body;
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       res.status(400).json({ success: false, error: 'Email address is required for team invitation' });
       return;
     }
 
     const targetEmail = email.toLowerCase().trim();
-    const assignedRole = (role ? role.toUpperCase() : 'STAFF') as Role;
+
+    const assignedRole = parseRole(role, Role.STAFF);
+    if (!assignedRole) {
+      res.status(400).json({ success: false, error: `Invalid role. Expected one of: ${ROLE_LIST}` });
+      return;
+    }
+
+    // Only an owner may invite another owner.
+    //
+    // Checked before the entitlement call on purpose: "you are not allowed to
+    // do this" does not depend on the plan, and running the billing check
+    // first meant a store at its seat limit answered LIMIT_EXCEEDED to an
+    // attempted privilege escalation — the right status for the wrong reason,
+    // and one that would start permitting it the moment the plan was upgraded.
+    if (assignedRole === Role.OWNER && req.memberRole !== Role.OWNER) {
+      res.status(403).json({
+        success: false,
+        error: 'Only the store owner can invite someone as OWNER.',
+      });
+      return;
+    }
+
+    await entitlementService.assertCanAddTeamMember(storeId);
 
     // Check if user is already a member
     const existingMember = await prisma.storeMember.findFirst({
@@ -107,7 +168,10 @@ export async function createInvitation(req: Request, res: Response, next: NextFu
       await emailService.sendEmail({
         to: targetEmail,
         subject: `Invitation to join ${req.store!.name} on Nexus Commerce`,
-        html: `<p>Hi,</p><p>You have been invited by ${user.name} to join <strong>${req.store!.name}</strong> as a <strong>${assignedRole}</strong>.</p><p>Invitation Token: <code>${token}</code></p>`,
+        // Escaped: the inviter chooses `user.name` and the recipient is a
+        // third party, so raw markup here is attacker-authored content inside
+        // a genuine Nexus email.
+        html: `<p>Hi,</p><p>You have been invited by ${escapeHtml(user.name)} to join <strong>${escapeHtml(req.store!.name)}</strong> as a <strong>${assignedRole}</strong>.</p><p>Invitation Token: <code>${escapeHtml(token)}</code></p>`,
         text: `You have been invited by ${user.name} to join ${req.store!.name} as a ${assignedRole}. Token: ${token}`,
       });
     } catch (e) {
@@ -158,7 +222,7 @@ export async function resendInvitation(req: Request, res: Response, next: NextFu
       await emailService.sendEmail({
         to: invitation.email,
         subject: `Reminder: Invitation to join ${req.store!.name}`,
-        html: `<p>Reminder: Token for ${req.store!.name}: <code>${invitation.token}</code></p>`,
+        html: `<p>Reminder: Token for ${escapeHtml(req.store!.name)}: <code>${escapeHtml(invitation.token)}</code></p>`,
         text: `Reminder: Invitation token for ${req.store!.name}: ${invitation.token}`,
       });
     } catch (e) {
@@ -237,6 +301,24 @@ export async function acceptInvitation(req: Request, res: Response, next: NextFu
       return;
     }
 
+    /**
+     * The invitation is addressed to someone, and only they may redeem it.
+     *
+     * Without this the token was a pure bearer credential: an invitation sent
+     * to finance@acme.test could be redeemed by *any* signed-in Nexus account
+     * that came to hold the string — a forwarded email, a shared inbox, a
+     * screenshot in a support thread — and that account then held the role
+     * the owner intended for someone else. The token stays secret; this makes
+     * it secret *and* bound.
+     */
+    if (invitation.email.toLowerCase() !== (user.email || '').toLowerCase()) {
+      res.status(403).json({
+        success: false,
+        error: `This invitation was sent to ${invitation.email}. Sign in with that account to accept it.`,
+      });
+      return;
+    }
+
     // Add user as StoreMember
     const membership = await prisma.storeMember.upsert({
       where: {
@@ -295,7 +377,56 @@ export async function updateMemberRole(req: Request, res: Response, next: NextFu
       return;
     }
 
-    const newRole = role.toUpperCase() as Role;
+    const newRole = parseRole(role);
+    if (!newRole) {
+      res.status(400).json({ success: false, error: `Invalid role. Expected one of: ${ROLE_LIST}` });
+      return;
+    }
+
+    const actorIsOwner = req.memberRole === Role.OWNER;
+
+    // Granting ownership is the owner's decision alone.
+    if (newRole === Role.OWNER && !actorIsOwner) {
+      res.status(403).json({
+        success: false,
+        error: 'Only the store owner can grant the OWNER role.',
+      });
+      return;
+    }
+
+    // ...and so is changing what the current owner holds.
+    if (member.role === Role.OWNER && !actorIsOwner) {
+      res.status(403).json({
+        success: false,
+        error: "Only the store owner can change the owner's role.",
+      });
+      return;
+    }
+
+    /**
+     * A store must keep an owner.
+     *
+     * Checked against the live count rather than assuming one: ownership can
+     * be transferred by promoting a second owner first, and that sequence has
+     * to stay possible.
+     */
+    if (member.role === Role.OWNER && newRole !== Role.OWNER) {
+      const owners = await prisma.storeMember.count({
+        where: { storeId, role: Role.OWNER },
+      });
+      if (owners <= 1) {
+        res.status(400).json({
+          success: false,
+          error: 'This store has only one owner. Promote another member to OWNER first.',
+        });
+        return;
+      }
+    }
+
+    if (member.role === newRole) {
+      res.json({ success: true, data: member });
+      return;
+    }
 
     const updated = await prisma.storeMember.update({
       where: { id },

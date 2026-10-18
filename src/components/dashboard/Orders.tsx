@@ -11,8 +11,7 @@ import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
 
 import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+import { formatCurrency } from '../../utils/money';
 
 const statusConfig: Record<OrderStatus, { variant: 'success' | 'info' | 'warning' | 'error' | 'default'; icon: React.ReactNode; label: string }> = {
   PENDING: { variant: 'default', icon: <Clock size={12} />, label: 'Pending' },
@@ -610,7 +609,7 @@ export function Orders() {
                         >
                           <option value="">-- Select Product --</option>
                           {products.map(p => (
-                            <option key={p.id} value={p.id}>{p.title} (${p.price})</option>
+                            <option key={p.id} value={p.id}>{p.title} ({formatCurrency(p.price)})</option>
                           ))}
                         </select>
                       )}
@@ -746,11 +745,11 @@ export function Orders() {
               <div className="p-4 bg-[var(--ink)]/5 border border-[var(--ink)]/10 rounded-xl space-y-2">
                 <div className="flex justify-between text-secondary text-xs">
                   <span>Subtotal ({lineItems.length} item{lineItems.length !== 1 ? 's' : ''})</span>
-                  <span className="font-mono">${computedSubtotal.toFixed(2)} USD</span>
+                  <span className="font-mono">{formatCurrency(computedSubtotal)}</span>
                 </div>
                 <div className="flex justify-between text-primary font-bold text-sm border-t border-[var(--ink)]/10 pt-2">
                   <span>Order Total</span>
-                  <span className="font-mono text-[var(--brand-green-ink)]">${computedTotal.toFixed(2)} USD</span>
+                  <span className="font-mono text-[var(--brand-green-ink)]">{formatCurrency(computedTotal)}</span>
                 </div>
               </div>
 
