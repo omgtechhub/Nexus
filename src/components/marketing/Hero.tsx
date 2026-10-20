@@ -182,10 +182,18 @@ const slide2SubPhrases = [
  * uptime line and the Terms still disagree.
  */
 const stats = [
-  { value: '2.1M+', label: 'Active merchants', icon: <ShoppingBag size={16} /> },
+  { value: '2.1M+', label: 'Active merchants', icon: <Users size={16} /> },
   { value: '$200B+', label: 'Revenue processed', icon: <TrendingUp size={16} /> },
-  { value: '175+', label: 'Countries served', icon: <Users size={16} /> },
-  { value: '99.99%', label: 'Uptime guarantee', icon: <Star size={16} /> },
+  {
+    value: '50%',
+    label: 'Higher conversions',
+    // Carried as its own line so the card keeps one short label like the
+    // other three, instead of wrapping to three lines and throwing the row
+    // out of balance.
+    qualifier: 'vs. standard checkout',
+    icon: <ShoppingBag size={16} />,
+  },
+  { value: '14-day', label: 'Free trial', icon: <Star size={16} /> },
 ];
 
 interface HeroSlide {
@@ -580,6 +588,9 @@ export function Hero() {
                   </div>
                   <div className="text-2xl font-bold text-primary mb-1">{stat.value}</div>
                   <div className="text-xs text-muted">{stat.label}</div>
+                  {stat.qualifier && (
+                    <div className="text-[11px] text-muted mt-0.5">{stat.qualifier}</div>
+                  )}
                 </div>
               ))}
             </div>
