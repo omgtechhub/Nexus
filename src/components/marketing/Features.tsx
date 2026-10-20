@@ -155,9 +155,11 @@ export function Features() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
           <div className="relative rounded-2xl overflow-hidden border border-[var(--ink)]/10 group">
             <img loading="lazy" decoding="async" src={getAssetUrl('/images/feature-analytics.jpg')} alt="Analytics" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface-base)] via-[var(--surface-base)]/30 to-transparent" />
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5F56]/20 border border-[#FF5F56]/30 text-[var(--brand-red-ink)] text-xs font-medium mb-2">
+            <div className="media-caption-scrim absolute inset-0" />
+            {/* Pinned dark: the type sits on a photograph, not on a surface,
+                so it must stay light whatever the page theme is. */}
+            <div data-theme="dark" className="absolute bottom-6 left-6 right-6">
+              <div className="media-caption-pill inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#FF5F56]/50 text-[#FF5F56] text-xs font-medium mb-2">
                 <Sparkles size={12} /> Nexus IQ
               </div>
               <h3 className="text-xl font-bold text-primary group-hover:text-[var(--brand-yellow-ink)] transition-colors">Know what to sell next</h3>
@@ -167,9 +169,11 @@ export function Features() {
 
           <div className="relative rounded-2xl overflow-hidden border border-[var(--ink)]/10 group">
             <img loading="lazy" decoding="async" src={getAssetUrl('/images/feature-commerce.jpg')} alt="Commerce" className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface-base)] via-[var(--surface-base)]/30 to-transparent" />
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#27C93F]/20 border border-[#27C93F]/30 text-[var(--brand-green-ink)] text-xs font-medium mb-2">
+            <div className="media-caption-scrim absolute inset-0" />
+            {/* Pinned dark: the type sits on a photograph, not on a surface,
+                so it must stay light whatever the page theme is. */}
+            <div data-theme="dark" className="absolute bottom-6 left-6 right-6">
+              <div className="media-caption-pill inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#27C93F]/50 text-[#27C93F] text-xs font-medium mb-2">
                 <CreditCard size={12} /> Marketplace Checkout
               </div>
               <h3 className="text-xl font-bold text-primary group-hover:text-[var(--brand-yellow-ink)] transition-colors">One bag, one checkout, every seller</h3>

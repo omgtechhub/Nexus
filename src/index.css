@@ -379,6 +379,43 @@
   }
 
   /*
+   * A caption laid over a photograph.
+   *
+   * Used by the two image cards in the features section, whose text was
+   * illegible: the scrim was keyed to `--surface-base`, which in light mode is
+   * #F6F7FA, so it LIGHTENED the bottom of an already bright photo and then
+   * put near-black type on it. On a phone, where the card is full width and
+   * the copy wraps to more lines, it covered most of the picture.
+   *
+   * Fixed values rather than theme tokens, like the hero's own scrims: what is
+   * underneath is a photograph in both themes, so the darkening cannot follow
+   * the page. The caption pins `data-theme="dark"` so its type resolves light
+   * against this.
+   */
+  .media-caption-scrim {
+    background: linear-gradient(
+      to top,
+      rgb(6 7 16 / 0.94) 0%,
+      rgb(6 7 16 / 0.86) 30%,
+      rgb(6 7 16 / 0.55) 55%,
+      rgb(6 7 16 / 0.15) 80%,
+      transparent 100%
+    );
+  }
+
+  /*
+   * The tag inside a photo caption.
+   *
+   * A 20%-brand tint over a photograph left its own brand-coloured text at
+   * 2.3:1 — the tint is not opaque enough to be a surface, so the text was
+   * really sitting on whatever the picture happened to be. A near-opaque dark
+   * base gives it one, and the brand colour stays as the border and the type.
+   */
+  .media-caption-pill {
+    background: rgb(6 7 16 / 0.72);
+  }
+
+  /*
    * The pill above the headline.
    *
    * Its amber text measured 4.13:1 over the picture, because what was behind
