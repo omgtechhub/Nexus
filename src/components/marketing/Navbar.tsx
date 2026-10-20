@@ -4,6 +4,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../utils/cn';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * Every entry here resolves to a page that exists.
@@ -29,12 +30,18 @@ interface NavbarProps {
    * in light mode its links would otherwise be near-black on near-black. Once
    * the page scrolls the bar gets its own background and goes back to the
    * page's own theme.
+   *
+   * On a phone in light mode the hero is NOT dark — it is the page's own
+   * surface, because there is no video there to pin a theme for — so the bar
+   * must not force dark either. It checks the same breakpoint the hero does;
+   * white-on-white is how this was caught.
    */
   overlaysDarkHero?: boolean;
 }
 
 export function Navbar({ overlaysDarkHero = false }: NavbarProps) {
   const { isAuthenticated, user, isAdmin, isCustomer } = useApp();
+  const isPhone = useMediaQuery('(max-width: 767px)');
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -74,7 +81,9 @@ export function Navbar({ overlaysDarkHero = false }: NavbarProps) {
 
       <nav
         aria-label="Main"
-        data-theme={overlaysDarkHero && !scrolled && !mobileOpen ? 'dark' : undefined}
+        data-theme={
+          overlaysDarkHero && !isPhone && !scrolled && !mobileOpen ? 'dark' : undefined
+        }
         className={cn(
           'fixed inset-x-0 top-0 z-40 transition-colors duration-300',
           scrolled || mobileOpen

@@ -248,14 +248,20 @@ export function Hero() {
   const [subIndex, setSubIndex] = useState(0);
 
   /*
-   * The video is 16:9 and the hero band on a phone is close to square, so
-   * object-cover was discarding most of every frame to fill it — a crop of a
-   * crop, for 2.1MB over mobile data. Below 768px the slide keeps its copy and
-   * its timing and shows the wash instead. `useMediaQuery` reports the match
-   * on the FIRST render, so on a phone the <video> is never mounted and the
-   * file is never requested.
+   * Two things turn on this.
+   *
+   * **No video.** It is 16:9 and the band on a phone is close to square, so
+   * object-cover discarded most of every frame to fill it — a crop of a crop,
+   * for 2.1MB over mobile data. `useMediaQuery` reports the match on the FIRST
+   * render, so the <video> is never mounted and the file never requested.
+   *
+   * **No pinned dark theme.** The band is pinned dark everywhere else because
+   * its copy sits on that video and a light overlay would wash the video out.
+   * On a phone there IS no video, so the reason does not apply: the band
+   * follows the page like every other section, and in light mode it is the
+   * same surface as the rest of the page.
    */
-  const hideVideo = useMediaQuery('(max-width: 767px)');
+  const isPhone = useMediaQuery('(max-width: 767px)');
 
   useDismissOnEscape(videoOpen, () => setVideoOpen(false));
 
@@ -422,7 +428,7 @@ export function Hero() {
         * the page is set to, because it sits on a video.
         */}
       <section
-        data-theme="dark"
+        data-theme={isPhone ? undefined : 'dark'}
         className="hero-wash relative flex flex-col items-center justify-center overflow-hidden text-primary"
       >
         {/*
@@ -456,7 +462,7 @@ export function Hero() {
                     isActive ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
-                  {s.type === 'video' && s.mediaSrc && !hideVideo && (
+                  {s.type === 'video' && s.mediaSrc && !isPhone && (
                     <>
                       <HeroVideo
                         src={s.mediaSrc}
@@ -488,7 +494,7 @@ export function Hero() {
             <button
               ref={heroBadgeRef}
               onClick={() => navigate('pricing')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 bg-[var(--hero-deep)]/60 text-[var(--brand-yellow-ink)] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:bg-[var(--hero-deep)]/75 hover:scale-105 transition duration-300 cursor-pointer group"
+              className="hero-badge inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 text-[var(--brand-yellow-ink)] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:scale-105 transition duration-300 cursor-pointer group"
             >
               <Sparkles size={14} className="text-[var(--brand-yellow-ink)] group-hover:rotate-12 transition-transform" />
               <span>Every plan starts with a 14-day free trial</span>

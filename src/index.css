@@ -379,6 +379,22 @@
   }
 
   /*
+   * The pill above the headline.
+   *
+   * Its amber text measured 4.13:1 over the picture, because what was behind
+   * it was a photograph rather than a surface. It carries its own base so the
+   * contrast is against a known colour -- dark on the dark band, and a light
+   * amber tint on a phone in light mode, where the band is the page.
+   */
+  .hero-badge {
+    background: color-mix(in oklab, var(--hero-deep) 60%, transparent);
+  }
+
+  .hero-badge:hover {
+    background: color-mix(in oklab, var(--hero-deep) 75%, transparent);
+  }
+
+  /*
    * The band, on phones and tablets.
    *
    * The backdrop is a wide, bright picture, and `cover` on a tall narrow band
@@ -399,6 +415,36 @@
    * and only lightness moves -- the colours underneath are still the sampled
    * ones.
    */
+  /*
+   * A phone in light mode: the band is just the page.
+   *
+   * The hero is pinned dark everywhere else because its copy sits on a video.
+   * There is no video on a phone, so there is nothing to pin for -- and a dark
+   * blue island above a light page is a seam, not a design. Below 768px in
+   * light mode the picture, the copy scrim and the darkening all come off and
+   * the section takes the same surface as every other section. Nothing here
+   * touches tablet or desktop, which keep the picture.
+   */
+  @media (max-width: 767px) {
+    :root[data-theme='light'] .hero-wash {
+      background-color: var(--surface-sunken);
+      background-image: none;
+    }
+
+    :root[data-theme='light'] .hero-backdrop,
+    :root[data-theme='light'] .hero-copy-scrim {
+      display: none;
+    }
+
+    :root[data-theme='light'] .hero-badge {
+      background: color-mix(in oklab, var(--brand-yellow) 14%, transparent);
+    }
+
+    :root[data-theme='light'] .hero-badge:hover {
+      background: color-mix(in oklab, var(--brand-yellow) 22%, transparent);
+    }
+  }
+
   @media (max-width: 1023px) {
     .hero-backdrop::after {
       content: '';
