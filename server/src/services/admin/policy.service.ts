@@ -1,6 +1,7 @@
 import {
   PaymentStatus,
   OrderStatus,
+  FulfillmentStatus,
   ProductStatus,
   MerchantStatus,
   ReviewStatus,
@@ -258,6 +259,11 @@ async function checkUnfulfilledPaidOrders(): Promise<PolicyFinding[]> {
     where: {
       paymentStatus: { in: PAID_STATES },
       status: { notIn: [OrderStatus.FULFILLED, OrderStatus.CANCELLED, OrderStatus.REFUNDED] },
+      // The SLA is on the merchant handing the parcel over, not on the
+      // carrier delivering it. Keying this off `status` alone made a merchant
+      // who shipped the same day look late for as long as the parcel was in
+      // transit -- and, before the lifecycle was wired up, for ever.
+      fulfillmentStatus: { not: FulfillmentStatus.FULFILLED },
       createdAt: { lt: cutoff },
     },
     _count: { _all: true },

@@ -5,6 +5,7 @@ import { getPaymentProvider } from '../services/payments/payment.factory.js';
 import { logger } from '../utils/logger.js';
 import { formatMoney } from '../services/email/email.service.js';
 import { recordCommissionForPayment, updatePayoutStatus } from '../services/payouts/payout.service.js';
+import { jobQueue } from '../jobs/jobQueue.js';
 
 /**
  * Order payment webhooks.
@@ -142,6 +143,28 @@ async function settleOrderPayment(params: {
 
     return true;
   });
+
+  /*
+   * The receipt, on whichever path settles the payment.
+   *
+   * This was enqueued only from `GET /payments/:reference/verify`, and that
+   * endpoint sends nothing when it finds the payment already settled. Both
+   * gateways normally deliver their webhook before -- or instead of -- the
+   * shopper returning to the browser, so the webhook claimed the transition,
+   * the verify call then saw `alreadySettled` and stayed quiet, and the buyer
+   * got no receipt at all. The claim above is what keeps this to exactly one
+   * mail: only the delivery that actually moved the payment reaches here.
+   */
+  if (settled) {
+    jobQueue.enqueue('SEND_EMAIL_PAYMENT_RECEIPT', {
+      orderNumber: payment.order.orderNumber,
+      customerEmail: payment.order.customerEmail,
+      customerName: payment.order.customerName,
+      total: payment.amount,
+      currency: payment.currency,
+      paymentReference: providerReference,
+    });
+  }
 
   return settled ? { status: 'settled' } : { status: 'skipped', reason: 'already_paid' };
 }

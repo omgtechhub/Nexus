@@ -13,6 +13,7 @@ export type JobType =
   | 'SEND_EMAIL_ORDER_CONFIRMATION'
   | 'SEND_EMAIL_PAYMENT_RECEIPT'
   | 'SEND_EMAIL_SHIPPING_UPDATE'
+  | 'SEND_EMAIL_DELIVERED'
   | 'CHECK_LOW_STOCK'
   | 'PROCESS_SUBSCRIPTION_RENEWALS'
   | 'PROCESS_GRACE_PERIODS'
@@ -66,6 +67,9 @@ class JobQueue {
         break;
       case 'SEND_EMAIL_SHIPPING_UPDATE':
         await emailService.sendShippingUpdate(job.data);
+        break;
+      case 'SEND_EMAIL_DELIVERED':
+        await emailService.sendDeliveryConfirmation(job.data);
         break;
       case 'CHECK_LOW_STOCK':
         await this.checkLowStock(job.data.merchantId, job.data.productId);

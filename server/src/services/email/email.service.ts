@@ -195,6 +195,45 @@ export class EmailService {
     });
   }
 
+  /**
+   * The parcel arrived.
+   *
+   * The last thing that happens to an order, and the point at which the buyer
+   * may review what they bought — so this is also the mail that invites them
+   * to, rather than leaving the review prompt somewhere they will never see.
+   */
+  async sendDeliveryConfirmation(order: {
+    orderNumber: string;
+    customerEmail: string;
+    customerName: string;
+    carrier?: string | null;
+    trackingNumber?: string | null;
+  }): Promise<boolean> {
+    const carrierLine = order.carrier
+      ? `<p><strong>Delivered by:</strong> ${order.carrier}${
+          order.trackingNumber ? ` (${order.trackingNumber})` : ''
+        }</p>`
+      : '';
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #16a34a;">Delivered — ${order.orderNumber}</h2>
+        <p>Hi ${order.customerName},</p>
+        <p>Order <strong>${order.orderNumber}</strong> has been delivered. We hope everything arrived as you expected.</p>
+        ${carrierLine}
+        <p>Now that it has arrived you can leave a review on what you bought — it is the single most useful thing you can do for the next shopper.</p>
+        <p style="color: #64748b; font-size: 12px; margin-top: 24px;">Nexus Commerce Fulfillment</p>
+      </div>
+    `;
+
+    return this.provider.sendEmail({
+      to: order.customerEmail,
+      subject: `Order ${order.orderNumber} delivered`,
+      html,
+      text: `Hi ${order.customerName}, order ${order.orderNumber} has been delivered. You can now review what you bought.`,
+    });
+  }
+
   async sendLowStockAlert(
     merchantEmail: string,
     productTitle: string,

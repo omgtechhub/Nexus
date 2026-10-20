@@ -95,4 +95,25 @@ export default defineConfig({
       },
     },
   },
+  /**
+   * The server to share from, not the dev server.
+   *
+   * `npm run dev` serves every source file as its own module request: one
+   * catalogue page is 81 separate JavaScript requests, and the seller
+   * dashboard is far more. On this machine that is invisible, but through a
+   * forwarded-port link to a phone every one of those is a full round-trip
+   * through the tunnel relay, and a single navigation turns into minutes of
+   * waiting. The same page off a production build is 15 requests.
+   *
+   * So: forward the port of `npm run share` when you want to look at this on
+   * a phone, and keep `npm run dev` for the machine you are editing on, where
+   * hot reload is worth the request count.
+   *
+   * `host`, `allowedHosts` and `proxy` are not repeated here — Vite defaults
+   * each of them to the `server` value above, so the tunnel domains and the
+   * API proxy already apply.
+   */
+  preview: {
+    port: 4173,
+  },
 });

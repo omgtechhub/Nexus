@@ -119,6 +119,144 @@ describe('Fulfilment: inventory, shipping zones and shipments', () => {
     });
   });
 
+  /**
+   * The chain from a placed order to a delivered parcel.
+   *
+   * Every link in it was broken. Fulfilling an order moved `fulfillmentStatus`
+   * and nothing else, writing a status-history row whose from- and to-status
+   * were identical; marking a shipment DELIVERED touched only the shipment
+   * table. `OrderStatus.FULFILLED` was therefore unreachable, which in turn
+   * meant the review gate -- which reads FULFILLED as "it arrived" -- refused
+   * every real buyer, and the admin SLA report counted shipped orders as late
+   * in perpetuity.
+   */
+  describe('order lifecycle from dispatch to delivery', () => {
+    let orderId: string;
+    let orderNumber: string;
+    let shipmentId: string;
+    const buyerEmail = `lifecycle_buyer_${stamp}@example.com`;
+
+    beforeAll(async () => {
+      const order = await request.post('/api/orders').set('Cookie', [cookieA]).send({
+        customerName: 'Lifecycle Buyer',
+        customerEmail: buyerEmail,
+        items: [{ productId: productA.id, quantity: 1 }],
+        shippingAddress: {
+          firstName: 'Lifecycle', lastName: 'Buyer', address1: '9 Delivery Road',
+          city: 'Lagos', state: 'LA', zip: '100001', country: 'NG',
+        },
+      });
+      expect(order.status).toBe(201);
+      orderId = order.body.data.id;
+      orderNumber = order.body.data.orderNumber;
+    });
+
+    it('moves the order to PROCESSING when it is handed to the carrier', async () => {
+      const before = await request.get(`/api/orders/${orderId}`).set('Cookie', [cookieA]);
+      const fromStatus = before.body.data.status;
+
+      const fulfil = await request
+        .post(`/api/shipments/orders/${orderId}/fulfill`)
+        .set('Cookie', [cookieA])
+        .send({ carrier: 'GIG Logistics', trackingNumber: `TRK-LC-${stamp}` });
+      expect(fulfil.status).toBe(201);
+      shipmentId = fulfil.body.data.id;
+      expect(fulfil.body.data.status).toBe('IN_TRANSIT');
+      expect(fulfil.body.data.shippedAt).toBeTruthy();
+
+      const after = await request.get(`/api/orders/${orderId}`).set('Cookie', [cookieA]);
+      expect(after.body.data.status).toBe('PROCESSING');
+      expect(after.body.data.fulfillmentStatus).toBe('FULFILLED');
+
+      // A real transition, not a row recording a move from a status to itself.
+      const dispatch = after.body.data.statusHistory.find(
+        (h: any) => h.toStatus === 'PROCESSING'
+      );
+      expect(dispatch).toBeTruthy();
+      expect(dispatch.fromStatus).toBe(fromStatus);
+      expect(dispatch.fromStatus).not.toBe(dispatch.toStatus);
+    });
+
+    it('closes the order as FULFILLED when the carrier delivers it', async () => {
+      const res = await request
+        .patch(`/api/shipments/${shipmentId}/status`)
+        .set('Cookie', [cookieA])
+        .send({ status: 'DELIVERED', description: 'Handed to recipient', location: 'Lagos' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.deliveredAt).toBeTruthy();
+
+      const after = await request.get(`/api/orders/${orderId}`).set('Cookie', [cookieA]);
+      expect(after.body.data.status).toBe('FULFILLED');
+
+      const delivered = after.body.data.statusHistory.find(
+        (h: any) => h.toStatus === 'FULFILLED'
+      );
+      expect(delivered).toBeTruthy();
+      expect(delivered.fromStatus).toBe('PROCESSING');
+    });
+
+    it('does not rewrite the delivery date when the merchant re-saves the shipment', async () => {
+      const first = await request.get(`/api/shipments/orders/${orderId}`).set('Cookie', [cookieA]);
+      const deliveredAt = first.body.data.deliveredAt;
+
+      const again = await request
+        .patch(`/api/shipments/${shipmentId}/status`)
+        .set('Cookie', [cookieA])
+        .send({ status: 'DELIVERED', description: 'Confirmed again' });
+      expect(again.status).toBe(200);
+      expect(again.body.data.deliveredAt).toBe(deliveredAt);
+    });
+
+    it('does not reopen a delivered order when the shipment is moved back', async () => {
+      const res = await request
+        .patch(`/api/shipments/${shipmentId}/status`)
+        .set('Cookie', [cookieA])
+        .send({ status: 'EXCEPTION', description: 'Recipient reported damage' });
+      expect(res.status).toBe(200);
+
+      const after = await request.get(`/api/orders/${orderId}`).set('Cookie', [cookieA]);
+      expect(after.body.data.status).toBe('FULFILLED');
+    });
+
+    it('shows the buyer the delivery on the public tracking page', async () => {
+      const res = await request
+        .get('/api/shop/track/search')
+        .query({ orderNumber, email: buyerEmail });
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('FULFILLED');
+      expect(res.body.data.fulfillmentStatus).toBe('FULFILLED');
+      expect(res.body.data.tracking.carrier).toBe('GIG Logistics');
+      expect(res.body.data.tracking.shippedAt).toBeTruthy();
+      expect(res.body.data.tracking.deliveredAt).toBeTruthy();
+      expect(res.body.data.statusHistory.some((h: any) => h.toStatus === 'FULFILLED')).toBe(true);
+    });
+
+    it('refuses to fulfil a cancelled order', async () => {
+      const order = await request.post('/api/orders').set('Cookie', [cookieA]).send({
+        customerName: 'Cancelled Buyer',
+        customerEmail: `cancelled_buyer_${stamp}@example.com`,
+        items: [{ productId: productA.id, quantity: 1 }],
+        shippingAddress: {
+          firstName: 'Cancelled', lastName: 'Buyer', address1: '1 Void Street',
+          city: 'Lagos', state: 'LA', zip: '100001', country: 'NG',
+        },
+      });
+      expect(order.status).toBe(201);
+
+      const cancel = await request
+        .post(`/api/orders/${order.body.data.id}/cancel`)
+        .set('Cookie', [cookieA])
+        .send({ reason: 'Buyer changed their mind' });
+      expect(cancel.status).toBe(200);
+
+      const fulfil = await request
+        .post(`/api/shipments/orders/${order.body.data.id}/fulfill`)
+        .set('Cookie', [cookieA])
+        .send({ carrier: 'DHL', trackingNumber: `TRK-X-${stamp}` });
+      expect(fulfil.status).toBe(400);
+    });
+  });
+
   describe('inventory', () => {
     it('lists stock for the caller merchant', async () => {
       const res = await request.get('/api/inventory').set('Cookie', [cookieA]);

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "share": "npm run build && concurrently -n api,web -c magenta,cyan -k --kill-others \"npm:dev:api\" \"npm:preview\"",
     "test:api": "npm --prefix server test"
   },
   "dependencies": {

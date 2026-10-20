@@ -5,6 +5,8 @@ import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, O
 import { quoteOrder } from '../services/pricing/quote.service.js';
 import { defaultCurrencyCode } from '../config/currency.js';
 import { defaultCurrencyLabel } from '../config/currency.js';
+import { formatMoney } from '../services/email/email.service.js';
+import { jobQueue } from '../jobs/jobQueue.js';
 
 const cartItemInputSchema = z.object({
   variantId: z.string().min(1),
@@ -799,12 +801,39 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
           userId: merchant.ownerId,
           type: 'SUCCESS',
           title: `New order ${orderNumber}`,
-          message: `Order received for $${total.toFixed(2)} from ${payload.customer.name}`,
+          // Was a hardcoded dollar sign on a platform that bills in naira.
+          message: `Order received for ${formatMoney(total, defaultCurrencyLabel())} from ${payload.customer.name}`,
           link: '/orders',
         },
       });
 
       return newOrder;
+    });
+
+    /*
+     * Confirm the order to the buyer.
+     *
+     * `SEND_EMAIL_ORDER_CONFIRMATION` was only ever enqueued from
+     * `orders.controller.createOrder` -- the merchant-side endpoint for
+     * keying in an order by hand. Every order a real shopper placed through
+     * the marketplace checkout went out silently, which is also why a guest
+     * had no written record of the order number they need to track it.
+     *
+     * Outside the transaction, and deliberately not awaited into the
+     * response: the order exists either way, and a slow mail provider must
+     * not hold up the redirect to payment.
+     */
+    jobQueue.enqueue('SEND_EMAIL_ORDER_CONFIRMATION', {
+      orderNumber: result.orderNumber,
+      customerEmail: result.customerEmail,
+      customerName: result.customerName,
+      total: result.total,
+      currency: result.currency || defaultCurrencyLabel(),
+      items: result.items.map(item => ({
+        productTitle: item.productTitle,
+        quantity: item.quantity,
+        price: item.price,
+      })),
     });
 
     return res.status(201).json({

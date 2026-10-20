@@ -154,10 +154,30 @@ export function ProductCard({ product }: { product: MarketplaceProduct }) {
           )}
         </div>
 
-        <div className="mt-auto flex h-6 items-baseline gap-2">
-          <span className="text-base font-bold text-primary">{formatPrice(product.price)}</span>
+        {/* The two prices wrap rather than sharing one line at any cost.
+
+            The grid is two-up on a phone, which leaves the card about 124px
+            of content width at 360px, and a naira price beside its
+            struck-through original needs around 151px — so the original was
+            running out past the card's edge. It is not only a phone problem:
+            at 1024px the four-column grid sits next to the filter rail and
+            the card is narrower still.
+
+            Shrinking the type would only move the breaking point to the next
+            expensive listing, and the merchant sets the price, so instead the
+            original drops onto its own line whenever it does not fit beside
+            the price. `h-10` with `content-start` reserves that second line on
+            every card, discounted or not, so the current price keeps the same
+            baseline right across the row — which is the whole point of the
+            fixed heights above. */}
+        <div className="mt-auto flex h-10 flex-wrap content-start items-baseline gap-x-2 gap-y-0.5">
+          <span className="max-w-full break-words text-base font-bold leading-5 text-primary">
+            {formatPrice(product.price)}
+          </span>
           {off !== null && (
-            <span className="text-xs text-muted line-through">{formatPrice(product.comparePrice!)}</span>
+            <span className="max-w-full break-words text-xs leading-4 text-muted line-through">
+              {formatPrice(product.comparePrice!)}
+            </span>
           )}
         </div>
 
@@ -202,7 +222,7 @@ export function ProductGrid({
 
 /**
  * Matches the card's shape so a loading grid does not shift the layout. The
- * placeholder rows mirror the card's fixed heights exactly — 4 / 10 / 6 / 10 —
+ * placeholder rows mirror the card's fixed heights exactly — 4 / 10 / 10 / 10 —
  * so the swap from skeleton to card moves nothing.
  */
 export function ProductCardSkeleton() {
@@ -212,7 +232,12 @@ export function ProductCardSkeleton() {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="h-4 w-1/3 animate-pulse rounded bg-[var(--ink)]/[0.06]" />
         <div className="h-10 w-5/6 animate-pulse rounded bg-[var(--ink)]/[0.06]" />
-        <div className="mt-auto h-6 w-1/3 animate-pulse rounded bg-[var(--ink)]/[0.06]" />
+        {/* The price block is two lines tall whether or not the product is
+            discounted, so the placeholder reserves the same box and draws a
+            single price-sized bar at the top of it. */}
+        <div className="mt-auto h-10">
+          <div className="h-5 w-1/2 animate-pulse rounded bg-[var(--ink)]/[0.06]" />
+        </div>
         <div className="mt-1 h-10 w-full animate-pulse rounded-xl bg-[var(--ink)]/[0.04]" />
       </div>
     </div>
