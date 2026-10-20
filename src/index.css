@@ -119,7 +119,9 @@
      * in step. Nothing BELOW the hero uses these; the framed mockup follows
      * the page's own theme.
      */
-    --hero-deep: #0C114B;       /* bottom edge, the darkest point    */
+    --hero-deep: #0C114B;       /* bottom edge on a wide screen      */
+    --hero-abyss: #05082A;      /* deeper still: the foot of the band
+                                   on phones and tablets              */
     --hero-navy: #0F1863;       /* lower band                        */
     --hero-blue: #2A5BDB;       /* left edge, mid-height             */
     --hero-cyan: #66C8EF;       /* upper-left core                   */
@@ -377,23 +379,37 @@
   }
 
   /*
-   * The band, on a phone.
+   * The band, on phones and tablets.
    *
-   * The backdrop is a wide, bright picture, and `cover` on a near-square band
-   * crops to its lightest middle -- so the mobile hero came out paler than the
-   * desktop one and sat oddly against the dark content below it. Under 768px
-   * only, the image itself is darkened; desktop and tablet are untouched.
+   * The backdrop is a wide, bright picture, and `cover` on a tall narrow band
+   * crops to its lightest middle -- so the small-screen hero came out paler
+   * than the desktop one and sat oddly against the dark content below it.
    *
-   * An inset shadow rather than an overlay element. A `::after` on the section
-   * lands ABOVE the copy: the content sits inside a wrapper that is already
-   * `z-0`, which opens a stacking context its `z-10` child cannot escape, so
-   * the overlay dimmed the headline and the button along with the picture.
-   * Painting into the backdrop layer keeps the darkening strictly behind
-   * everything, and the colours stay the sampled ones -- only lightness moves.
+   * The gradient is deliberately top-heavy in darkness: it opens at the deep
+   * blue the band used to reach only at its foot, and falls from there to
+   * something deeper again. That way the hero is already dark where the
+   * navigation and the headline sit, and it meets the page below it at its
+   * darkest point rather than at its brightest.
+   *
+   * It is painted as a child of the backdrop layer, not as an overlay on the
+   * section. A `::after` on the section lands ABOVE the copy: the content sits
+   * inside a wrapper that is already `z-0`, which opens a stacking context its
+   * `z-10` child cannot escape, so an overlay there dims the headline and the
+   * button along with the picture. Here it stays strictly behind everything,
+   * and only lightness moves -- the colours underneath are still the sampled
+   * ones.
    */
-  @media (max-width: 767px) {
-    .hero-backdrop {
-      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, var(--hero-deep) 58%, transparent);
+  @media (max-width: 1023px) {
+    .hero-backdrop::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--hero-deep) 84%, transparent) 0%,
+        color-mix(in oklab, var(--hero-deep) 88%, transparent) 42%,
+        color-mix(in oklab, var(--hero-abyss) 96%, transparent) 100%
+      );
     }
   }
 
