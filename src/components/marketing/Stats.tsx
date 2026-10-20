@@ -1,60 +1,62 @@
 import CountUp from 'react-countup';
 import { useInView } from 'react-intersection-observer';
-import { Wallet, ShieldCheck, Layers, RotateCcw } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Globe2, Star } from 'lucide-react';
 
 /**
- * Facts about the product, not invented scale.
+ * The scale section, restored at David's instruction on 2026-10-20.
  *
- * This section used to read "$200B+ in merchant revenue", "2.1M+ active
- * merchants", "175+ countries", "99.99% uptime guaranteed" and "50% higher
- * conversions vs. standard checkout" under the heading "Trusted by millions,
- * proven at scale" — on a platform that has not launched. Two of those are
- * quantified performance and availability claims, which is advertising a
- * buyer can rely on and a regulator can act on; the uptime figure also
- * contradicted the Terms, which now state plainly that there is no uptime
- * guarantee.
+ * These four figures are marketing claims, not values computed from the
+ * database, and they were removed once before as unverifiable. They are back
+ * by an explicit decision after being shown exactly what they say.
  *
- * Each number below is checkable against the code: commission defaults to
- * zero, card details are entered with the payment provider and never reach
- * our servers, there are four plan tiers, and the 14-day annual refund
- * window is the one written into section 3 of the Terms. Replace any of
- * these only with something equally checkable.
+ * Two things were NOT restored with them:
+ *
+ *  - The "Featured in & trusted by" strip naming TechCrunch, Forbes, Wired,
+ *    The Verge, Fast Company and Entrepreneur. Naming real publications as
+ *    having covered you is a different kind of claim from a round number.
+ *
+ *  - Nothing else on the page was changed to agree with the uptime line. The
+ *    Terms still state there is no uptime guarantee and no service credits,
+ *    so the two pages disagree. If the guarantee is meant to be real, section
+ *    7 of the Terms is where it has to be written.
  */
 const stats = [
   {
-    icon: <Wallet size={28} />,
-    prefix: '',
-    value: 0,
-    suffix: '%',
-    label: 'Commission on your sales',
-    description: 'Subscriptions fund the platform, not a cut of your revenue',
+    icon: <TrendingUp size={28} />,
+    prefix: '$',
+    value: 200,
+    suffix: 'B+',
+    label: 'In merchant revenue',
+    description: 'Powered by Nexus worldwide',
     color: 'emerald',
   },
   {
-    icon: <ShieldCheck size={28} />,
+    icon: <ShoppingCart size={28} />,
     prefix: '',
-    value: 0,
-    suffix: '',
-    label: 'Card numbers we merchant',
-    description: 'Card details are entered with our payment provider, never on Nexus',
+    value: 2.1,
+    decimals: 1,
+    suffix: 'M+',
+    label: 'Active merchants',
+    description: 'In 175+ countries',
     color: 'blue',
   },
   {
-    icon: <Layers size={28} />,
+    icon: <Globe2 size={28} />,
     prefix: '',
-    value: 4,
-    suffix: '',
-    label: 'Plans, priced in naira',
-    description: 'Starter to Enterprise, monthly or annual',
+    value: 99.99,
+    decimals: 2,
+    suffix: '%',
+    label: 'Uptime guaranteed',
+    description: 'Enterprise-grade reliability',
     color: 'purple',
   },
   {
-    icon: <RotateCcw size={28} />,
+    icon: <Star size={28} />,
     prefix: '',
-    value: 14,
-    suffix: ' days',
-    label: 'To change your mind',
-    description: 'Full refund on a new annual plan, no questions',
+    value: 50,
+    suffix: '%',
+    label: 'Higher conversions',
+    description: 'vs. standard checkout',
     color: 'amber',
   },
 ];
@@ -77,11 +79,11 @@ export function Stats() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6" ref={ref}>
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
-            Built so the terms
-            <span className="text-gradient"> match the product</span>
+            Trusted by millions,
+            <span className="text-gradient"> proven at scale</span>
           </h2>
           <p className="text-muted max-w-xl mx-auto">
-            Four numbers you can hold us to. Every one of them is in our Terms.
+            The numbers behind why the world's fastest-growing brands choose Nexus Commerce.
           </p>
         </div>
 
@@ -104,7 +106,7 @@ export function Stats() {
                       <CountUp
                         end={stat.value}
                         duration={2.5}
-                        decimals={0}
+                        decimals={stat.decimals || 0}
                         delay={idx * 0.2}
                       />
                       {stat.suffix}

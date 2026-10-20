@@ -311,7 +311,7 @@ export function PrivacyPolicyPage() {
                   </li>
                   <li>
                     <strong className="text-primary">Session and security records.</strong> For each
-                    sign-in we merchant the IP address and browser user-agent alongside a hashed
+                    sign-in we store the IP address and browser user-agent alongside a hashed
                     session token, so you can see and revoke your own sessions and so we can
                     investigate abuse. Seller actions on a merchant are written to an audit log.
                   </li>
@@ -405,7 +405,7 @@ export function PrivacyPolicyPage() {
                     </strong>
                     <p className="text-xs text-secondary leading-relaxed">
                       If you choose to enrol your voice so that spoken commands can be checked
-                      against it, we merchant a <em>voiceprint</em>: a numerical representation of how
+                      against it, we store a <em>voiceprint</em>: a numerical representation of how
                       your voice sounds, derived from your enrolment recordings. The recordings
                       themselves are not kept, and the voiceprint cannot be played back as audio.
                     </p>

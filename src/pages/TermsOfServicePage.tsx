@@ -224,7 +224,7 @@ export function TermsOfServicePage() {
                 </p>
                 <ul className="space-y-2.5 list-disc list-outside pl-5 text-body text-sm">
                   <li>
-                    <strong className="text-primary">We do not merchant your card.</strong> Nexus
+                    <strong className="text-primary">We do not store your card.</strong> Nexus
                     keeps no payment method on file and takes nothing automatically. Each term is
                     paid by a payment you make.
                   </li>

@@ -173,16 +173,19 @@ const slide2SubPhrases = [
   },
 ];
 
-/**
- * Invented scale figures ("2.1M+ active merchants", "$200B+ revenue
- * processed", "175+ countries") and an uptime guarantee the Terms do not
- * give. Replaced with claims the code backs — see the note in Stats.tsx.
+/*
+ * The hero's four figures, restored at David's instruction on 2026-10-20.
+ *
+ * They are marketing claims rather than anything the database can produce,
+ * and they were removed once as unverifiable. They are back by an explicit
+ * decision; `Stats.tsx` carries the fuller note, including the fact that the
+ * uptime line and the Terms still disagree.
  */
 const stats = [
-  { value: '0%', label: 'Sales commission', icon: <TrendingUp size={16} /> },
-  { value: '₦', label: 'Naira-native pricing', icon: <ShoppingBag size={16} /> },
-  { value: 'One', label: 'Cart, every merchant', icon: <Users size={16} /> },
-  { value: '14-day', label: 'Annual refund window', icon: <Star size={16} /> },
+  { value: '2.1M+', label: 'Active merchants', icon: <ShoppingBag size={16} /> },
+  { value: '$200B+', label: 'Revenue processed', icon: <TrendingUp size={16} /> },
+  { value: '175+', label: 'Countries served', icon: <Users size={16} /> },
+  { value: '99.99%', label: 'Uptime guarantee', icon: <Star size={16} /> },
 ];
 
 interface HeroSlide {
