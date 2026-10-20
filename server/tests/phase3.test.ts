@@ -6,12 +6,12 @@ import { prisma } from '../src/prisma.js';
 const request = supertest(app);
 
 describe('Nexus Commerce Phase 3 Integration Tests', () => {
-  const storeAEmail = `storeA_${Date.now()}@nexus.io`;
-  const storeBEmail = `storeB_${Date.now()}@nexus.io`;
+  const merchantAEmail = `merchantA_${Date.now()}@nexus.io`;
+  const merchantBEmail = `merchantB_${Date.now()}@nexus.io`;
   const password = 'Password123!';
 
-  let storeACookie: string;
-  let storeBCookie: string;
+  let merchantACookie: string;
+  let merchantBCookie: string;
 
   let createdProductId: string;
   let createdVariantId: string;
@@ -21,30 +21,30 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
   beforeAll(async () => {
     // 1. Register Store A
     const resA = await request.post('/api/auth/register').send({
-      name: 'Store A Owner',
-      email: storeAEmail,
+      name: 'Merchant A Owner',
+      email: merchantAEmail,
       password,
-      storeName: 'Store A',
+      displayName: 'Merchant A',
     });
     expect(resA.status).toBe(201);
-    storeACookie = resA.headers['set-cookie'][0];
+    merchantACookie = resA.headers['set-cookie'][0];
 
     // 2. Register Store B
     const resB = await request.post('/api/auth/register').send({
-      name: 'Store B Owner',
-      email: storeBEmail,
+      name: 'Merchant B Owner',
+      email: merchantBEmail,
       password,
-      storeName: 'Store B',
+      displayName: 'Merchant B',
     });
     expect(resB.status).toBe(201);
-    storeBCookie = resB.headers['set-cookie'][0];
+    merchantBCookie = resB.headers['set-cookie'][0];
   });
 
   it('1. Product CRUD: creates product with variants, images & initial inventory', async () => {
     const sku = `SKU-TEST-${Date.now()}`;
     const res = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Phase 3 Denim Jacket',
         description: 'Heavyweight organic denim jacket',
@@ -71,11 +71,11 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
     createdVariantId = smallVariant ? smallVariant.id : res.body.data.variants[0].id;
   });
 
-  it('2. Duplicate SKU: rejects duplicate SKU within the same store', async () => {
+  it('2. Duplicate SKU: rejects duplicate SKU within the same merchant', async () => {
     const p = await prisma.product.findUnique({ where: { id: createdProductId } });
     const res = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Duplicate SKU Product',
         price: 50.0,
@@ -89,7 +89,7 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
   it('3. Inventory: adjusts stock level and records InventoryMovement', async () => {
     const res = await request
       .post(`/api/inventory/${createdProductId}/adjust`)
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         variantId: createdVariantId,
         changeQuantity: 10,
@@ -105,7 +105,7 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
   it('4. Customer: creates customer with address', async () => {
     const res = await request
       .post('/api/customers')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         name: 'Jane Doe',
         email: `jane_${Date.now()}@example.com`,
@@ -140,7 +140,7 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
 
     const res = await request
       .post('/api/orders')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         customerEmail: 'jane.order@example.com',
         customerName: 'Jane Doe',
@@ -188,7 +188,7 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
 
     const res = await request
       .post(`/api/orders/${createdOrderId}/cancel`)
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ reason: 'Customer requested cancellation' });
 
     expect(res.status).toBe(200);
@@ -202,16 +202,16 @@ describe('Nexus Commerce Phase 3 Integration Tests', () => {
     expect(invAfter!.stock).toBe(stockBefore + 2);
   });
 
-  it('7. Multi-Tenancy Isolation: Store B user cannot access or cancel Store A orders/products', async () => {
+  it('7. Multi-Tenancy Isolation: Merchant B user cannot access or cancel Merchant A orders/products', async () => {
     const resGet = await request
       .get(`/api/orders/${createdOrderId}`)
-      .set('Cookie', [storeBCookie]);
+      .set('Cookie', [merchantBCookie]);
 
     expect(resGet.status).toBe(404);
 
     const resCancel = await request
       .post(`/api/orders/${createdOrderId}/cancel`)
-      .set('Cookie', [storeBCookie])
+      .set('Cookie', [merchantBCookie])
       .send({ reason: 'Malicious cancel attempt' });
 
     expect(resCancel.status).toBe(404);

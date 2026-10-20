@@ -59,7 +59,7 @@ const COOKIES: StorageEntry[] = [
 /** Browser storage. Not cookies, but the policy is about both. */
 const LOCAL_STORAGE: StorageEntry[] = [
   {
-    name: 'nexus_cart_<store>',
+    name: 'nexus_cart_<merchant>',
     kind: 'localStorage',
     duration: 'Until cleared',
     purpose: 'Keeps your bag between visits so it is not lost when you close the tab.',
@@ -72,7 +72,7 @@ const LOCAL_STORAGE: StorageEntry[] = [
       'A copy of your own profile so the interface can render your name and avatar before the first request returns. Cleared on sign-out.',
   },
   {
-    name: 'nexus_store',
+    name: 'nexus_merchant',
     kind: 'localStorage',
     duration: 'Until sign-out',
     purpose: 'For sellers: which merchant account the dashboard is showing. Cleared on sign-out.',

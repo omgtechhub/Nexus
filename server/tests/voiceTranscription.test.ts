@@ -111,7 +111,7 @@ describe.skipIf(!modelsPresent)('Spoken commands reach an answer on all three si
 
     const seller = await request.post('/api/auth/register').send({
       name: 'Voice Seller', email: `vt_s_${stamp}@nexus.io`, password,
-      storeName: `VT Store ${stamp}`,
+      displayName: `VT Merchant ${stamp}`,
     });
     sellerCookie = seller.headers['set-cookie'][0];
     sellerId = seller.body.data.user.id;
@@ -124,7 +124,7 @@ describe.skipIf(!modelsPresent)('Spoken commands reach an answer on all three si
 
     const admin = await request.post('/api/auth/register').send({
       name: 'Voice Admin', email: `vt_a_${stamp}@nexus.io`, password,
-      storeName: `VT Admin Store ${stamp}`,
+      displayName: `VT Admin Merchant ${stamp}`,
     });
     adminId = admin.body.data.user.id;
     await prisma.user.update({ where: { id: adminId }, data: { platformRole: 'PLATFORM_OWNER' } });

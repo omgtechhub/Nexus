@@ -1,14 +1,14 @@
 import { registerApi, loginApi, oauthApi, getMeApi, logoutApi } from '../api/auth';
 import type { AuthSessionResponse } from '../api/auth';
 import { ApiError } from '../api/client';
-import { User, Store } from '../types';
+import { User, Merchant } from '../types';
 
 export type AccountType = 'CUSTOMER' | 'SELLER' | 'ADMIN';
 
 export interface AuthResult {
   success: boolean;
   user?: User;
-  store?: Store | null;
+  merchant?: Merchant | null;
   accountType?: AccountType;
   error?: string;
 }
@@ -46,7 +46,7 @@ function toResult(data: AuthSessionResponse): AuthResult {
   return {
     success: true,
     user: data.user,
-    store: data.store ?? null,
+    merchant: data.merchant ?? null,
     accountType: data.accountType,
   };
 }
@@ -56,11 +56,11 @@ export const AuthService = {
     name: string,
     email: string,
     password: string,
-    storeName?: string,
+    displayName?: string,
     userType?: 'CUSTOMER' | 'SELLER'
   ): Promise<AuthResult> {
     try {
-      return toResult(await registerApi(name, email, password, storeName, userType));
+      return toResult(await registerApi(name, email, password, displayName, userType));
     } catch (err) {
       return toAuthError(err, 'Registration failed. Please try again.');
     }

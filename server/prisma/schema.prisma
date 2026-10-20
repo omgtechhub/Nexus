@@ -14,7 +14,7 @@ enum Role {
   VIEWER
 }
 
-enum StoreStatus {
+enum MerchantStatus {
   ACTIVE
   PAUSED
   SUSPENDED
@@ -109,7 +109,7 @@ enum PlatformRole {
 }
 
 /// Which portal a user belongs to. Stored, never inferred: the previous code
-/// guessed from the `plan` string and the presence of a store, which made every
+/// guessed from the `plan` string and the presence of a merchant, which made every
 /// signed-in user look like a seller.
 enum AccountType {
   CUSTOMER
@@ -157,10 +157,10 @@ model User {
   updatedAt        DateTime      @updatedAt
 
   sessions           Session[]
-  ownedStores        Store[]
-  memberships        StoreMember[]
+  ownedMerchants     Merchant[]
+  memberships        MerchantMember[]
   notifications      Notification[]
-  /// One global identity, one CRM record per store it has bought from.
+  /// One global identity, one CRM record per merchant it has bought from.
   customerProfiles   Customer[]
   oauthAccounts      OAuthAccount[]
   passwordResets     PasswordResetToken[]
@@ -214,20 +214,19 @@ model EmailVerificationToken {
   @@index([userId])
 }
 
-model Store {
-  id        String      @id @default(uuid())
+model Merchant {
+  id        String         @id @default(uuid())
   name      String
-  domain    String      @unique
-  currency  String      @default("USD — US Dollar")
-  timezone  String      @default("America/New_York")
-  industry  String      @default("Fashion & Apparel")
-  status    StoreStatus @default(ACTIVE)
+  currency  String         @default("NGN — Nigerian Naira")
+  timezone  String         @default("Africa/Lagos")
+  industry  String         @default("General")
+  status    MerchantStatus @default(ACTIVE)
   ownerId   String
-  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  members             StoreMember[]
+  members             MerchantMember[]
   products            Product[]
   categories          ProductCategory[]
   inventoryItems      InventoryItem[]
@@ -236,12 +235,8 @@ model Store {
   orders              Order[]
   discounts           Discount[]
   notifications       Notification[]
-  settings            StoreSettings?
-  storefrontConfig    StorefrontConfig?
-  pages               StorePage[]
-  navigationMenus     NavigationMenu[]
+  settings            MerchantSettings?
   invitations         TeamInvitation[]
-  customDomains       CustomDomain[]
   auditLogs           AuditLog[]
   payments            Payment[]
   shippingZones       ShippingZone[]
@@ -258,27 +253,27 @@ model Store {
   payoutAccount       MerchantPayoutAccount?
 }
 
-model StoreMember {
-  id        String   @id @default(uuid())
-  userId    String
-  storeId   String
-  role      Role     @default(OWNER)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, storeId])
+model MerchantMember {
+  id         String   @id @default(uuid())
+  userId     String
+  merchantId String
+  role       Role     @default(OWNER)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   /// A user may OWN at most one merchant account.
   ///
   /// Enforced by a partial unique index that Prisma cannot express here —
-  /// `CREATE UNIQUE INDEX ... ON "StoreMember" ("userId") WHERE "role" =
+  /// `CREATE UNIQUE INDEX ... ON "MerchantMember" ("userId") WHERE "role" =
   /// 'OWNER'`, added in `20261017120000_one_merchant_account_per_owner`.
   /// STAFF and ADMIN memberships are deliberately unconstrained so a person
   /// can still be invited onto someone else's merchant account.
   ///
   /// Without it nothing stopped one user owning several merchant records, and
   /// the code that resolves "the current merchant" had to guess.
+
+  @@unique([userId, merchantId])
 }
 
 model Session {
@@ -299,8 +294,8 @@ model Session {
 
 model ProductCategory {
   id          String    @id @default(uuid())
-  storeId     String
-  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId  String
+  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   name        String
   slug        String
   description String?
@@ -308,14 +303,14 @@ model ProductCategory {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([storeId, slug])
-  @@index([storeId])
+  @@unique([merchantId, slug])
+  @@index([merchantId])
 }
 
 model Product {
   id              String           @id @default(uuid())
-  storeId         String
-  store           Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId      String
+  merchant        Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   title           String
   name            String
   slug            String
@@ -338,8 +333,8 @@ model Product {
   /// transaction as every review write. Denormalised because the catalogue
   /// sorts and filters on it: computing it per row would be an aggregate
   /// subquery on every marketplace listing.
-  ratingAverage   Float            @default(0)
-  ratingCount     Int              @default(0)
+  ratingAverage Float @default(0)
+  ratingCount   Int   @default(0)
 
   images             ProductImage[]
   variants           ProductVariant[]
@@ -348,9 +343,16 @@ model Product {
   orderItems         OrderItem[]
   reviews            ProductReview[]
 
-  @@unique([storeId, slug])
-  @@unique([storeId, sku])
-  @@index([storeId])
+  /// Globally unique, not per-merchant.
+  ///
+  /// A listing is addressed as `/products/<slug>` on one marketplace, so the
+  /// slug has to identify it on its own. It was unique per merchant, which
+  /// forced every product URL to carry a merchant id as well -- the shape a
+  /// per-seller shopfront needs. Creation appends a short random suffix, so
+  /// two merchants selling "Black Hoodie" still get distinct slugs.
+  @@unique([slug])
+  @@unique([merchantId, sku])
+  @@index([merchantId])
 }
 
 model ProductVariant {
@@ -393,8 +395,8 @@ model ProductImage {
 
 model InventoryItem {
   id                String          @id @default(uuid())
-  storeId           String
-  store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId        String
+  merchant          Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   productId         String
   product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   variantId         String?
@@ -409,15 +411,15 @@ model InventoryItem {
 
   movements InventoryMovement[]
 
-  @@unique([storeId, sku])
-  @@index([storeId])
+  @@unique([merchantId, sku])
+  @@index([merchantId])
   @@index([productId])
 }
 
 model InventoryMovement {
   id              String                @id @default(uuid())
-  storeId         String
-  store           Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId      String
+  merchant        Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   inventoryItemId String
   inventoryItem   InventoryItem         @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
   productId       String
@@ -431,14 +433,14 @@ model InventoryMovement {
   referenceId     String?
   createdAt       DateTime              @default(now())
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([inventoryItemId])
 }
 
 model Customer {
   id          String    @id @default(uuid())
-  storeId     String
-  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId  String
+  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   /// Set when this shopper has a Nexus account. Null for guest checkouts,
   /// which are back-filled on the buyer's next sign-in.
   userId      String?
@@ -457,8 +459,8 @@ model Customer {
   addresses CustomerAddress[]
   orders    Order[]
 
-  @@unique([storeId, email])
-  @@index([storeId])
+  @@unique([merchantId, email])
+  @@index([merchantId])
   @@index([userId])
 }
 
@@ -485,8 +487,8 @@ model CustomerAddress {
 
 model Order {
   id                String            @id @default(uuid())
-  storeId           String
-  store             Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId        String
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   orderNumber       String
   customerId        String?
   customer          Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -517,8 +519,8 @@ model Order {
   shipments     Shipment[]
   reviews       ProductReview[]
 
-  @@unique([storeId, orderNumber])
-  @@index([storeId])
+  @@unique([merchantId, orderNumber])
+  @@index([merchantId])
   @@index([customerId])
 }
 
@@ -538,7 +540,7 @@ model OrderItem {
   total        Float
   createdAt    DateTime        @default(now())
 
-  review       ProductReview?
+  review ProductReview?
 
   @@index([orderId])
   @@index([productId])
@@ -577,8 +579,8 @@ model OrderStatusHistory {
 
 model Discount {
   id              String         @id @default(uuid())
-  storeId         String
-  store           Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId      String
+  merchant        Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   code            String
   type            DiscountType   @default(PERCENTAGE)
   value           String
@@ -592,127 +594,71 @@ model Discount {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  @@unique([storeId, code])
-  @@index([storeId])
+  @@unique([merchantId, code])
+  @@index([merchantId])
 }
 
 model Notification {
-  id        String           @id @default(uuid())
-  storeId   String
-  store     Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType @default(INFO)
-  title     String
-  message   String
-  read      Boolean          @default(false)
-  link      String?
-  createdAt DateTime         @default(now())
+  id         String           @id @default(uuid())
+  merchantId String
+  merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType @default(INFO)
+  title      String
+  message    String
+  read       Boolean          @default(false)
+  link       String?
+  createdAt  DateTime         @default(now())
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([userId])
 }
 
-model StoreSettings {
+model MerchantSettings {
   id                String   @id @default(uuid())
-  storeId           String   @unique
-  store             Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  storeName         String   @default("Aura Apparel Store")
-  storeUrl          String   @default("auraapparel")
-  currency          String   @default("USD — US Dollar")
-  timezone          String   @default("America/New_York")
-  industry          String   @default("Fashion & Apparel")
-  description       String?  @default("Premium fashion and lifestyle brand.")
+  merchantId        String   @unique
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  displayName       String   @default("Aura Apparel Merchant")
+  currency          String   @default("NGN — Nigerian Naira")
+  timezone          String   @default("Africa/Lagos")
+  industry          String   @default("General")
+  description       String?
   logoUrl           String?
-  faviconUrl        String?
-  contactEmail      String?  @default("support@auraapparel.com")
-  contactPhone      String?  @default("+1 555-0199")
-  address           String?  @default("100 Commerce Way, San Francisco, CA 94105")
-  announcementText  String   @default("🎉 Flash Sale: Get 20% off all summer collections with code SUMMER20")
-  activeTheme       String   @default("nexus-dark")
-  primaryColor      String   @default("#FFBD2E")
-  secondaryColor    String   @default("#27C93F")
-  accentColor       String   @default("#FF5F56")
-  fontFamily        String   @default("Inter")
-  customDomain      String   @default("auraapparel.com")
+  contactEmail      String?
+  contactPhone      String?
+  address           String?
   guestCheckout     Boolean  @default(true)
   requireAccount    Boolean  @default(false)
   orderNotesEnabled Boolean  @default(true)
 
-  /// Tax, per store.
+  /// Tax, per merchant.
   ///
   /// There was no tax configuration at all: checkout applied a hardcoded 8%
-  /// to every order in every store, so a Nigerian merchant charged their
+  /// to every order in every merchant, so a Nigerian merchant charged their
   /// customers a US-shaped sales tax nobody had configured and nobody remits.
   ///
   /// Defaults to **off**. A tax rate is a legal declaration about a specific
   /// business in a specific place; inheriting someone else's is worse than
   /// charging nothing, and a merchant who needs it will set it.
-  taxEnabled        Boolean  @default(false)
+  taxEnabled   Boolean @default(false)
   /// Percentage, e.g. 7.5 for 7.5%. Only read when taxEnabled.
-  taxRate           Float    @default(0)
+  taxRate      Float   @default(0)
   /// What the line is called on the order summary — "VAT", "Sales tax", "GST".
-  taxLabel          String   @default("Tax")
+  taxLabel     String  @default("Tax")
   /// When true, listed prices already include tax, so it is shown as a
   /// component of the total rather than added to it.
-  taxInclusive      Boolean  @default(false)
+  taxInclusive Boolean @default(false)
 
-  /// Fallback delivery charge for a store with no shipping zone configured.
+  /// Fallback delivery charge for a merchant with no shipping zone configured.
   ///
   /// Checkout previously hardcoded $15, free over $100, ignoring the
   /// ShippingZone/ShippingMethod records merchants actually fill in. Those are
-  /// now the primary source; these two only apply when a store has none.
-  defaultShippingFee      Float  @default(0)
-  freeShippingThreshold   Float?
-  socialLinks       Json     @default("{}")
-  seoTitle          String?
-  seoDescription    String?
-  socialImage       String?
-  updatedAt         DateTime @updatedAt
-}
-
-model StorefrontConfig {
-  id              String    @id @default(uuid())
-  storeId         String    @unique
-  store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  activeTheme     String    @default("nexus-dark")
-  draftConfig     Json
-  publishedConfig Json?
-  isPublished     Boolean   @default(false)
-  publishedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-model StorePage {
-  id             String   @id @default(uuid())
-  storeId        String
-  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  title          String
-  slug           String
-  content        String   @default("")
-  seoTitle       String?
-  seoDescription String?
-  isPublished    Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@unique([storeId, slug])
-  @@index([storeId])
-}
-
-model NavigationMenu {
-  id        String   @id @default(uuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name      String
-  handle    String
-  items     Json     @default("[]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([storeId, handle])
-  @@index([storeId])
+  /// now the primary source; these two only apply when a merchant has none.
+  defaultShippingFee    Float    @default(0)
+  freeShippingThreshold Float?
+  socialLinks           Json     @default("{}")
+  updatedAt             DateTime @updatedAt
 }
 
 enum InvitationStatus {
@@ -723,49 +669,26 @@ enum InvitationStatus {
 }
 
 model TeamInvitation {
-  id        String           @id @default(uuid())
-  storeId   String
-  store     Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  email     String
-  role      Role             @default(STAFF)
-  token     String           @unique
-  status    InvitationStatus @default(PENDING)
-  expiresAt DateTime
-  invitedBy String
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id         String           @id @default(uuid())
+  merchantId String
+  merchant   Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  email      String
+  role       Role             @default(STAFF)
+  token      String           @unique
+  status     InvitationStatus @default(PENDING)
+  expiresAt  DateTime
+  invitedBy  String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([token])
-}
-
-enum DomainStatus {
-  PENDING
-  VERIFYING
-  VERIFIED
-  ACTIVE
-  FAILED
-}
-
-model CustomDomain {
-  id                String       @id @default(uuid())
-  storeId           String
-  store             Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  domain            String       @unique
-  status            DomainStatus @default(PENDING)
-  verificationToken String       @unique
-  isPrimary         Boolean      @default(false)
-  verifiedAt        DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  @@index([storeId])
 }
 
 model AuditLog {
   id         String   @id @default(uuid())
-  storeId    String
-  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   userId     String?
   actorName  String
   actorEmail String
@@ -775,13 +698,13 @@ model AuditLog {
   metadata   Json?
   createdAt  DateTime @default(now())
 
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model Payment {
   id                String          @id @default(uuid())
-  storeId           String
-  store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId        String
+  merchant          Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   orderId           String
   order             Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   provider          PaymentProvider
@@ -803,13 +726,13 @@ model Payment {
   /// merchant who asks why it is what it is.
   commissionRate    Float?
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   transactions Transaction[]
   refunds      Refund[]
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([orderId])
 }
 
@@ -817,7 +740,7 @@ model Transaction {
   id                String   @id @default(uuid())
   paymentId         String
   payment           Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  storeId           String
+  merchantId        String
   type              String   @default("CHARGE")
   amount            Float
   currency          String   @default("USD")
@@ -827,12 +750,12 @@ model Transaction {
   createdAt         DateTime @default(now())
 
   @@index([paymentId])
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model WebhookEvent {
   id          String          @id @default(uuid())
-  storeId     String?
+  merchantId  String?
   provider    PaymentProvider
   eventId     String          @unique
   eventType   String
@@ -848,7 +771,7 @@ model Refund {
   payment           Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   orderId           String
   order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  storeId           String
+  merchantId        String
   amount            Float
   currency          String   @default("USD")
   reason            String?
@@ -859,28 +782,28 @@ model Refund {
 
   @@index([paymentId])
   @@index([orderId])
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model ShippingZone {
-  id        String   @id @default(uuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name      String
-  countries Json     @default("[\"US\"]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name       String
+  countries  Json     @default("[\"US\"]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   methods ShippingMethod[]
 
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model ShippingMethod {
   id            String           @id @default(uuid())
   zoneId        String
   zone          ShippingZone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  storeId       String
+  merchantId    String
   name          String
   description   String?
   rateType      ShippingRateType @default(FLAT_RATE)
@@ -891,15 +814,15 @@ model ShippingMethod {
   updatedAt     DateTime         @updatedAt
 
   @@index([zoneId])
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model Shipment {
   id             String         @id @default(uuid())
   orderId        String
   order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  storeId        String
-  store          Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId     String
+  merchant       Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   carrier        String
   trackingNumber String
   status         ShipmentStatus @default(LABEL_CREATED)
@@ -912,7 +835,7 @@ model Shipment {
   trackingEvents TrackingEvent[]
 
   @@index([orderId])
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model TrackingEvent {
@@ -941,9 +864,7 @@ model SubscriptionPlan {
   displayOrder             Int      @default(0)
   maxProducts              Int      @default(100)
   maxTeamMembers           Int      @default(5)
-  maxStores                Int      @default(1)
   storageMb                Int      @default(5000)
-  customDomainAllowed      Boolean  @default(true)
   advancedAnalyticsAllowed Boolean  @default(true)
   /// Monthly Nexus IQ token allowance. Null means unlimited.
   aiTokensPerMonth         Int?     @default(1000)
@@ -957,8 +878,8 @@ model SubscriptionPlan {
 
 model Subscription {
   id                     String             @id @default(uuid())
-  storeId                String             @unique
-  store                  Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId             String             @unique
+  merchant               Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   planId                 String
   plan                   SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
   billingInterval        BillingInterval    @default(MONTHLY)
@@ -977,14 +898,14 @@ model Subscription {
   transactions BillingTransaction[]
   invoices     Invoice[]
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([planId])
 }
 
 model BillingCustomer {
   id                 String   @id @default(uuid())
-  storeId            String   @unique
-  store              Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId         String   @unique
+  merchant           Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   email              String
   name               String
   provider           String   @default("PAYSTACK")
@@ -992,13 +913,13 @@ model BillingCustomer {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 model BillingTransaction {
   id                String        @id @default(uuid())
-  storeId           String
-  store             Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId        String
+  merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   subscriptionId    String?
   subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   invoiceId         String?
@@ -1012,7 +933,7 @@ model BillingTransaction {
   rawResponse       Json?
   createdAt         DateTime      @default(now())
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([subscriptionId])
   @@index([invoiceId])
 }
@@ -1020,8 +941,8 @@ model BillingTransaction {
 model Invoice {
   id             String            @id @default(uuid())
   invoiceNumber  String            @unique
-  storeId        String
-  store          Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId     String
+  merchant       Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   subscriptionId String?
   subscription   Subscription?     @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   planId         String?
@@ -1042,7 +963,7 @@ model Invoice {
   items        InvoiceItem[]
   transactions BillingTransaction[]
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([subscriptionId])
 }
 
@@ -1086,7 +1007,7 @@ model SubscriptionEvent {
 // Nexus IQ
 //
 // The provider that writes the prose is pluggable and currently a stub. What is
-// NOT pluggable is the evidence: every insight records the store figures it was
+// NOT pluggable is the evidence: every insight records the merchant figures it was
 // derived from, so a reader can check the claim rather than trust it.
 // ---------------------------------------------------------------------------
 
@@ -1111,42 +1032,42 @@ enum AiInsightStatus {
 }
 
 model AiInsight {
-  id       String            @id @default(uuid())
-  storeId  String
-  store    Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  kind     AiInsightKind
-  severity AiInsightSeverity @default(INFO)
-  status   AiInsightStatus   @default(READY)
-  title    String
-  body     String
-  /// The store figures this insight was computed from.
-  evidence Json              @default("{}")
+  id         String            @id @default(uuid())
+  merchantId String
+  merchant   Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  kind       AiInsightKind
+  severity   AiInsightSeverity @default(INFO)
+  status     AiInsightStatus   @default(READY)
+  title      String
+  body       String
+  /// The merchant figures this insight was computed from.
+  evidence   Json              @default("{}")
   /// Which provider and model phrased it, so stub output is never mistaken for a model's.
-  provider String            @default("stub")
-  model    String            @default("stub-v1")
+  provider   String            @default("stub")
+  model      String            @default("stub-v1")
 
   generatedAt DateTime  @default(now())
   dismissedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@index([storeId, status])
-  @@index([storeId, kind])
+  @@index([merchantId, status])
+  @@index([merchantId, kind])
 }
 
 model AiConversation {
-  id      String  @id @default(uuid())
-  storeId String
-  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  userId  String?
-  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  title   String  @default("New conversation")
+  id         String   @id @default(uuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title      String   @default("New conversation")
 
   messages  AiMessage[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  @@index([storeId, updatedAt])
+  @@index([merchantId, updatedAt])
 }
 
 enum AiMessageRole {
@@ -1177,17 +1098,17 @@ enum AiUsageKind {
 /// An append-only ledger. The period total is summed from it rather than kept
 /// as a counter, so usage can always be reconciled against what produced it.
 model AiUsageEvent {
-  id        String      @id @default(uuid())
-  storeId   String
-  store     Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  kind      AiUsageKind
-  provider  String
-  model     String
-  tokensIn  Int         @default(0)
-  tokensOut Int         @default(0)
-  createdAt DateTime    @default(now())
+  id         String      @id @default(uuid())
+  merchantId String
+  merchant   Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  kind       AiUsageKind
+  provider   String
+  model      String
+  tokensIn   Int         @default(0)
+  tokensOut  Int         @default(0)
+  createdAt  DateTime    @default(now())
 
-  @@index([storeId, createdAt])
+  @@index([merchantId, createdAt])
 }
 
 enum ReviewStatus {
@@ -1209,15 +1130,15 @@ enum ReviewStatus {
 /// Nothing here is ever seeded. A product with no buyers has no reviews and a
 /// rating of zero, and the UI says so rather than inventing a number.
 model ProductReview {
-  id        String  @id @default(uuid())
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   /// Denormalised from the product so a merchant can list the reviews across
   /// its own catalogue without joining through every product.
-  storeId   String
-  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   /// The purchase that entitles this review. `Restrict` because deleting the
   /// evidence would silently turn a verified review into an unverified one;
@@ -1247,7 +1168,7 @@ model ProductReview {
   /// One review per shopper per product, however many times they bought it.
   @@unique([productId, userId])
   @@index([productId, status, createdAt])
-  @@index([storeId, status])
+  @@index([merchantId, status])
   @@index([userId])
 }
 
@@ -1308,7 +1229,6 @@ model VoiceProfile {
   @@index([userId])
 }
 
-
 /// How a payout reached the merchant.
 enum PayoutMethod {
   /// Recorded by a platform admin after paying by their own means. The
@@ -1340,9 +1260,9 @@ enum PayoutStatus {
 /// kept. Holding full bank details for every merchant is a liability with no
 /// operational benefit.
 model MerchantPayoutAccount {
-  id                  String   @id @default(uuid())
-  storeId             String   @unique
-  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(uuid())
+  merchantId          String    @unique
+  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   accountName         String
   bankName            String
   /// Provider's bank identifier (Paystack `bank.code`).
@@ -1350,13 +1270,13 @@ model MerchantPayoutAccount {
   accountNumberLast4  String
   /// Provider recipient token, used in place of the account number.
   providerRecipientId String?
-  provider            String   @default("PAYSTACK")
+  provider            String    @default("PAYSTACK")
   /// Set once the provider confirms the account resolves to `accountName`.
   verifiedAt          DateTime?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  @@index([storeId])
+  @@index([merchantId])
 }
 
 /// A settlement of a merchant's balance.
@@ -1367,8 +1287,8 @@ model MerchantPayoutAccount {
 /// merchants their payouts were visible in the dashboard.
 model Payout {
   id                String       @id @default(uuid())
-  storeId           String
-  store             Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  merchantId        String
+  merchant          Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   /// Human-readable, shown to the merchant.
   reference         String       @unique
   amount            Float
@@ -1388,6 +1308,6 @@ model Payout {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  @@index([storeId])
+  @@index([merchantId])
   @@index([status])
 }

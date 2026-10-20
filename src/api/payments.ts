@@ -64,7 +64,7 @@ export interface RefundResponse {
 
 export interface PaymentRecord {
   id: string;
-  storeId: string;
+  merchantId: string;
   orderId: string;
   provider: 'PAYSTACK' | 'FLUTTERWAVE';
   providerReference: string;

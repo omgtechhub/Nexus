@@ -1,6 +1,7 @@
 import { logger } from '../../utils/logger.js';
 import { config } from '../../config/index.js';
 import { escapeHtml, escapeUrl } from '../../utils/escapeHtml.js';
+import { defaultCurrencyCode } from '../../config/currency.js';
 
 export interface EmailOptions {
   to: string;
@@ -32,7 +33,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 export function formatMoney(amount: number, currency?: string): string {
-  const code = (currency || 'USD').toUpperCase();
+  const code = (currency || defaultCurrencyCode()).toUpperCase();
   const symbol = CURRENCY_SYMBOLS[code] || '';
   const figure = amount.toFixed(2);
   return symbol ? `${symbol}${figure} ${code}` : `${figure} ${code}`;
@@ -275,6 +276,87 @@ export class EmailService {
           <p style="margin: 24px 0;">
             <a href="${escapeUrl(params.verifyUrl)}" style="background: #27C93F; color: #000; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">Confirm email address</a>
           </p>
+        </div>`,
+    });
+  }
+
+  /**
+   * A merchant writing to one of their own customers.
+   *
+   * Subject and body are written by a merchant and land in a shopper's inbox,
+   * so both are escaped: a seller account is not a trusted author of HTML.
+   * The merchant's name is stated in the body rather than forged into the From
+   * header -- the message genuinely comes from Nexus, on their behalf.
+   */
+  async sendMerchantMessage(params: {
+    to: string;
+    customerName: string;
+    merchantName: string;
+    subject: string;
+    body: string;
+  }): Promise<boolean> {
+    const text = [
+      `Hi ${params.customerName},`,
+      ``,
+      params.body,
+      ``,
+      `-- ${params.merchantName}, via Nexus`,
+    ].join('\n');
+
+    return this.sendEmail({
+      to: params.to,
+      subject: params.subject,
+      text,
+      html: `
+        <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 560px; margin: 0 auto;">
+          <p style="color: #222;">Hi ${escapeHtml(params.customerName)},</p>
+          <div style="white-space: pre-wrap; line-height: 1.6; color: #222;">${escapeHtml(params.body)}</div>
+          <p style="color: #666; font-size: 12px; margin-top: 24px;">
+            Sent by ${escapeHtml(params.merchantName)} through Nexus.
+          </p>
+        </div>`,
+    });
+  }
+
+  /**
+   * A message from the public contact form.
+   *
+   * Every value here was typed by an anonymous stranger and lands in a mailbox
+   * a colleague reads, so all four are escaped. The sender's own address goes
+   * in the body rather than the From header -- forging a From we do not
+   * control is what gets a domain's mail marked as spam, and Gmail rewrites it
+   * anyway.
+   */
+  async sendContactMessage(params: {
+    to: string;
+    fromName: string;
+    fromEmail: string;
+    categoryLabel: string;
+    message: string;
+  }): Promise<boolean> {
+    const text = [
+      `New message from the Nexus contact form.`,
+      ``,
+      `About:   ${params.categoryLabel}`,
+      `Name:    ${params.fromName}`,
+      `Email:   ${params.fromEmail}`,
+      ``,
+      params.message,
+    ].join('\n');
+
+    return this.sendEmail({
+      to: params.to,
+      subject: `Contact form — ${params.categoryLabel} — ${params.fromName}`,
+      text,
+      html: `
+        <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 560px; margin: 0 auto;">
+          <h1 style="font-size: 18px; margin-bottom: 4px;">New contact form message</h1>
+          <p style="color: #666; font-size: 13px; margin-top: 0;">About: ${escapeHtml(params.categoryLabel)}</p>
+          <table style="font-size: 14px; color: #222; border-collapse: collapse; margin: 16px 0;">
+            <tr><td style="padding: 2px 12px 2px 0; color: #666;">Name</td><td>${escapeHtml(params.fromName)}</td></tr>
+            <tr><td style="padding: 2px 12px 2px 0; color: #666;">Email</td><td>${escapeHtml(params.fromEmail)}</td></tr>
+          </table>
+          <div style="white-space: pre-wrap; line-height: 1.6; color: #222; border-left: 3px solid #FFBD2E; padding-left: 12px;">${escapeHtml(params.message)}</div>
         </div>`,
     });
   }

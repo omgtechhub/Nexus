@@ -7,7 +7,6 @@ export interface EntitlementUsage {
   maxProducts: number;
   teamMemberCount: number;
   maxTeamMembers: number;
-  customDomainAllowed: boolean;
   advancedAnalyticsAllowed: boolean;
   planName: string;
   planCode: string;
@@ -18,14 +17,14 @@ export class EntitlementService {
   /**
    * Retrieves current store usage and active plan entitlements
    */
-  async getStoreEntitlements(storeId: string): Promise<EntitlementUsage> {
+  async getMerchantEntitlements(merchantId: string): Promise<EntitlementUsage> {
     const [sub, productCount, teamMemberCount] = await Promise.all([
       prisma.subscription.findUnique({
-        where: { storeId },
+        where: { merchantId },
         include: { plan: true },
       }),
-      prisma.product.count({ where: { storeId } }),
-      prisma.storeMember.count({ where: { storeId } }),
+      prisma.product.count({ where: { merchantId } }),
+      prisma.merchantMember.count({ where: { merchantId } }),
     ]);
 
     let plan = sub?.plan;
@@ -65,7 +64,6 @@ export class EntitlementService {
       maxProducts: plan!.maxProducts,
       teamMemberCount,
       maxTeamMembers: plan!.maxTeamMembers,
-      customDomainAllowed: plan!.customDomainAllowed,
       advancedAnalyticsAllowed: plan!.advancedAnalyticsAllowed,
       planName: plan!.name,
       planCode: plan!.code,
@@ -76,8 +74,8 @@ export class EntitlementService {
   /**
    * Asserts whether a store can add another product
    */
-  async assertCanAddProduct(storeId: string): Promise<void> {
-    const entitlements = await this.getStoreEntitlements(storeId);
+  async assertCanAddProduct(merchantId: string): Promise<void> {
+    const entitlements = await this.getMerchantEntitlements(merchantId);
 
     if (entitlements.subscriptionStatus === SubscriptionStatus.EXPIRED || entitlements.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
       const err: any = new Error('Subscription is inactive or expired. Please resolve billing to create new products.');
@@ -98,8 +96,8 @@ export class EntitlementService {
   /**
    * Asserts whether a store can invite another team member
    */
-  async assertCanAddTeamMember(storeId: string): Promise<void> {
-    const entitlements = await this.getStoreEntitlements(storeId);
+  async assertCanAddTeamMember(merchantId: string): Promise<void> {
+    const entitlements = await this.getMerchantEntitlements(merchantId);
 
     if (entitlements.subscriptionStatus === SubscriptionStatus.EXPIRED || entitlements.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
       const err: any = new Error('Subscription is inactive or expired. Please resolve billing to invite team members.');
@@ -118,24 +116,10 @@ export class EntitlementService {
   }
 
   /**
-   * Asserts custom domain feature availability
-   */
-  async assertCustomDomainAllowed(storeId: string): Promise<void> {
-    const entitlements = await this.getStoreEntitlements(storeId);
-
-    if (!entitlements.customDomainAllowed) {
-      const err: any = new Error(`Custom domains are not available on the ${entitlements.planName}. Please upgrade your subscription to connect custom domains.`);
-      err.statusCode = 403;
-      err.code = 'FEATURE_NOT_ALLOWED';
-      throw err;
-    }
-  }
-
-  /**
    * Asserts advanced analytics feature availability
    */
-  async assertAdvancedAnalyticsAllowed(storeId: string): Promise<void> {
-    const entitlements = await this.getStoreEntitlements(storeId);
+  async assertAdvancedAnalyticsAllowed(merchantId: string): Promise<void> {
+    const entitlements = await this.getMerchantEntitlements(merchantId);
 
     if (!entitlements.advancedAnalyticsAllowed) {
       const err: any = new Error(`Advanced analytics are not available on the ${entitlements.planName}. Please upgrade your subscription to access analytics.`);

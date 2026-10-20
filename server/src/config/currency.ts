@@ -1,5 +1,5 @@
 /**
- * The currency a new store trades in.
+ * The currency the marketplace trades in.
  *
  * Every store was created as `'USD — US Dollar'` and every payment defaulted
  * to `'USD'`, hardcoded in four places — on a platform that settles through
@@ -32,21 +32,25 @@ export const SUPPORTED_CURRENCIES: CurrencyOption[] = [
 /**
  * The configured default, as an ISO code.
  *
- * Unset falls back to USD, which preserves the behaviour every existing store
- * was created with. A deployment trading in naira sets `DEFAULT_CURRENCY=NGN`.
+ * The fallback is NGN. Nexus is one marketplace settling through one Nigerian
+ * Paystack account, so naira is the platform's trading currency rather than a
+ * preference an install chooses -- and an unset variable must land on the
+ * currency the gateway account can actually take. USD was the old fallback,
+ * and it meant a forgotten `.env` line failed every checkout at
+ * `transaction/initialize` with "Currency not supported by merchant".
  */
 export function defaultCurrencyCode(): string {
   const raw = (process.env.DEFAULT_CURRENCY || '').trim().toUpperCase();
-  if (!raw) return 'USD';
+  if (!raw) return 'NGN';
 
   const known = SUPPORTED_CURRENCIES.find(c => c.code === raw);
   // An unrecognised code is a misconfiguration, and guessing is worse than
   // falling back to the documented default.
-  return known ? known.code : 'USD';
+  return known ? known.code : 'NGN';
 }
 
 /**
- * The display string `StoreSettings.currency` and `Store.currency` hold.
+ * The display string `MerchantSettings.currency` and `Store.currency` hold.
  *
  * Those columns store a human label ("USD — US Dollar"), not a bare code,
  * which is why `quote.service.ts` has to split on the separator to recover
@@ -54,7 +58,7 @@ export function defaultCurrencyCode(): string {
  */
 export function defaultCurrencyLabel(): string {
   const code = defaultCurrencyCode();
-  return SUPPORTED_CURRENCIES.find(c => c.code === code)?.label ?? 'USD — US Dollar';
+  return SUPPORTED_CURRENCIES.find(c => c.code === code)?.label ?? 'NGN — Nigerian Naira';
 }
 
 /**

@@ -12,10 +12,15 @@ import {
   SUPPORT_WHATSAPP_ENABLED,
   whatsappLink,
 } from '../config/support';
+import { CONTACT } from '../config/contact';
+import { cn } from '../utils/cn';
+import { sendContactMessageApi, ContactMessage } from '../api/contact';
 
 export function ContactPage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [formData, setFormData] = useState<ContactMessage>({
     name: '',
     email: '',
     // Matches the first option below. A default no option carries leaves the
@@ -24,10 +29,30 @@ export function ContactPage() {
     message: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /**
+   * This used to be `setFormSubmitted(true)` and nothing else.
+   *
+   * No request was made, no mail was sent, and the page then told the person
+   * a member of the team had been assigned to their request. Someone with a
+   * problem would read that, stop looking for another way to reach us, and
+   * wait. The form now posts, and says what actually happened either way.
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.email && formData.message) {
+    if (sending) return;
+
+    setSendError('');
+    setSending(true);
+    try {
+      await sendContactMessageApi(formData);
       setFormSubmitted(true);
+    } catch (err: any) {
+      setSendError(
+        err?.message
+          || `We could not send that. Please email ${CONTACT.support} directly and we will pick it up.`
+      );
+    } finally {
+      setSending(false);
     }
   };
 
@@ -70,7 +95,7 @@ export function ContactPage() {
               Get in touch with <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F]">Nexus Commerce.</span>
             </h1>
             {/* Nexus is a marketplace: a seller lists products into a shopfront
-                the platform runs. This used to open on "launching your store",
+                the platform runs. This used to open on "launching your merchant",
                 which is the one thing nobody does here — and the first line of
                 the contact page is a poor place to describe a different
                 product. */}
@@ -100,9 +125,10 @@ export function ContactPage() {
                 {formSubmitted ? (
                   <div className="p-6 rounded-xl bg-[#27C93F]/10 border border-[#27C93F]/30 text-[var(--brand-green-ink)] space-y-2 text-center">
                     <CheckCircle2 size={32} className="mx-auto" />
-                    <h3 className="text-lg font-bold text-primary">Message Received!</h3>
+                    <h3 className="text-lg font-bold text-primary">Message sent</h3>
                     <p className="text-xs text-body">
-                      Thank you for contacting Nexus. A member of our team has been assigned to your request and will follow up at {formData.email} shortly.
+                      Your message is on its way to {CONTACT.support}. We read every one, and a reply
+                      will come to {formData.email}.
                     </p>
                     <Button variant="secondary" size="sm" onClick={() => setFormSubmitted(false)}>
                       Send Another Message
@@ -139,14 +165,17 @@ export function ContactPage() {
                       <label htmlFor="contactpage-inquiry-category-4" className="block text-xs text-secondary mb-1">Inquiry Category</label>
                       <select id="contactpage-inquiry-category-4"
                         value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, category: e.target.value as ContactMessage['category'] })
+                        }
                         className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--input-bg)] border border-[var(--ink)]/10 text-primary text-xs focus:outline-none focus:border-[#FFBD2E]"
                       >
-                        <option value="listing">Listing Products & Getting Started</option>
-                        <option value="orders">An Order, Delivery or Return</option>
-                        <option value="support">Seller Account Support</option>
-                        <option value="billing">Billing & Plans</option>
-                        <option value="volume">Selling at Volume</option>
+                        <option value="listing">Listing products &amp; getting started</option>
+                        <option value="order">An order, delivery or return</option>
+                        <option value="account">Seller account support</option>
+                        <option value="payouts">Payouts &amp; plans</option>
+                        <option value="press">Press</option>
+                        <option value="other">Something else</option>
                       </select>
                     </div>
 
@@ -162,8 +191,25 @@ export function ContactPage() {
                       />
                     </div>
 
-                    <Button variant="primary" size="md" type="submit" icon={<Send size={16} />}>
-                      Send Message Now
+                    {/* role=alert so a failure is announced, not just drawn. */}
+                    <p
+                      role="alert"
+                      className={cn(
+                        'text-xs font-medium text-[var(--brand-red-ink)]',
+                        !sendError && 'sr-only'
+                      )}
+                    >
+                      {sendError}
+                    </p>
+
+                    <Button
+                      variant="primary"
+                      size="md"
+                      type="submit"
+                      disabled={sending}
+                      icon={<Send size={16} />}
+                    >
+                      {sending ? 'Sending…' : 'Send message'}
                     </Button>
                   </form>
                 )}

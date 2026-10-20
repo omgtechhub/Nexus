@@ -19,15 +19,15 @@ describe('Platform console: invoices and transactions', () => {
 
   let adminCookie: string;
   let merchantCookie: string;
-  let storeId: string;
+  let merchantId: string;
 
   beforeAll(async () => {
     const merchant = await request.post('/api/auth/register').send({
-      name: 'Console Merchant', email: merchantEmail, password, storeName: `Console Store ${stamp}`,
+      name: 'Console Merchant', email: merchantEmail, password, displayName: `Console Merchant ${stamp}`,
     });
     expect(merchant.status).toBe(201);
     merchantCookie = merchant.headers['set-cookie'][0];
-    storeId = merchant.body.data.store.id;
+    merchantId = merchant.body.data.merchant.id;
 
     const { hashPassword } = await import('../src/utils/password.js');
     await prisma.user.create({
@@ -47,7 +47,7 @@ describe('Platform console: invoices and transactions', () => {
     // A transaction to read back, with a payload that must not be served.
     await prisma.billingTransaction.create({
       data: {
-        storeId,
+        merchantId,
         amount: 49,
         currency: 'USD',
         type: 'SUBSCRIPTION_CHARGE',
@@ -66,7 +66,7 @@ describe('Platform console: invoices and transactions', () => {
       const mine = res.body.data.find((t: any) => t.providerReference === `ref_pc_${stamp}`);
       expect(mine).toBeTruthy();
       expect(mine.amount).toBe(49);
-      expect(mine.store.name).toBe(`Console Store ${stamp}`);
+      expect(mine.merchant.name).toBe(`Console Merchant ${stamp}`);
     });
 
     it('never ships the gateway raw payload', async () => {

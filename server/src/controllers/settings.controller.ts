@@ -4,23 +4,18 @@ import { settingsSchema } from '../validators/auth.validator.js';
 
 export async function getSettings(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
-    let settings = await prisma.storeSettings.findUnique({
-      where: { storeId },
+    const merchantId = req.merchant!.id;
+    let settings = await prisma.merchantSettings.findUnique({
+      where: { merchantId },
     });
 
     if (!settings) {
-      settings = await prisma.storeSettings.create({
+      settings = await prisma.merchantSettings.create({
         data: {
-          storeId,
-          storeName: req.store!.name,
-          storeUrl: req.store!.domain.split('.')[0] || 'store',
-          currency: req.store!.currency,
-          industry: req.store!.industry,
-          announcementText: '🎉 Welcome to Nexus Commerce',
-          activeTheme: 'nexus-dark',
-          primaryColor: '#FFBD2E',
-          customDomain: req.store!.domain,
+          merchantId,
+          displayName: req.merchant!.name,
+          currency: req.merchant!.currency,
+          industry: req.merchant!.industry,
         },
       });
     }
@@ -28,14 +23,13 @@ export async function getSettings(req: Request, res: Response, next: NextFunctio
     res.json({
       success: true,
       data: {
-        storeName: settings.storeName,
-        storeUrl: settings.storeUrl,
+        displayName: settings.displayName,
+        description: settings.description,
+        logoUrl: settings.logoUrl,
         currency: settings.currency,
         industry: settings.industry,
-        announcementText: settings.announcementText,
-        activeTheme: settings.activeTheme,
-        primaryColor: settings.primaryColor,
-        customDomain: settings.customDomain,
+        contactEmail: settings.contactEmail,
+        contactPhone: settings.contactPhone,
         // Delivery only. Tax is a platform setting, not a merchant one —
         // see `config/tax.ts`.
         defaultShippingFee: settings.defaultShippingFee,
@@ -49,14 +43,14 @@ export async function getSettings(req: Request, res: Response, next: NextFunctio
 
 export async function updateSettings(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const body = settingsSchema.parse(req.body);
 
-    const updated = await prisma.storeSettings.upsert({
-      where: { storeId },
+    const updated = await prisma.merchantSettings.upsert({
+      where: { merchantId },
       update: body,
       create: {
-        storeId,
+        merchantId,
         ...body,
       },
     });

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { VoicePortal } from '@prisma/client';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 import {
   listInsights,
   refreshInsights,
@@ -26,7 +26,7 @@ export const nexusIqRouter = Router();
 // Nexus IQ reads a store's own commercial data, so every route is
 // merchant-only and scoped to the caller's store.
 nexusIqRouter.use(authMiddleware);
-nexusIqRouter.use(requireStoreMembership);
+nexusIqRouter.use(requireMerchantMembership);
 
 nexusIqRouter.get('/insights', listInsights);
 nexusIqRouter.post('/insights/refresh', refreshInsights);

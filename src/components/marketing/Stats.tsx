@@ -35,7 +35,7 @@ const stats = [
     prefix: '',
     value: 0,
     suffix: '',
-    label: 'Card numbers we store',
+    label: 'Card numbers we merchant',
     description: 'Card details are entered with our payment provider, never on Nexus',
     color: 'blue',
   },

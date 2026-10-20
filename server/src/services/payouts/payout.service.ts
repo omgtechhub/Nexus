@@ -8,6 +8,7 @@ import {
   transfersConfigured,
   TransferError,
 } from './paystackTransfer.service.js';
+import { currencyCodeOf } from '../../config/currency.js';
 
 /**
  * What the platform owes each merchant, and the record of settling it.
@@ -115,23 +116,23 @@ export async function backfillMissingCommissions(): Promise<number> {
 }
 
 /** What a store is owed right now. */
-export async function merchantBalance(storeId: string): Promise<MerchantBalance> {
-  const [store, earnings, refunds, payouts] = await Promise.all([
-    prisma.store.findUnique({ where: { id: storeId }, select: { currency: true } }),
+export async function merchantBalance(merchantId: string): Promise<MerchantBalance> {
+  const [merchant, earnings, refunds, payouts] = await Promise.all([
+    prisma.merchant.findUnique({ where: { id: merchantId }, select: { currency: true } }),
     prisma.payment.aggregate({
       where: {
-        storeId,
+        merchantId,
         status: { in: [PaymentStatus.SUCCESS, PaymentStatus.PAID] },
       },
       _sum: { merchantNetAmount: true, platformFeeAmount: true },
     }),
     prisma.refund.aggregate({
-      where: { storeId, status: 'SUCCESS' },
+      where: { merchantId, status: 'SUCCESS' },
       _sum: { amount: true },
     }),
     prisma.payout.groupBy({
       by: ['status'],
-      where: { storeId },
+      where: { merchantId },
       _sum: { amount: true },
     }),
   ]);
@@ -153,7 +154,7 @@ export async function merchantBalance(storeId: string): Promise<MerchantBalance>
   const pendingPayouts = sumFor([PayoutStatus.PENDING, PayoutStatus.PROCESSING]);
 
   return {
-    currency: (store?.currency || 'USD').split(/[\s—-]/)[0].trim().toUpperCase(),
+    currency: currencyCodeOf(merchant?.currency),
     grossEarned,
     platformFees,
     refunded,
@@ -182,7 +183,7 @@ export class PayoutError extends Error {
  * acting at once cannot together pay out more than is owed.
  */
 export async function createPayout(params: {
-  storeId: string;
+  merchantId: string;
   amount?: number;
   method?: PayoutMethod;
   note?: string;
@@ -190,12 +191,12 @@ export async function createPayout(params: {
   periodStart?: Date;
   periodEnd?: Date;
 }): Promise<{ id: string; reference: string; amount: number; currency: string; status: PayoutStatus }> {
-  const balance = await merchantBalance(params.storeId);
+  const balance = await merchantBalance(params.merchantId);
 
   const amount = round2(params.amount ?? balance.available);
 
   if (amount <= 0) {
-    throw new PayoutError('There is nothing available to pay out for this store.');
+    throw new PayoutError('There is nothing available to pay out for this merchant.');
   }
 
   if (amount > balance.available) {
@@ -211,7 +212,7 @@ export async function createPayout(params: {
 
   const payout = await prisma.payout.create({
     data: {
-      storeId: params.storeId,
+      merchantId: params.merchantId,
       reference,
       amount,
       currency: balance.currency,
@@ -228,7 +229,7 @@ export async function createPayout(params: {
     msg: 'Payout created',
     payoutId: payout.id,
     reference,
-    storeId: params.storeId,
+    merchantId: params.merchantId,
     amount,
   });
 
@@ -258,7 +259,7 @@ export async function createPayout(params: {
 export async function executePayout(payoutId: string): Promise<{ status: PayoutStatus; detail?: string }> {
   const payout = await prisma.payout.findUnique({
     where: { id: payoutId },
-    include: { store: { include: { payoutAccount: true } } },
+    include: { merchant: { include: { payoutAccount: true } } },
   });
 
   if (!payout) throw new PayoutError('Payout not found', 404);
@@ -274,7 +275,7 @@ export async function executePayout(payoutId: string): Promise<{ status: PayoutS
     );
   }
 
-  const account = payout.store.payoutAccount;
+  const account = payout.merchant.payoutAccount;
 
   if (!account?.providerRecipientId) {
     throw new PayoutError(

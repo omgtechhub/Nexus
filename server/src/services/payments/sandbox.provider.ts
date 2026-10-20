@@ -7,6 +7,7 @@ import {
   RefundParams,
   RefundResult,
 } from './payment.interface.js';
+import { defaultCurrencyCode } from '../../config/currency.js';
 
 /**
  * A simulated gateway, for the integration suite and for local development
@@ -69,7 +70,7 @@ export class SandboxPaymentProvider implements IPaymentProvider {
       success: status === 'SUCCESS',
       reference,
       amount: 0,
-      currency: 'USD',
+      currency: defaultCurrencyCode(),
       status,
       gatewayResponse: 'Simulated transaction — no gateway was contacted',
       rawResponse: { sandbox: true, reference, status },
@@ -103,7 +104,7 @@ export class SandboxPaymentProvider implements IPaymentProvider {
       success: true,
       refundReference: `sandbox_ref_${crypto.randomBytes(4).toString('hex')}`,
       amount: params.amount || 0,
-      currency: 'USD',
+      currency: defaultCurrencyCode(),
       status: 'SUCCESS',
       rawResponse: { sandbox: true },
     };

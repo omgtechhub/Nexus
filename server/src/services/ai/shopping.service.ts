@@ -1,5 +1,6 @@
-import { ProductStatus, StoreStatus, Prisma } from '@prisma/client';
+import { ProductStatus, MerchantStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../prisma.js';
+import { defaultCurrencyCode } from '../../config/currency.js';
 
 /**
  * The catalogue, as the shopping assistant sees it.
@@ -27,7 +28,7 @@ export interface ShopProduct {
   inStock: boolean;
   availableStock: number;
   rating: { average: number; count: number };
-  store: { id: string; name: string; handle: string };
+  merchant: { id: string; name: string };
   variants: {
     id: string;
     title: string;
@@ -39,14 +40,14 @@ export interface ShopProduct {
 
 const PUBLIC_WHERE = {
   status: ProductStatus.ACTIVE,
-  store: { status: StoreStatus.ACTIVE },
+  merchant: { status: MerchantStatus.ACTIVE },
 };
 
 const INCLUDE = {
   images: { orderBy: { position: 'asc' } },
   variants: { orderBy: { price: 'asc' } },
   inventoryItems: true,
-  store: { select: { id: true, name: true, domain: true, settings: { select: { storeUrl: true } } } },
+  merchant: { select: { id: true, name: true } },
 } as const;
 
 function toShopProduct(p: any): ShopProduct {
@@ -68,11 +69,7 @@ function toShopProduct(p: any): ShopProduct {
     inStock: stock > 0 || p.inventoryPolicy === 'CONTINUE',
     availableStock: stock,
     rating: { average: p.ratingAverage ?? 0, count: p.ratingCount ?? 0 },
-    store: {
-      id: p.store.id,
-      name: p.store.name,
-      handle: p.store.settings?.storeUrl || p.store.domain?.split('.')[0] || p.store.id,
-    },
+    merchant: { id: p.merchant.id, name: p.merchant.name },
     variants: p.variants.map((v: any) => ({
       id: v.id,
       title: v.title,
@@ -290,7 +287,7 @@ export async function getShopProduct(productId: string): Promise<ShopProduct | n
  * digits. Rounded to whole currency units where it is exact, because "twelve
  * pounds" is what a person says and "twelve pounds zero zero" is not.
  */
-export function spokenPrice(amount: number, currency = 'USD'): string {
+export function spokenPrice(amount: number, currency = defaultCurrencyCode()): string {
   const symbol = currency === 'NGN' ? '₦' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$';
   const rounded = Math.round(amount * 100) / 100;
   return Number.isInteger(rounded) ? `${symbol}${rounded}` : `${symbol}${rounded.toFixed(2)}`;

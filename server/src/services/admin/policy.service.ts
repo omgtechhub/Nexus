@@ -2,7 +2,7 @@ import {
   PaymentStatus,
   OrderStatus,
   ProductStatus,
-  StoreStatus,
+  MerchantStatus,
   ReviewStatus,
 } from '@prisma/client';
 import { prisma } from '../../prisma.js';
@@ -31,7 +31,7 @@ export type PolicyKind =
   | 'FAKE_DISCOUNT'
   | 'INVALID_PRICE'
   | 'MISSING_DESCRIPTION'
-  | 'SUSPENDED_STORE_SELLING'
+  | 'SUSPENDED_MERCHANT_SELLING'
   | 'ADMIN_SPRAWL';
 
 export type PolicySeverity = 'CRITICAL' | 'WARNING' | 'INFO';
@@ -42,7 +42,7 @@ export interface PolicyFinding {
   /** One sentence, already true. The provider may rephrase, not re-decide. */
   summary: string;
   /** What the finding is about, so an admin can go and look. */
-  subject: { type: 'store' | 'order' | 'product' | 'review' | 'platform'; id: string; label: string };
+  subject: { type: 'merchant' | 'order' | 'product' | 'review' | 'platform'; id: string; label: string };
   /** The figures the summary was computed from. */
   evidence: Record<string, string | number | boolean | null>;
 }
@@ -78,7 +78,7 @@ async function checkPaidWithoutPayment(): Promise<PolicyFinding[]> {
       total: true,
       currency: true,
       createdAt: true,
-      store: { select: { id: true, name: true } },
+      merchant: { select: { id: true, name: true } },
     },
     take: 50,
     orderBy: { createdAt: 'desc' },
@@ -88,12 +88,12 @@ async function checkPaidWithoutPayment(): Promise<PolicyFinding[]> {
     kind: 'PAID_WITHOUT_PAYMENT' as const,
     severity: 'CRITICAL' as const,
     summary:
-      `Order ${order.orderNumber} at ${order.store.name} is marked paid for ` +
+      `Order ${order.orderNumber} at ${order.merchant.name} is marked paid for ` +
       `${order.currency} ${order.total} but has no payment record.`,
     subject: { type: 'order' as const, id: order.id, label: order.orderNumber },
     evidence: {
-      storeId: order.store.id,
-      storeName: order.store.name,
+      merchantId: order.merchant.id,
+      displayName: order.merchant.name,
       orderNumber: order.orderNumber,
       total: order.total,
       currency: order.currency,
@@ -115,7 +115,7 @@ async function checkPaymentAmountMismatch(): Promise<PolicyFinding[]> {
           id: true,
           orderNumber: true,
           total: true,
-          store: { select: { id: true, name: true } },
+          merchant: { select: { id: true, name: true } },
         },
       },
     },
@@ -130,12 +130,12 @@ async function checkPaymentAmountMismatch(): Promise<PolicyFinding[]> {
       kind: 'PAYMENT_AMOUNT_MISMATCH' as const,
       severity: 'CRITICAL' as const,
       summary:
-        `Order ${p.order.orderNumber} at ${p.order.store.name} totals ` +
+        `Order ${p.order.orderNumber} at ${p.order.merchant.name} totals ` +
         `${p.currency} ${p.order.total} but was charged ${p.currency} ${p.amount}.`,
       subject: { type: 'order' as const, id: p.order.id, label: p.order.orderNumber },
       evidence: {
-        storeId: p.order.store.id,
-        storeName: p.order.store.name,
+        merchantId: p.order.merchant.id,
+        displayName: p.order.merchant.name,
         orderNumber: p.order.orderNumber,
         orderTotal: p.order.total,
         charged: p.amount,
@@ -155,7 +155,7 @@ async function checkOverRefunded(): Promise<PolicyFinding[]> {
       currency: true,
       refunds: { select: { amount: true, status: true } },
       order: {
-        select: { id: true, orderNumber: true, store: { select: { id: true, name: true } } },
+        select: { id: true, orderNumber: true, merchant: { select: { id: true, name: true } } },
       },
     },
     take: 200,
@@ -173,13 +173,13 @@ async function checkOverRefunded(): Promise<PolicyFinding[]> {
       kind: 'OVER_REFUNDED',
       severity: 'CRITICAL',
       summary:
-        `Order ${payment.order.orderNumber} at ${payment.order.store.name} was refunded ` +
+        `Order ${payment.order.orderNumber} at ${payment.order.merchant.name} was refunded ` +
         `${payment.currency} ${Math.round(refunded * 100) / 100} against a payment of ` +
         `${payment.currency} ${payment.amount}.`,
       subject: { type: 'order', id: payment.order.id, label: payment.order.orderNumber },
       evidence: {
-        storeId: payment.order.store.id,
-        storeName: payment.order.store.name,
+        merchantId: payment.order.merchant.id,
+        displayName: payment.order.merchant.name,
         orderNumber: payment.order.orderNumber,
         paid: payment.amount,
         refunded: Math.round(refunded * 100) / 100,
@@ -206,40 +206,40 @@ async function checkSelfReviews(): Promise<PolicyFinding[]> {
       id: true,
       rating: true,
       userId: true,
-      storeId: true,
+      merchantId: true,
       createdAt: true,
       user: { select: { name: true, email: true } },
       product: { select: { id: true, title: true } },
-      store: { select: { id: true, name: true } },
+      merchant: { select: { id: true, name: true } },
     },
     take: 500,
     orderBy: { createdAt: 'desc' },
   });
   if (reviews.length === 0) return [];
 
-  const memberships = await prisma.storeMember.findMany({
+  const memberships = await prisma.merchantMember.findMany({
     where: {
       userId: { in: [...new Set(reviews.map(r => r.userId))] },
-      storeId: { in: [...new Set(reviews.map(r => r.storeId))] },
+      merchantId: { in: [...new Set(reviews.map(r => r.merchantId))] },
     },
-    select: { userId: true, storeId: true },
+    select: { userId: true, merchantId: true },
   });
 
-  const owns = new Set(memberships.map(m => `${m.userId}:${m.storeId}`));
+  const owns = new Set(memberships.map(m => `${m.userId}:${m.merchantId}`));
 
   return reviews
-    .filter(r => owns.has(`${r.userId}:${r.storeId}`))
+    .filter(r => owns.has(`${r.userId}:${r.merchantId}`))
     .slice(0, 25)
     .map(r => ({
       kind: 'SELF_REVIEW' as const,
       severity: 'WARNING' as const,
       summary:
-        `${r.store.name} reviewed its own product "${r.product.title}" with ` +
+        `${r.merchant.name} reviewed its own product "${r.product.title}" with ` +
         `${r.rating} star${r.rating === 1 ? '' : 's'}.`,
       subject: { type: 'review' as const, id: r.id, label: r.product.title },
       evidence: {
-        storeId: r.store.id,
-        storeName: r.store.name,
+        merchantId: r.merchant.id,
+        displayName: r.merchant.name,
         productId: r.product.id,
         productTitle: r.product.title,
         rating: r.rating,
@@ -254,7 +254,7 @@ async function checkUnfulfilledPaidOrders(): Promise<PolicyFinding[]> {
   const cutoff = new Date(Date.now() - FULFILMENT_SLA_DAYS * 24 * 60 * 60 * 1000);
 
   const grouped = await prisma.order.groupBy({
-    by: ['storeId'],
+    by: ['merchantId'],
     where: {
       paymentStatus: { in: PAID_STATES },
       status: { notIn: [OrderStatus.FULFILLED, OrderStatus.CANCELLED, OrderStatus.REFUNDED] },
@@ -265,11 +265,11 @@ async function checkUnfulfilledPaidOrders(): Promise<PolicyFinding[]> {
   });
   if (grouped.length === 0) return [];
 
-  const stores = await prisma.store.findMany({
-    where: { id: { in: grouped.map(g => g.storeId) } },
+  const merchants = await prisma.merchant.findMany({
+    where: { id: { in: grouped.map(g => g.merchantId) } },
     select: { id: true, name: true },
   });
-  const nameOf = new Map(stores.map(s => [s.id, s.name]));
+  const nameOf = new Map(merchants.map(s => [s.id, s.name]));
 
   // Aggregated per store rather than per order: thirty late orders from one
   // merchant is one problem with that merchant, and reading thirty findings
@@ -281,12 +281,12 @@ async function checkUnfulfilledPaidOrders(): Promise<PolicyFinding[]> {
       kind: 'UNFULFILLED_PAID_ORDER' as const,
       severity: 'WARNING' as const,
       summary:
-        `${nameOf.get(g.storeId) ?? 'A store'} has ${g._count._all} paid order(s) still ` +
+        `${nameOf.get(g.merchantId) ?? 'A merchant'} has ${g._count._all} paid order(s) still ` +
         `unfulfilled after ${FULFILMENT_SLA_DAYS} days, worth ${Math.round((g._sum.total ?? 0) * 100) / 100}.`,
-      subject: { type: 'store' as const, id: g.storeId, label: nameOf.get(g.storeId) ?? g.storeId },
+      subject: { type: 'merchant' as const, id: g.merchantId, label: nameOf.get(g.merchantId) ?? g.merchantId },
       evidence: {
-        storeId: g.storeId,
-        storeName: nameOf.get(g.storeId) ?? null,
+        merchantId: g.merchantId,
+        displayName: nameOf.get(g.merchantId) ?? null,
         orders: g._count._all,
         value: Math.round((g._sum.total ?? 0) * 100) / 100,
         slaDays: FULFILMENT_SLA_DAYS,
@@ -309,7 +309,7 @@ async function checkFakeDiscounts(): Promise<PolicyFinding[]> {
       title: true,
       price: true,
       comparePrice: true,
-      store: { select: { id: true, name: true } },
+      merchant: { select: { id: true, name: true } },
     },
     take: 300,
   });
@@ -321,12 +321,12 @@ async function checkFakeDiscounts(): Promise<PolicyFinding[]> {
       kind: 'FAKE_DISCOUNT' as const,
       severity: 'WARNING' as const,
       summary:
-        `"${p.title}" at ${p.store.name} shows a was-price of ${p.comparePrice} against a ` +
+        `"${p.title}" at ${p.merchant.name} shows a was-price of ${p.comparePrice} against a ` +
         `selling price of ${p.price}, so the advertised saving is not real.`,
       subject: { type: 'product' as const, id: p.id, label: p.title },
       evidence: {
-        storeId: p.store.id,
-        storeName: p.store.name,
+        merchantId: p.merchant.id,
+        displayName: p.merchant.name,
         productTitle: p.title,
         price: p.price,
         comparePrice: p.comparePrice,
@@ -338,33 +338,33 @@ async function checkFakeDiscounts(): Promise<PolicyFinding[]> {
 async function checkInvalidPrices(): Promise<PolicyFinding[]> {
   const products = await prisma.product.findMany({
     where: { status: ProductStatus.ACTIVE, price: { lte: 0 } },
-    select: { id: true, title: true, price: true, store: { select: { id: true, name: true } } },
+    select: { id: true, title: true, price: true, merchant: { select: { id: true, name: true } } },
     take: 25,
   });
 
   return products.map(p => ({
     kind: 'INVALID_PRICE' as const,
     severity: 'CRITICAL' as const,
-    summary: `"${p.title}" at ${p.store.name} is listed at ${p.price}.`,
+    summary: `"${p.title}" at ${p.merchant.name} is listed at ${p.price}.`,
     subject: { type: 'product' as const, id: p.id, label: p.title },
-    evidence: { storeId: p.store.id, storeName: p.store.name, productTitle: p.title, price: p.price },
+    evidence: { merchantId: p.merchant.id, displayName: p.merchant.name, productTitle: p.title, price: p.price },
   }));
 }
 
 /** Live listings with nothing written about them. */
 async function checkMissingDescriptions(): Promise<PolicyFinding[]> {
   const grouped = await prisma.product.groupBy({
-    by: ['storeId'],
+    by: ['merchantId'],
     where: { status: ProductStatus.ACTIVE, description: '' },
     _count: { _all: true },
   });
   if (grouped.length === 0) return [];
 
-  const stores = await prisma.store.findMany({
-    where: { id: { in: grouped.map(g => g.storeId) } },
+  const merchants = await prisma.merchant.findMany({
+    where: { id: { in: grouped.map(g => g.merchantId) } },
     select: { id: true, name: true },
   });
-  const nameOf = new Map(stores.map(s => [s.id, s.name]));
+  const nameOf = new Map(merchants.map(s => [s.id, s.name]));
 
   return grouped
     .sort((a, b) => b._count._all - a._count._all)
@@ -372,11 +372,11 @@ async function checkMissingDescriptions(): Promise<PolicyFinding[]> {
     .map(g => ({
       kind: 'MISSING_DESCRIPTION' as const,
       severity: 'INFO' as const,
-      summary: `${nameOf.get(g.storeId) ?? 'A store'} has ${g._count._all} live product(s) with no description.`,
-      subject: { type: 'store' as const, id: g.storeId, label: nameOf.get(g.storeId) ?? g.storeId },
+      summary: `${nameOf.get(g.merchantId) ?? 'A merchant'} has ${g._count._all} live product(s) with no description.`,
+      subject: { type: 'merchant' as const, id: g.merchantId, label: nameOf.get(g.merchantId) ?? g.merchantId },
       evidence: {
-        storeId: g.storeId,
-        storeName: nameOf.get(g.storeId) ?? null,
+        merchantId: g.merchantId,
+        displayName: nameOf.get(g.merchantId) ?? null,
         products: g._count._all,
       },
     }));
@@ -389,10 +389,10 @@ async function checkMissingDescriptions(): Promise<PolicyFinding[]> {
  * it is a reconciliation failure worth knowing about, because the catalogue
  * and the suspension disagree about whether that merchant is trading.
  */
-async function checkSuspendedStoresSelling(): Promise<PolicyFinding[]> {
-  const stores = await prisma.store.findMany({
+async function checkSuspendedMerchantsSelling(): Promise<PolicyFinding[]> {
+  const merchants = await prisma.merchant.findMany({
     where: {
-      status: { in: [StoreStatus.SUSPENDED, StoreStatus.PAUSED] },
+      status: { in: [MerchantStatus.SUSPENDED, MerchantStatus.PAUSED] },
       products: { some: { status: ProductStatus.ACTIVE } },
     },
     select: {
@@ -404,12 +404,12 @@ async function checkSuspendedStoresSelling(): Promise<PolicyFinding[]> {
     take: 25,
   });
 
-  return stores.map(s => ({
-    kind: 'SUSPENDED_STORE_SELLING' as const,
+  return merchants.map(s => ({
+    kind: 'SUSPENDED_MERCHANT_SELLING' as const,
     severity: 'WARNING' as const,
     summary: `${s.name} is ${s.status.toLowerCase()} but still has live products.`,
-    subject: { type: 'store' as const, id: s.id, label: s.name },
-    evidence: { storeId: s.id, storeName: s.name, status: s.status, products: s._count.products },
+    subject: { type: 'merchant' as const, id: s.id, label: s.name },
+    evidence: { merchantId: s.id, displayName: s.name, status: s.status, products: s._count.products },
   }));
 }
 
@@ -436,7 +436,7 @@ export interface PolicyReport {
   findings: PolicyFinding[];
   counts: { critical: number; warning: number; info: number; total: number };
   /** What was examined, so "no violations" means something checkable. */
-  scanned: { stores: number; orders: number; products: number; reviews: number; checks: number };
+  scanned: { merchants: number; orders: number; products: number; reviews: number; checks: number };
 }
 
 const CHECKS = [
@@ -448,7 +448,7 @@ const CHECKS = [
   checkFakeDiscounts,
   checkInvalidPrices,
   checkMissingDescriptions,
-  checkSuspendedStoresSelling,
+  checkSuspendedMerchantsSelling,
   checkAdminSprawl,
 ];
 
@@ -460,9 +460,9 @@ const CHECKS = [
  * while silently having examined nothing is worse than no report.
  */
 export async function runPolicyScan(): Promise<PolicyReport> {
-  const [results, stores, orders, products, reviews] = await Promise.all([
+  const [results, merchants, orders, products, reviews] = await Promise.all([
     Promise.all(CHECKS.map(check => check())),
-    prisma.store.count(),
+    prisma.merchant.count(),
     prisma.order.count(),
     prisma.product.count(),
     prisma.productReview.count(),
@@ -481,7 +481,7 @@ export async function runPolicyScan(): Promise<PolicyReport> {
       info: findings.filter(f => f.severity === 'INFO').length,
       total: findings.length,
     },
-    scanned: { stores, orders, products, reviews, checks: CHECKS.length },
+    scanned: { merchants, orders, products, reviews, checks: CHECKS.length },
   };
 }
 
@@ -495,9 +495,9 @@ export async function runPolicyScan(): Promise<PolicyReport> {
 export async function getActivitySummary(windowHours = 24) {
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
 
-  const [newStores, newCustomers, orders, paidOrders, newProducts, newReviews, refunds, auditEvents] =
+  const [newMerchants, newCustomers, orders, paidOrders, newProducts, newReviews, refunds, auditEvents] =
     await Promise.all([
-      prisma.store.count({ where: { createdAt: { gte: since } } }),
+      prisma.merchant.count({ where: { createdAt: { gte: since } } }),
       prisma.user.count({ where: { createdAt: { gte: since }, accountType: 'CUSTOMER' } }),
       prisma.order.count({ where: { createdAt: { gte: since } } }),
       prisma.order.aggregate({
@@ -513,7 +513,7 @@ export async function getActivitySummary(windowHours = 24) {
 
   return {
     windowHours,
-    newStores,
+    newMerchants,
     newCustomers,
     orders,
     paidOrders: paidOrders._count._all,
@@ -538,13 +538,13 @@ export function spokenReport(report: PolicyReport, activity: Awaited<ReturnType<
   parts.push(
     `In the last ${activity.windowHours} hours: ${activity.orders} order(s), ` +
       `${activity.paidOrders} paid, worth ${activity.revenue}. ` +
-      `${activity.newCustomers} new customer(s), ${activity.newStores} new store(s), ` +
+      `${activity.newCustomers} new customer(s), ${activity.newMerchants} new merchant(s), ` +
       `${activity.newProducts} new product(s), ${activity.newReviews} new review(s).`
   );
 
   if (report.counts.total === 0) {
     parts.push(
-      `I ran ${report.scanned.checks} policy checks across ${report.scanned.stores} store(s), ` +
+      `I ran ${report.scanned.checks} policy checks across ${report.scanned.merchants} merchant(s), ` +
         `${report.scanned.orders} order(s) and ${report.scanned.products} product(s), and found ` +
         'no violations.'
     );

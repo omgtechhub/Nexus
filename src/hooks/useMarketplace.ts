@@ -11,7 +11,7 @@ export const marketplaceQueryKeys = {
   home: () => ['marketplace', 'home'] as const,
   categories: () => ['marketplace', 'categories'] as const,
   products: (params: MarketplaceProductsParams) => ['marketplace', 'products', params] as const,
-  product: (storeId: string, slug: string) => ['marketplace', 'product', storeId, slug] as const,
+  product: (slug: string) => ['marketplace', 'product', slug] as const,
 };
 
 export function useMarketplaceHomeQuery() {
@@ -39,10 +39,10 @@ export function useMarketplaceProductsQuery(params: MarketplaceProductsParams = 
   });
 }
 
-export function useMarketplaceProductQuery(storeId?: string, productSlug?: string) {
+export function useMarketplaceProductQuery(productSlug?: string) {
   return useQuery({
-    queryKey: marketplaceQueryKeys.product(storeId || '', productSlug || ''),
-    queryFn: () => fetchMarketplaceProductApi(storeId!, productSlug!),
-    enabled: Boolean(storeId) && Boolean(productSlug),
+    queryKey: marketplaceQueryKeys.product(productSlug || ''),
+    queryFn: () => fetchMarketplaceProductApi(productSlug!),
+    enabled: Boolean(productSlug),
   });
 }

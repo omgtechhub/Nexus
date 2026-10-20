@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { z } from 'zod';
+import { emailService } from '../services/email/email.service.js';
+import { logger } from '../utils/logger.js';
 
 const addressSchema = z.object({
   firstName: z.string().min(1),
@@ -31,7 +33,7 @@ const createCustomerSchema = z.object({
  * Prisma rejects unknown keys, but every *known* column was writable, and the
  * Customer model carries two that are not the merchant's to set:
  *
- *   - `storeId` is the tenant boundary. `{"storeId": "<another store>"}` moved
+ *   - `merchantId` is the tenant boundary. `{"merchantId": "<another store>"}` moved
  *     the customer and its addresses into somebody else's store — a write
  *     across the isolation line that every other handler in this file is
  *     careful to enforce on the read side.
@@ -57,14 +59,14 @@ const updateCustomerSchema = z
 
 export async function getCustomers(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { q, page = '1', limit = '50' } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = { storeId };
+    const where: any = { merchantId };
 
     if (q) {
       where.OR = [
@@ -103,11 +105,11 @@ export async function getCustomers(req: Request, res: Response, next: NextFuncti
 
 export async function getCustomerById(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const customer = await prisma.customer.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
       include: {
         addresses: true,
         orders: { orderBy: { createdAt: 'desc' }, take: 10 },
@@ -127,11 +129,11 @@ export async function getCustomerById(req: Request, res: Response, next: NextFun
 
 export async function createCustomer(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const body = createCustomerSchema.parse(req.body);
 
     const existing = await prisma.customer.findFirst({
-      where: { storeId, email: body.email.toLowerCase().trim() },
+      where: { merchantId, email: body.email.toLowerCase().trim() },
     });
 
     if (existing) {
@@ -141,7 +143,7 @@ export async function createCustomer(req: Request, res: Response, next: NextFunc
 
     const customer = await prisma.customer.create({
       data: {
-        storeId,
+        merchantId,
         name: body.name.trim(),
         email: body.email.toLowerCase().trim(),
         phone: body.phone,
@@ -161,11 +163,11 @@ export async function createCustomer(req: Request, res: Response, next: NextFunc
 
 export async function updateCustomer(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.customer.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -176,7 +178,7 @@ export async function updateCustomer(req: Request, res: Response, next: NextFunc
     const body = updateCustomerSchema.parse(req.body);
 
     // Normalised the same way `createCustomer` does, so the two paths cannot
-    // disagree about what is stored — and so the `@@unique([storeId, email])`
+    // disagree about what is stored — and so the `@@unique([merchantId, email])`
     // constraint sees the same casing on both.
     const data: Record<string, unknown> = { ...body };
     if (body.email !== undefined) data.email = body.email.toLowerCase().trim();
@@ -196,11 +198,11 @@ export async function updateCustomer(req: Request, res: Response, next: NextFunc
 
 export async function deleteCustomer(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.customer.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -210,6 +212,67 @@ export async function deleteCustomer(req: Request, res: Response, next: NextFunc
 
     await prisma.customer.delete({ where: { id } });
     res.json({ success: true, message: 'Customer deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const customerEmailSchema = z.object({
+  subject: z.string().trim().min(1, 'A subject is required').max(200),
+  body: z.string().trim().min(1, 'A message is required').max(5000),
+}).strict();
+
+/**
+ * A merchant writing to one of their own customers.
+ *
+ * The dashboard's compose window used to close and report "Email sent to
+ * <address>!" having sent nothing. A merchant would believe a customer had
+ * been answered.
+ *
+ * The recipient is NOT taken from the request. It is read from the customer
+ * row, scoped to the merchant making the call, so this endpoint can only ever
+ * mail someone who already bought from them -- the difference between a
+ * messaging feature and an open relay with a login.
+ */
+export async function emailCustomer(req: Request, res: Response, next: NextFunction) {
+  try {
+    const merchantId = req.merchant!.id;
+    const { id } = req.params;
+
+    const parsed = customerEmailSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid message' });
+      return;
+    }
+
+    const customer = await prisma.customer.findFirst({
+      where: { id, merchantId },
+      select: { email: true, name: true },
+    });
+
+    if (!customer?.email) {
+      res.status(404).json({ success: false, error: 'Customer not found' });
+      return;
+    }
+
+    const delivered = await emailService.sendMerchantMessage({
+      to: customer.email,
+      customerName: customer.name?.trim() || 'there',
+      merchantName: req.merchant!.name,
+      subject: parsed.data.subject,
+      body: parsed.data.body,
+    });
+
+    if (!delivered) {
+      logger.error({ msg: 'Merchant message was not accepted by the mail transport', merchantId });
+      res.status(502).json({
+        success: false,
+        error: 'That did not send. Your mail transport rejected it — nothing was delivered.',
+      });
+      return;
+    }
+
+    res.status(202).json({ success: true, data: { to: customer.email } });
   } catch (err) {
     next(err);
   }

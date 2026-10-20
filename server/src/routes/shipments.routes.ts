@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { fulfillOrder, updateShipmentStatus, getShipments, getOrderShipment } from '../controllers/shipments.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 
 export const shipmentsRouter = Router();
 
@@ -8,10 +8,10 @@ export const shipmentsRouter = Router();
 // and returned a full shipment record -- carrier, tracking number, merchant
 // notes and the whole tracking-event history -- for any order id, with no proof
 // that the caller was entitled to it. Buyers track orders through
-// GET /storefront/track/search, which requires the order number AND the email
+// GET /shop/track/search, which requires the order number AND the email
 // used on the order.
 shipmentsRouter.use(authMiddleware);
-shipmentsRouter.use(requireStoreMembership);
+shipmentsRouter.use(requireMerchantMembership);
 
 shipmentsRouter.get('/orders/:orderId', getOrderShipment);
 shipmentsRouter.get('/', getShipments);

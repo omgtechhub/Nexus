@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Minus, Plus, ShieldCheck, ShoppingBag, Store, Truck } from 'lucide-react';
+import { Minus, Plus, ShieldCheck, ShoppingBag, Store as MerchantIcon, Truck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMarketplaceProductQuery } from '../../hooks/useMarketplace';
 import { useCart } from '../../context/CartContext';
-import type { StorefrontProductVariant } from '../../api/storefront';
+import type { ShopProductVariant } from '../../api/shop';
 import { ProductGrid, ProductThumb } from '../components/ProductCard';
 import { ProductReviews } from '../components/ProductReviews';
 import { StarRating } from '../components/StarRating';
@@ -13,12 +13,12 @@ import { getAssetUrl } from '../../utils/assetPath';
 
 /** Public product page. No account needed to read it or to add to the bag. */
 export function ProductDetailPage() {
-  const { storeId, productSlug } = useParams<{ storeId: string; productSlug: string }>();
-  const { data, isLoading, isError, error } = useMarketplaceProductQuery(storeId, productSlug);
+  const { productSlug } = useParams<{ productSlug: string }>();
+  const { data, isLoading, isError, error } = useMarketplaceProductQuery(productSlug);
   const { addToCart } = useCart();
 
   const product = data?.product;
-  const [variant, setVariant] = useState<StorefrontProductVariant | null>(null);
+  const [variant, setVariant] = useState<ShopProductVariant | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -53,7 +53,7 @@ export function ProductDetailPage() {
         <h1 className="text-xl font-bold text-primary">This product is not available.</h1>
         <p className="mt-2 text-sm text-secondary">
           {(error as Error)?.message ||
-            'It may have been removed, or the store is no longer selling it.'}
+            'It may have been removed, or the merchant is no longer selling it.'}
         </p>
         <Link
           to="/products/browse"
@@ -140,13 +140,13 @@ export function ProductDetailPage() {
 
         <div className="space-y-6">
           <div className="space-y-3">
-            {product.store && (
+            {product.merchant && (
               <Link
-                to={`/products/browse?storeId=${encodeURIComponent(product.store.id)}`}
+                to={`/products/browse?merchantId=${encodeURIComponent(product.merchant.id)}`}
                 className="inline-flex items-center gap-1.5 rounded text-xs font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
               >
-                <Store size={12} aria-hidden="true" />
-                Sold by {product.store.name}
+                <MerchantIcon size={12} aria-hidden="true" />
+                Sold by {product.merchant.name}
               </Link>
             )}
             <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-primary sm:text-4xl">
@@ -280,16 +280,16 @@ export function ProductDetailPage() {
           </div>
 
           {/* Only facts the platform can stand behind: no invented delivery
-              windows, and no returns policy unless a store has configured one. */}
+              windows, and no returns policy unless a merchant has configured one. */}
           <ul className="space-y-2.5 rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.03] p-4">
             <li className="flex items-start gap-2.5 text-xs text-secondary">
               <ShieldCheck size={14} className="mt-px flex-shrink-0 text-[var(--brand-green-ink)]" aria-hidden="true" />
-              Price and stock are re-checked against the store&apos;s own records before your
+              Price and stock are re-checked against the merchant&apos;s own records before your
               order is created.
             </li>
             <li className="flex items-start gap-2.5 text-xs text-secondary">
               <Truck size={14} className="mt-px flex-shrink-0 text-[var(--brand-yellow-ink)]" aria-hidden="true" />
-              Delivery is arranged by {product.store?.name || 'the store'} and quoted at checkout.
+              Delivery is arranged by {product.merchant?.name || 'the merchant'} and quoted at checkout.
             </li>
           </ul>
 
@@ -307,7 +307,7 @@ export function ProductDetailPage() {
               </p>
             ) : (
               <p className="text-sm leading-relaxed text-muted">
-                {product.store?.name || 'The seller'} has not added a description for this product
+                {product.merchant?.name || 'The seller'} has not added a description for this product
                 yet.
               </p>
             )}

@@ -106,7 +106,7 @@ export async function getCustomerOrders(req: Request, res: Response, next: NextF
         },
         addresses: true,
         statusHistory: { orderBy: { createdAt: 'desc' } },
-        store: { select: { id: true, name: true, domain: true } },
+        merchant: { select: { id: true, name: true } },
       },
     });
 
@@ -144,7 +144,7 @@ export async function getCustomerOrderById(req: Request, res: Response, next: Ne
         },
         addresses: true,
         statusHistory: { orderBy: { createdAt: 'desc' } },
-        store: { select: { id: true, name: true, domain: true } },
+        merchant: { select: { id: true, name: true } },
       },
     });
 
@@ -189,14 +189,14 @@ export async function createCustomerAddress(req: Request, res: Response, next: N
     });
 
     if (!customer) {
-      const store = await prisma.store.findFirst();
-      if (!store) {
-        res.status(400).json({ success: false, error: 'No store available' });
+      const merchant = await prisma.merchant.findFirst();
+      if (!merchant) {
+        res.status(400).json({ success: false, error: 'No merchant available' });
         return;
       }
       customer = await prisma.customer.create({
         data: {
-          storeId: store.id,
+          merchantId: merchant.id,
           name: req.user!.name,
           email: req.user!.email,
         },

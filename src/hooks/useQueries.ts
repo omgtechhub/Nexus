@@ -4,10 +4,10 @@ import { getCustomersApi, createCustomerApi, updateCustomerApi, deleteCustomerAp
 import { getOrdersApi, createOrderApi, updateOrderApi, cancelOrderApi } from '../api/orders';
 import { getAnalyticsApi } from '../api/analytics';
 import { getNotificationsApi, markNotificationReadApi, markAllNotificationsReadApi } from '../api/notifications';
-import { getStoreSettingsApi, updateStoreSettingsApi } from '../api/settings';
+import { getMerchantSettingsApi, updateMerchantSettingsApi } from '../api/settings';
 import { getInventoryApi, adjustStockApi } from '../api/inventory';
 import { uploadImageApi } from '../api/upload';
-import { Product, Customer, Order, StoreSettings } from '../types';
+import { Product, Customer, Order, MerchantSettings } from '../types';
 
 export const queryKeys = {
   authMe: ['auth', 'me'] as const,
@@ -227,18 +227,18 @@ export function useMarkAllNotificationsReadMutation() {
 }
 
 // Settings Hooks
-export function useStoreSettingsQuery(enabled = true) {
+export function useMerchantSettingsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.settings,
-    queryFn: getStoreSettingsApi,
+    queryFn: getMerchantSettingsApi,
     enabled,
   });
 }
 
-export function useUpdateStoreSettingsMutation() {
+export function useUpdateMerchantSettingsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (s: Partial<StoreSettings>) => updateStoreSettingsApi(s),
+    mutationFn: (s: Partial<MerchantSettings>) => updateMerchantSettingsApi(s),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
     },

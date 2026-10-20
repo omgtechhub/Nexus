@@ -116,7 +116,7 @@ export const testimonials = [
   },
   {
     id: 3,
-    quote: "We list once and the whole marketplace sees it. No storefront to maintain, no ads to buy — our team of 3 now handles what used to take 20.",
+    quote: "We list once and the whole marketplace sees it. No shop to maintain, no ads to buy — our team of 3 now handles what used to take 20.",
     author: "Isabella Torres",
     title: "Operations Lead",
     company: "Bloom Botanicals",
@@ -137,8 +137,8 @@ export const testimonials = [
  */
 export const faqs = [
   {
-    question: "Is Nexus a marketplace or a store builder?",
-    answer: "A marketplace. You list your products and they appear in one shared shopfront alongside other sellers, where shoppers browse and buy with a single account. There is no storefront to design and no traffic to buy — Nexus runs the shopfront, the search, the checkout and the delivery rules. You also get a seller page of your own that collects everything you have listed.",
+    question: "Is Nexus a marketplace or a merchant builder?",
+    answer: "A marketplace. You list your products and they appear in one shared shopfront alongside other sellers, where shoppers browse and buy with a single account. There is no shop to design and no traffic to buy — Nexus runs the shopfront, the search, the checkout and the delivery rules.",
   },
   {
     question: "Can I try Nexus Commerce for free?",
@@ -175,6 +175,6 @@ export const faqs = [
     // reason Nexus is not in PCI scope for card data is that it never sees a
     // card number.
     question: "How are card payments kept secure?",
-    answer: "Card details are entered on our payment provider's own secure page and never reach Nexus servers — we never receive or store a card number, so there is no card data with us to lose. Our provider is PCI DSS certified for the card handling it does. All traffic to Nexus is encrypted with HTTPS, passwords are hashed, and session tokens are stored only as digests.",
+    answer: "Card details are entered on our payment provider's own secure page and never reach Nexus servers — we never receive or merchant a card number, so there is no card data with us to lose. Our provider is PCI DSS certified for the card handling it does. All traffic to Nexus is encrypted with HTTPS, passwords are hashed, and session tokens are stored only as digests.",
   },
 ];

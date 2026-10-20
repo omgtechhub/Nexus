@@ -8,15 +8,15 @@ import { prisma } from '../src/prisma.js';
 const request = supertest(app);
 
 describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shipping & Fulfillment)', () => {
-  const storeAEmail = `storeA_p5_${Date.now()}@nexus.io`;
-  const storeBEmail = `storeB_p5_${Date.now()}@nexus.io`;
+  const merchantAEmail = `merchantA_p5_${Date.now()}@nexus.io`;
+  const merchantBEmail = `merchantB_p5_${Date.now()}@nexus.io`;
   const password = 'Password123!';
 
-  let storeACookie: string;
-  let storeBCookie: string;
-  let storeAId: string;
-  let storeBId: string;
-  let storeASlug: string;
+  let merchantACookie: string;
+  let merchantBCookie: string;
+  let merchantAId: string;
+  let merchantBId: string;
+  let merchantASlug: string;
 
   let activeProductId: string;
   let activeVariantId: string;
@@ -27,25 +27,25 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     // 1. Register Store A
     const resA = await request.post('/api/auth/register').send({
       name: 'Payments Alpha Owner',
-      email: storeAEmail,
+      email: merchantAEmail,
       password,
-      storeName: 'Payments Alpha',
+      displayName: 'Payments Alpha',
     });
     expect(resA.status).toBe(201);
-    storeACookie = resA.headers['set-cookie'][0];
-    storeAId = resA.body.data.store.id;
-    storeASlug = resA.body.data.store.id;
+    merchantACookie = resA.headers['set-cookie'][0];
+    merchantAId = resA.body.data.merchant.id;
+    merchantASlug = resA.body.data.merchant.id;
 
     // 2. Register Store B
     const resB = await request.post('/api/auth/register').send({
       name: 'Payments Beta Owner',
-      email: storeBEmail,
+      email: merchantBEmail,
       password,
-      storeName: 'Payments Beta',
+      displayName: 'Payments Beta',
     });
     expect(resB.status).toBe(201);
-    storeBCookie = resB.headers['set-cookie'][0];
-    storeBId = resB.body.data.store.id;
+    merchantBCookie = resB.headers['set-cookie'][0];
+    merchantBId = resB.body.data.merchant.id;
 
     /**
      * The platform levies 8% tax for the duration of this suite.
@@ -63,7 +63,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     const skuP5 = `SKU-P5-${Date.now()}`;
     const prodARes = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Phase 5 Leather Watch',
         description: 'Luxury chronograph watch',
@@ -79,7 +79,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
 
     // 4. Create Order via storefront checkout
     const checkoutRes = await request
-      .post(`/api/storefront/${storeASlug}/checkout`)
+      .post(`/api/shop/${merchantASlug}/checkout`)
       .send({
         items: [{ variantId: activeVariantId, quantity: 1 }],
         customer: { email: 'buyer_p5@example.com', name: 'Alice Buyer' },
@@ -150,7 +150,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
   it('4. Webhook Idempotency: duplicate webhooks do not duplicate transaction logs', async () => {
     // Create new order for webhook test
     const checkoutRes = await request
-      .post(`/api/storefront/${storeASlug}/checkout`)
+      .post(`/api/shop/${merchantASlug}/checkout`)
       .send({
         items: [{ variantId: activeVariantId, quantity: 1 }],
         customer: { email: 'webhook_buyer@example.com', name: 'Bob Buyer' },
@@ -200,7 +200,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
 
   it('5. Server Shipping Calculation: calculates rate per destination country', async () => {
     const res = await request
-      .post(`/api/shipping/rates/${storeASlug}`)
+      .post(`/api/shipping/rates/${merchantASlug}`)
       .send({ country: 'US', subtotal: 200.0 });
 
     expect(res.status).toBe(200);
@@ -212,7 +212,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
   it('6. Merchant Fulfillment & Shipment Tracking: marks order FULFILLED and logs tracking events', async () => {
     const res = await request
       .post(`/api/shipments/orders/${createdOrderId}/fulfill`)
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         carrier: 'DHL Express',
         trackingNumber: 'TRACK-9988776655',
@@ -234,7 +234,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     // GET /storefront/track/search, which requires the order number and email.
     const trackRes = await request
       .get(`/api/shipments/orders/${createdOrderId}`)
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
     expect(trackRes.status).toBe(200);
     expect(trackRes.body.data.trackingEvents.length).toBeGreaterThan(0);
   });
@@ -242,7 +242,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
   it('7. Full Order Refund: processes refund, marks order REFUNDED, and restores inventory stock', async () => {
     const res = await request
       .post(`/api/payments/orders/${createdOrderId}/refund`)
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         reason: 'Customer returned item in original box',
       });
@@ -257,11 +257,11 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     expect(updatedOrder?.status).toBe('REFUNDED');
   });
 
-  it('8. Multi-Tenant Security Isolation: Store B user cannot refund or fulfill Store A orders', async () => {
+  it('8. Multi-Tenant Security Isolation: Merchant B user cannot refund or fulfill Merchant A orders', async () => {
     // Attempt refund of Store A order using Store B cookie
     const refundRes = await request
       .post(`/api/payments/orders/${createdOrderId}/refund`)
-      .set('Cookie', [storeBCookie])
+      .set('Cookie', [merchantBCookie])
       .send({ reason: 'Unauthorized attempt' });
 
     expect(refundRes.status).toBe(404);
@@ -269,7 +269,7 @@ describe('Nexus Commerce Phase 5 Integration Tests (Real Payments, Webhooks, Shi
     // Attempt fulfillment of Store A order using Store B cookie
     const fulfillRes = await request
       .post(`/api/shipments/orders/${createdOrderId}/fulfill`)
-      .set('Cookie', [storeBCookie])
+      .set('Cookie', [merchantBCookie])
       .send({ carrier: 'Fake Express', trackingNumber: 'FAKE123' });
 
     expect(fulfillRes.status).toBe(404);

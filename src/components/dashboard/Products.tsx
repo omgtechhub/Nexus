@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Plus, Edit2, Trash2, Package, AlertTriangle, UploadCloud, RotateCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useUploadImageMutation, useProductsQuery } from '../../hooks/useQueries';
+import { useMarketplaceCategoriesQuery } from '../../hooks/useMarketplace';
 import { Product } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -20,6 +21,19 @@ const statusVariant = {
 export function Products() {
   const { products, addProduct, updateProduct, deleteProduct: removeProduct, addActivity } = useApp();
   const { isError, error, refetch } = useProductsQuery();
+
+  /*
+   * Suggestions for the category box: every category live on the marketplace,
+   * plus the ones this merchant already uses (a draft-only category is not in
+   * the public grouping yet, and a seller should still be offered their own).
+   */
+  const { data: marketplaceCategories } = useMarketplaceCategoriesQuery();
+  const categoryOptions = useMemo(() => {
+    const names = new Set<string>();
+    (marketplaceCategories?.categories ?? []).forEach(c => c.name && names.add(c.name));
+    products.forEach(p => p.category && names.add(p.category));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [marketplaceCategories, products]);
   const uploadImageMut = useUploadImageMutation();
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -94,7 +108,7 @@ export function Products() {
   const handleDeleteProduct = (id: string, productTitle: string) => {
     removeProduct(id, {
       onSuccess: () => {
-        addActivity(`Product "${productTitle}" deleted from store catalog`, 'product', '🗑️');
+        addActivity(`Product "${productTitle}" deleted from merchant catalog`, 'product', '🗑️');
         toast.success(`Product "${productTitle}" deleted successfully.`);
       },
       onError: (err: any) => {
@@ -182,6 +196,14 @@ export function Products() {
 
   return (
     <div className="space-y-5">
+      {/* One datalist for both forms: the create modal and the edit modal
+          offer the same suggestions, and it exists whether either is open. */}
+      <datalist id="nexus-category-options">
+        {categoryOptions.map(name => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <p className="text-muted text-sm">{products.length} products in catalog</p>
@@ -380,18 +402,29 @@ export function Products() {
               </div>
               <div>
                 <label htmlFor="products-category-4" className="block text-sm font-medium text-body mb-1.5">Category</label>
-                <select id="products-category-4"
+                {/*
+                  Type anything, or pick one that already exists.
+
+                  This was a <select> of six hardcoded options, so a seller
+                  could not list anything the list did not already name -- and
+                  the shop's own "Shop by category" row is built by grouping
+                  live products, so a category that cannot be entered can never
+                  appear there. A datalist suggests what other sellers already
+                  use (which keeps the grouping tidy) without preventing a new
+                  one.
+                */}
+                <input
+                  id="products-category-4"
+                  list="nexus-category-options"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
+                  placeholder="e.g. Apparel, or a new one"
+                  autoComplete="off"
                   className="form-input bg-[var(--surface-overlay)] text-primary"
-                >
-                  <option>Apparel</option>
-                  <option>Bags & Accessories</option>
-                  <option>Watches</option>
-                  <option>Footwear</option>
-                  <option>Jewelry</option>
-                  <option>General</option>
-                </select>
+                />
+                <p className="mt-1 text-xs text-muted">
+                  A new category appears in the shop as soon as the product is live.
+                </p>
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="submit" variant="primary" size="md" fullWidth disabled={isSubmitting}>
@@ -457,17 +490,15 @@ export function Products() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="products-category-9" className="block text-sm font-medium text-body mb-1.5">Category</label>
-                  <select id="products-category-9"
+                  <input
+                    id="products-category-9"
+                    list="nexus-category-options"
                     value={editCategory}
                     onChange={e => setEditCategory(e.target.value)}
+                    placeholder="e.g. Apparel, or a new one"
+                    autoComplete="off"
                     className="form-input bg-[var(--surface-overlay)] text-primary"
-                  >
-                    <option>Apparel</option>
-                    <option>Bags & Accessories</option>
-                    <option>Watches</option>
-                    <option>Footwear</option>
-                    <option>General</option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label htmlFor="products-status-10" className="block text-sm font-medium text-body mb-1.5">Status</label>

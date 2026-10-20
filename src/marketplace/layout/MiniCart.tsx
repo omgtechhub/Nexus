@@ -89,8 +89,8 @@ export function MiniCart() {
                   {item.variantTitle && (
                     <p className="truncate text-[11px] text-muted">{item.variantTitle}</p>
                   )}
-                  {item.storeName && (
-                    <p className="truncate text-[11px] text-decorative">{item.storeName}</p>
+                  {item.displayName && (
+                    <p className="truncate text-[11px] text-decorative">{item.displayName}</p>
                   )}
 
                   <div className="mt-2 flex items-center justify-between gap-2">

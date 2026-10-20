@@ -20,6 +20,8 @@ import {
   useResumeSubscriptionMutation,
 } from '../../hooks/useBillingQueries';
 import toast from 'react-hot-toast';
+import { updateOwnProfileApi } from '../../api/auth';
+import { uploadImageApi } from '../../api/upload';
 
 /**
  * Account settings for a seller on the marketplace.
@@ -46,7 +48,8 @@ export function Settings() {
 
   // Profile Form State
   const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  // Shown, never edited here — see the field below.
+  const email = user?.email || '';
 
   // Audit Logs API Hook
   const { data: auditLogs = [] } = useAuditLogsQuery(50);
@@ -73,8 +76,18 @@ export function Settings() {
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Uploads the picture, then stores the URL it came back with.
+   *
+   * This used to read the file with FileReader and put the base64 straight
+   * into React state: nothing was uploaded, nothing was saved, and the toast
+   * said "Profile avatar updated successfully!" over an image that vanished
+   * on the next reload.
+   */
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -82,21 +95,40 @@ export function Settings() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        updateUser({ avatar: reader.result });
-        toast.success('Profile avatar updated successfully!', { icon: '📸' });
-      }
-    };
-    reader.readAsDataURL(file);
+    setSavingAvatar(true);
+    try {
+      const { url } = await uploadImageApi(file);
+      await updateOwnProfileApi({ avatar: url });
+      updateUser({ avatar: url });
+      toast.success('Profile picture updated', { icon: '📸' });
+    } catch (err: any) {
+      toast.error(err?.message || 'That picture could not be saved.');
+    } finally {
+      setSavingAvatar(false);
+      // Let the same file be chosen again after a failure.
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
-  const handleSaveProfile = () => {
-    updateUser({ name, email });
-    setSaved(true);
-    toast.success('Profile information saved!');
-    setTimeout(() => setSaved(false), 2000);
+  /**
+   * Saves the name. The email is deliberately NOT sent: changing the address
+   * you sign in with has to go through verification, and quietly rewriting the
+   * column here would lock someone out of their own account.
+   */
+  const handleSaveProfile = async () => {
+    if (savingProfile) return;
+    setSavingProfile(true);
+    try {
+      const res = await updateOwnProfileApi({ name });
+      updateUser({ name: res.data.name });
+      setSaved(true);
+      toast.success('Profile saved');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not save your profile.');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -174,8 +206,9 @@ export function Settings() {
                   </div>
                   <button aria-label="Change profile photo"
                     type="button"
+                    disabled={savingAvatar}
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 w-7 h-7 bg-[#FFBD2E] hover:bg-[#27C93F] text-slate-950 rounded-full border-2 border-[var(--surface-inverse)] flex items-center justify-center transition-colors cursor-pointer"
+                    className="absolute bottom-0 right-0 w-7 h-7 bg-[#FFBD2E] hover:bg-[#27C93F] disabled:opacity-60 text-slate-950 rounded-full border-2 border-[var(--surface-inverse)] flex items-center justify-center transition-colors cursor-pointer"
                   >
                     <Camera size={13} className="font-bold" />
                   </button>
@@ -193,17 +226,32 @@ export function Settings() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your full name"
                 />
+                {/*
+                  Read-only, because saving it is not implemented.
+                  Changing the address you sign in with has to go through
+                  verification of the new one, or an account can be moved to a
+                  mailbox its owner does not control. An editable box that the
+                  save then ignores is the same untruth as a form that does not
+                  submit, so the field says what it is.
+                */}
                 <Input
                   label="Email Address"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  readOnly
+                  hint="Write to support to change the address you sign in with."
                   placeholder="email@example.com"
                 />
               </div>
 
-              <Button variant="primary" size="md" onClick={handleSaveProfile} icon={saved ? <span>✓</span> : <Save size={14} />}>
-                {saved ? 'Saved!' : 'Save changes'}
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                icon={saved ? <span>✓</span> : <Save size={14} />}
+              >
+                {savingProfile ? 'Saving…' : saved ? 'Saved!' : 'Save changes'}
               </Button>
             </div>
           )}
@@ -213,7 +261,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-primary mb-1">Merchant Audit Trail</h3>
-                <p className="text-xs text-muted">Audit logging for security compliance and store activity</p>
+                <p className="text-xs text-muted">Audit logging for security compliance and merchant activity</p>
               </div>
 
               <div className="space-y-2">
@@ -248,7 +296,7 @@ export function Settings() {
                   <div>
                     <div className="flex items-center gap-2">
                       {/* No invented fallbacks. These read
-                          `|| 'Growth Plan'` and `|| 'ACTIVE'`, so a store
+                          `|| 'Growth Plan'` and `|| 'ACTIVE'`, so a merchant
                           whose subscription had not loaded — or had lapsed —
                           was shown a plan it might not be on and a status it
                           might not have. An em dash is honest about not
@@ -275,7 +323,7 @@ export function Settings() {
                   <div className="text-right">
                     {/* `|| 79` invented a price for a plan whose real one
                         had not arrived, and the `$` was hardcoded on a
-                        platform that bills in the store's own currency. */}
+                        platform that bills in the merchant's own currency. */}
                     <span className="text-2xl font-black text-[var(--brand-green-ink)]">
                       {typeof sub?.plan?.monthlyPrice === 'number'
                         ? formatPrice(sub.plan.monthlyPrice, sub.plan.currency)
@@ -432,7 +480,7 @@ export function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-semibold text-primary mb-1">Notification Preferences</h3>
-                <p className="text-xs text-muted">Choose when and how you receive store alerts</p>
+                <p className="text-xs text-muted">Choose when and how you receive merchant alerts</p>
               </div>
 
               <div className="space-y-0">

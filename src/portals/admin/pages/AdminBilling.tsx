@@ -57,7 +57,7 @@ export function AdminTransactions() {
     <>
       <PageHeading
         title="Transactions"
-        subtitle={`The ${transactions.length} most recent billing transactions across all stores.`}
+        subtitle={`The ${transactions.length} most recent billing transactions across all merchants.`}
       />
 
       {transactions.length === 0 ? (
@@ -66,10 +66,10 @@ export function AdminTransactions() {
         <div className="overflow-hidden rounded-2xl border border-[var(--ink)]/10">
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[720px] text-left">
-              <caption className="sr-only">Billing transactions across all stores</caption>
+              <caption className="sr-only">Billing transactions across all merchants</caption>
               <thead className="bg-[var(--ink)]/5">
                 <tr>
-                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Store</th>
+                  <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Merchant</th>
                   <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Type</th>
                   <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Provider</th>
                   <th scope="col" className="p-4 text-xs font-semibold uppercase tracking-wider text-muted">Reference</th>
@@ -81,7 +81,7 @@ export function AdminTransactions() {
               <tbody>
                 {transactions.map(tx => (
                   <tr key={tx.id} className="border-t border-[var(--ink)]/5 hover:bg-[var(--ink)]/[0.03]">
-                    <td className="p-4 text-sm text-strong">{tx.store?.name ?? '—'}</td>
+                    <td className="p-4 text-sm text-strong">{tx.merchant?.name ?? '—'}</td>
                     <td className="p-4 text-xs text-secondary">{titleCase(tx.type)}</td>
                     <td className="p-4 text-xs text-secondary">{titleCase(tx.provider)}</td>
                     <td className="p-4 font-mono text-[11px] text-muted">{tx.providerReference}</td>

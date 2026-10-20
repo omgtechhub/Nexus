@@ -39,7 +39,7 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 /** How long to keep re-applying a restored offset while the page fills in.
  *  Long enough for a code-split route plus its first query, short enough that
  *  a reader who scrolls instead is not dragged back. */
-const RESTORE_WINDOW_MS = 800;
+const REMERCHANT_WINDOW_MS = 800;
 
 /** Plenty of history for one session; stops the map growing without bound. */
 const MAX_REMEMBERED = 50;
@@ -140,7 +140,7 @@ export function ScrollRestoration() {
        * reader who starts scrolling before the content lands.
        */
       let frame = 0;
-      const deadline = performance.now() + RESTORE_WINDOW_MS;
+      const deadline = performance.now() + REMERCHANT_WINDOW_MS;
       const attempt = () => {
         const furthest = Math.max(
           0,

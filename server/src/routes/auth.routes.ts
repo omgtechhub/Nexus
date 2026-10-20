@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, me, logout, oauthLogin, googleOAuth, githubOAuth } from '../controllers/auth.controller.js';
+import { register, login, me, logout, oauthLogin, googleOAuth, githubOAuth, updateOwnProfile } from '../controllers/auth.controller.js';
 import {
   forgotPassword,
   resetPassword,
@@ -43,6 +43,7 @@ authRouter.post('/register', authLimiter, register);
 authRouter.post('/login', authLimiter, login);
 authRouter.post('/oauth', authLimiter, oauthLogin);
 authRouter.get('/me', authMiddleware, me);
+authRouter.patch('/profile', authMiddleware, updateOwnProfile);
 authRouter.post('/logout', logout);
 
 // Password recovery

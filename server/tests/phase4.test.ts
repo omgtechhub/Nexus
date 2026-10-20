@@ -6,14 +6,14 @@ import { prisma } from '../src/prisma.js';
 const request = supertest(app);
 
 describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout)', () => {
-  const storeAEmail = `storeA_p4_${Date.now()}@nexus.io`;
-  const storeBEmail = `storeB_p4_${Date.now()}@nexus.io`;
+  const merchantAEmail = `merchantA_p4_${Date.now()}@nexus.io`;
+  const merchantBEmail = `merchantB_p4_${Date.now()}@nexus.io`;
   const password = 'Password123!';
 
-  let storeACookie: string;
-  let storeBCookie: string;
-  let storeASlug: string;
-  let storeBSlug: string;
+  let merchantACookie: string;
+  let merchantBCookie: string;
+  let merchantASlug: string;
+  let merchantBSlug: string;
 
   let activeProductSlug: string;
   let activeVariantId: string;
@@ -24,24 +24,24 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     // 1. Register Store A
     const resA = await request.post('/api/auth/register').send({
       name: 'Storefront Alpha Owner',
-      email: storeAEmail,
+      email: merchantAEmail,
       password,
-      storeName: 'Storefront Alpha',
+      displayName: 'Storefront Alpha',
     });
     expect(resA.status).toBe(201);
-    storeACookie = resA.headers['set-cookie'][0];
-    storeASlug = resA.body.data.store.id;
+    merchantACookie = resA.headers['set-cookie'][0];
+    merchantASlug = resA.body.data.merchant.id;
 
     // 2. Register Store B
     const resB = await request.post('/api/auth/register').send({
       name: 'Storefront Beta Owner',
-      email: storeBEmail,
+      email: merchantBEmail,
       password,
-      storeName: 'Storefront Beta',
+      displayName: 'Storefront Beta',
     });
     expect(resB.status).toBe(201);
-    storeBCookie = resB.headers['set-cookie'][0];
-    storeBSlug = resB.body.data.store.id;
+    merchantBCookie = resB.headers['set-cookie'][0];
+    merchantBSlug = resB.body.data.merchant.id;
 
     /**
      * The platform levies 8% tax for the duration of this suite.
@@ -60,7 +60,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     const skuA = `SKU-P4-A-${Date.now()}`;
     const prodARes = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Alpha Premium Sneakers',
         slug: 'alpha-premium-sneakers',
@@ -82,7 +82,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     // 4. Create draft product for Store A (should not appear in public storefront)
     await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Alpha Secret Prototype',
         slug: 'alpha-secret-prototype',
@@ -99,16 +99,16 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     delete process.env.PLATFORM_TAX_LABEL;
   });
 
-  it('1. Public Storefront Info: resolves store metadata and settings by storeSlug', async () => {
-    const res = await request.get(`/api/storefront/${storeASlug}`);
+  it('1. Public Storefront Info: resolves merchant metadata and settings by merchantRef', async () => {
+    const res = await request.get(`/api/shop/${merchantASlug}`);
     expect(res.status).toBe(200);
-    expect(res.body.store.name).toBe('Storefront Alpha');
-    expect(res.body.store.id).toBe(storeASlug);
-    expect(res.body.store.settings).toBeDefined();
+    expect(res.body.merchant.name).toBe('Storefront Alpha');
+    expect(res.body.merchant.id).toBe(merchantASlug);
+    expect(res.body.merchant.settings).toBeDefined();
   });
 
   it('2. Public Products Catalog: returns active products and filters out draft products', async () => {
-    const res = await request.get(`/api/storefront/${storeASlug}/products`);
+    const res = await request.get(`/api/shop/${merchantASlug}/products`);
     expect(res.status).toBe(200);
     expect(res.body.products).toHaveLength(1);
     expect(res.body.products[0].slug).toContain('alpha-premium-sneakers');
@@ -117,7 +117,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
   });
 
   it('3. Public Product Detail: resolves active product by productSlug', async () => {
-    const res = await request.get(`/api/storefront/${storeASlug}/products/${activeProductSlug}`);
+    const res = await request.get(`/api/shop/${merchantASlug}/products/${activeProductSlug}`);
     expect(res.status).toBe(200);
     expect(res.body.product.title).toBe('Alpha Premium Sneakers');
     expect(res.body.product.price).toBe(150.0);
@@ -125,7 +125,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
 
   it('4. Cart Server Validation: validates live prices and stock levels', async () => {
     const res = await request
-      .post(`/api/storefront/${storeASlug}/cart/validate`)
+      .post(`/api/shop/${merchantASlug}/cart/validate`)
       .send({
         items: [{ variantId: activeVariantId, quantity: 2 }],
       });
@@ -153,7 +153,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     const skuB = `SKU-P4-B-TAX-${Date.now()}`;
     const prodBRes = await request
       .post('/api/products')
-      .set('Cookie', [storeBCookie])
+      .set('Cookie', [merchantBCookie])
       .send({
         title: 'Beta Untaxed Item',
         price: 300.0,
@@ -164,7 +164,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     expect(prodBRes.status).toBe(201);
 
     const res = await request
-      .post(`/api/storefront/${storeBSlug}/cart/validate`)
+      .post(`/api/shop/${merchantBSlug}/cart/validate`)
       .send({ items: [{ variantId: prodBRes.body.data.id, quantity: 1 }] });
 
     expect(res.status).toBe(200);
@@ -196,7 +196,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     };
 
     const res = await request
-      .post(`/api/storefront/${storeASlug}/checkout`)
+      .post(`/api/shop/${merchantASlug}/checkout`)
       .send(checkoutPayload);
 
     expect(res.status).toBe(201);
@@ -229,7 +229,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
 
   it('6. Public Order Confirmation: retrieves placed order by orderNumber', async () => {
     const cleanNumber = createdOrderNumber.replace('#', '');
-    const res = await request.get(`/api/storefront/${storeASlug}/orders/${cleanNumber}`);
+    const res = await request.get(`/api/shop/${merchantASlug}/orders/${cleanNumber}`);
     expect(res.status).toBe(200);
     expect(res.body.order.orderNumber).toBe(createdOrderNumber);
     expect(res.body.order.customerEmail).toBe('buyer@example.com');
@@ -238,7 +238,7 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
 
   it('7. Stock Validation Rejection: rejects checkout if requested quantity exceeds available stock', async () => {
     const res = await request
-      .post(`/api/storefront/${storeASlug}/checkout`)
+      .post(`/api/shop/${merchantASlug}/checkout`)
       .send({
         items: [{ variantId: activeVariantId, quantity: 999 }],
         customer: { email: 'buyer2@example.com', name: 'Bob Smith' },
@@ -257,9 +257,9 @@ describe('Nexus Commerce Phase 4 Integration Tests (Storefront + Cart + Checkout
     expect(res.body.error).toContain('Insufficient stock');
   });
 
-  it('8. Multi-Tenant Security Isolation: Store B storefront cannot checkout Store A items', async () => {
+  it('8. Multi-Tenant Security Isolation: Merchant B storefront cannot checkout Merchant A items', async () => {
     const res = await request
-      .post(`/api/storefront/${storeBSlug}/checkout`)
+      .post(`/api/shop/${merchantBSlug}/checkout`)
       .send({
         items: [{ variantId: activeVariantId, quantity: 1 }],
         customer: { email: 'hacker@example.com', name: 'Hacker' },

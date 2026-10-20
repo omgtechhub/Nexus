@@ -68,7 +68,7 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
     method: req.method,
     path: req.originalUrl,
     userId: (req as any).user?.id,
-    storeId: (req as any).store?.id,
+    merchantId: (req as any).merchant?.id,
     error: err?.message,
     code: err?.code,
     // Prisma attaches these and they are the fastest route to a cause.

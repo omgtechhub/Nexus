@@ -26,7 +26,7 @@ async function runJob(type: Parameters<typeof jobQueue.enqueue>[0]): Promise<voi
 }
 
 describe('Checkout cannot oversell the last unit', () => {
-  let storeSlug: string;
+  let merchantRef: string;
   let cookie: string;
   let variantId: string;
 
@@ -35,10 +35,10 @@ describe('Checkout cannot oversell the last unit', () => {
       name: 'Oversell Merchant',
       email: `oversell_${Date.now()}@nexus.io`,
       password: 'Password123!',
-      storeName: 'Oversell Store',
+      displayName: 'Oversell Merchant',
     });
     cookie = reg.headers['set-cookie'][0];
-    storeSlug = reg.body.data.store.id;
+    merchantRef = reg.body.data.merchant.id;
 
     const sku = `SKU-OS-${Date.now()}`;
     const prod = await request
@@ -67,7 +67,7 @@ describe('Checkout cannot oversell the last unit', () => {
      * the predicate), so the comparison happens inside the row lock.
      */
     const order = (email: string) =>
-      request.post(`/api/storefront/${storeSlug}/checkout`).send({
+      request.post(`/api/shop/${merchantRef}/checkout`).send({
         items: [{ variantId, quantity: 1 }],
         customer: { email, name: 'Race Buyer' },
         shippingAddress: {
@@ -91,7 +91,7 @@ describe('Checkout cannot oversell the last unit', () => {
 });
 
 describe('Abandoned checkouts give their stock back', () => {
-  let storeId: string;
+  let merchantId: string;
   let productId: string;
 
   beforeAll(async () => {
@@ -99,9 +99,9 @@ describe('Abandoned checkouts give their stock back', () => {
       name: 'Abandon Merchant',
       email: `abandon_${Date.now()}@nexus.io`,
       password: 'Password123!',
-      storeName: 'Abandon Store',
+      displayName: 'Abandon Merchant',
     });
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
 
     const prod = await request
       .post('/api/products')
@@ -117,7 +117,7 @@ describe('Abandoned checkouts give their stock back', () => {
   });
 
   it('releases the reservation of an order left unpaid, exactly once', async () => {
-    const invBefore = await prisma.inventoryItem.findFirst({ where: { storeId, productId } });
+    const invBefore = await prisma.inventoryItem.findFirst({ where: { merchantId, productId } });
     const startingStock = invBefore!.availableStock;
 
     // An order placed four hours ago that was never paid: stock reserved at
@@ -126,7 +126,7 @@ describe('Abandoned checkouts give their stock back', () => {
     // tab held the stock for ever.
     const order = await prisma.order.create({
       data: {
-        storeId,
+        merchantId,
         orderNumber: `#AB-${Date.now()}`,
         customerName: 'Gone Away',
         customerEmail: 'gone@example.com',
@@ -154,20 +154,20 @@ describe('Abandoned checkouts give their stock back', () => {
     const released = await prisma.order.findUnique({ where: { id: order.id } });
     expect(released!.status).toBe(OrderStatus.CANCELLED);
 
-    const invAfter = await prisma.inventoryItem.findFirst({ where: { storeId, productId } });
+    const invAfter = await prisma.inventoryItem.findFirst({ where: { merchantId, productId } });
     expect(invAfter!.availableStock).toBe(startingStock);
 
     // Running again must not inflate stock — the same unbounded-increment
     // shape the verify endpoint had.
     await runJob('EXPIRE_ABANDONED_ORDERS');
-    const invTwice = await prisma.inventoryItem.findFirst({ where: { storeId, productId } });
+    const invTwice = await prisma.inventoryItem.findFirst({ where: { merchantId, productId } });
     expect(invTwice!.availableStock).toBe(startingStock);
   });
 
   it('never touches an order that was actually paid', async () => {
     const order = await prisma.order.create({
       data: {
-        storeId,
+        merchantId,
         orderNumber: `#PAID-${Date.now()}`,
         customerName: 'Real Buyer',
         customerEmail: 'real@example.com',
@@ -181,7 +181,7 @@ describe('Abandoned checkouts give their stock back', () => {
 
     await prisma.payment.create({
       data: {
-        storeId,
+        merchantId,
         orderId: order.id,
         provider: PaymentProvider.PAYSTACK,
         providerReference: `ref_paid_${Date.now()}`,
@@ -200,16 +200,16 @@ describe('Abandoned checkouts give their stock back', () => {
 });
 
 describe('A subscription period that runs out is not renewed for free', () => {
-  let storeId: string;
+  let merchantId: string;
 
   beforeAll(async () => {
     const reg = await request.post('/api/auth/register').send({
       name: 'Renewal Merchant',
       email: `renewal_${Date.now()}@nexus.io`,
       password: 'Password123!',
-      storeName: 'Renewal Store',
+      displayName: 'Renewal Merchant',
     });
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
     // Materialise the subscription.
     await request.get('/api/subscriptions/current').set('Cookie', [reg.headers['set-cookie'][0]]);
   });
@@ -218,7 +218,7 @@ describe('A subscription period that runs out is not renewed for free', () => {
     const plan = await prisma.subscriptionPlan.findFirst({ where: { code: 'growth' } });
 
     await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: {
         planId: plan!.id,
         status: SubscriptionStatus.ACTIVE,
@@ -227,11 +227,11 @@ describe('A subscription period that runs out is not renewed for free', () => {
       },
     });
 
-    const before = await prisma.subscription.findUnique({ where: { storeId } });
+    const before = await prisma.subscription.findUnique({ where: { merchantId } });
 
     await runJob('PROCESS_SUBSCRIPTION_RENEWALS');
 
-    const after = await prisma.subscription.findUnique({ where: { storeId } });
+    const after = await prisma.subscription.findUnique({ where: { merchantId } });
 
     /**
      * The hole this closes.
@@ -245,9 +245,9 @@ describe('A subscription period that runs out is not renewed for free', () => {
     expect(after!.currentPeriodEnd.getTime()).toBe(before!.currentPeriodEnd.getTime());
   });
 
-  it('ends a trial rather than leaving the store on the plan indefinitely', async () => {
+  it('ends a trial rather than leaving the merchant on the plan indefinitely', async () => {
     await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: {
         status: SubscriptionStatus.TRIALING,
         currentPeriodEnd: new Date(Date.now() - 60 * 60 * 1000),
@@ -256,7 +256,7 @@ describe('A subscription period that runs out is not renewed for free', () => {
 
     await runJob('PROCESS_GRACE_PERIODS');
 
-    const after = await prisma.subscription.findUnique({ where: { storeId } });
+    const after = await prisma.subscription.findUnique({ where: { merchantId } });
     expect(after!.status).toBe(SubscriptionStatus.PAST_DUE);
   });
 });
@@ -268,7 +268,7 @@ describe('Session tokens are stored hashed', () => {
       name: 'Session Hash Merchant',
       email,
       password: 'Password123!',
-      storeName: 'Session Hash Store',
+      displayName: 'Session Hash Merchant',
     });
     expect(reg.status).toBe(201);
 
@@ -294,7 +294,7 @@ describe('Session tokens are stored hashed', () => {
 });
 
 describe('Payment initialization requires proof the caller placed the order', () => {
-  let storeSlug: string;
+  let merchantRef: string;
   let orderId: string;
 
   beforeAll(async () => {
@@ -302,9 +302,9 @@ describe('Payment initialization requires proof the caller placed the order', ()
       name: 'Init Guard Merchant',
       email: `initguard_${Date.now()}@nexus.io`,
       password: 'Password123!',
-      storeName: 'Init Guard Store',
+      displayName: 'Init Guard Merchant',
     });
-    storeSlug = reg.body.data.store.id;
+    merchantRef = reg.body.data.merchant.id;
 
     const prod = await request
       .post('/api/products')
@@ -317,7 +317,7 @@ describe('Payment initialization requires proof the caller placed the order', ()
         status: 'ACTIVE',
       });
 
-    const checkout = await request.post(`/api/storefront/${storeSlug}/checkout`).send({
+    const checkout = await request.post(`/api/shop/${merchantRef}/checkout`).send({
       items: [{ variantId: prod.body.data.id, quantity: 1 }],
       customer: { email: 'guarded.buyer@example.com', name: 'Guarded Buyer' },
       shippingAddress: {
@@ -367,8 +367,8 @@ describe('Payment initialization requires proof the caller placed the order', ()
   });
 });
 
-describe('Trading currency is configurable, not hardcoded USD', () => {
-  it('recovers the code from a store currency label', () => {
+describe('Trading currency is configurable, and falls back to naira', () => {
+  it('recovers the code from a merchant currency label', () => {
     expect(currencyCodeOf('NGN — Nigerian Naira')).toBe('NGN');
     expect(currencyCodeOf('USD — US Dollar')).toBe('USD');
     // Tolerates a bare code, since not every row was written the same way.
@@ -376,13 +376,13 @@ describe('Trading currency is configurable, not hardcoded USD', () => {
     expect(currencyCodeOf(null)).toBe(defaultCurrencyCode());
   });
 
-  it('falls back to USD for an unrecognised configured value', () => {
+  it('falls back to naira for an unrecognised configured value', () => {
     const original = process.env.DEFAULT_CURRENCY;
     try {
       process.env.DEFAULT_CURRENCY = 'XYZ';
       // Guessing at a currency the gateway may not support is worse than the
       // documented default.
-      expect(defaultCurrencyCode()).toBe('USD');
+      expect(defaultCurrencyCode()).toBe('NGN');
 
       process.env.DEFAULT_CURRENCY = 'ngn';
       expect(defaultCurrencyCode()).toBe('NGN');
@@ -403,7 +403,7 @@ describe('One merchant account per seller', () => {
       name: 'Single Account Merchant',
       email,
       password,
-      storeName: 'First Merchant Account',
+      displayName: 'First Merchant Account',
     });
     expect(first.status).toBe(201);
     const cookie = first.headers['set-cookie'][0];
@@ -411,7 +411,7 @@ describe('One merchant account per seller', () => {
     /**
      * Nexus is a single marketplace: a merchant sells from their merchant
      * account and does not run several independent shops. Nothing used to say
-     * so — `@@unique([userId, storeId])` only stopped joining the same record
+     * so — `@@unique([userId, merchantId])` only stopped joining the same record
      * twice — which is why the code that resolves "the current merchant" had
      * to fall back to `memberships[0]`, i.e. whichever row came back first.
      */
@@ -422,7 +422,7 @@ describe('One merchant account per seller', () => {
         name: 'Single Account Merchant',
         email,
         password,
-        storeName: 'Second Merchant Account',
+        displayName: 'Second Merchant Account',
       });
 
     expect(second.status).toBeGreaterThanOrEqual(400);

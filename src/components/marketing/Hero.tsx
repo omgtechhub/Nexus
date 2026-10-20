@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   ArrowRight, Play, Star, TrendingUp, Users, ShoppingBag, 
-  Sparkles, Store, Layout, X
+  Sparkles, Store as MerchantIcon, Layout, X
 } from 'lucide-react';
 import gsap from 'gsap';
 import { useApp } from '../../context/AppContext';
@@ -11,6 +11,7 @@ import { GsapMorphBg } from './GsapMorphBg';
 import { getAssetUrl } from '../../utils/assetPath';
 
 import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * The hero's video slide.
@@ -36,7 +37,16 @@ import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
  * and the slide's own overlays carry the section, which is what the opacity
  * crossfade already shows during the transition.
  */
-function HeroVideo({ src, isActive }: { src: string; isActive: boolean }) {
+function HeroVideo({
+  src,
+  isActive,
+  onEnded,
+}: {
+  src: string;
+  isActive: boolean;
+  /** Fired once, when the last frame has played. */
+  onEnded: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // Once true, the <source> exists. It never goes back to false, so returning
   // to the slide does not re-download.
@@ -76,8 +86,20 @@ function HeroVideo({ src, isActive }: { src: string; isActive: boolean }) {
       });
     };
 
-    if (isActive) play();
-    else video.pause();
+    if (isActive) {
+      /*
+       * Always from frame one.
+       *
+       * The element keeps its position when a slide goes inactive, so without
+       * this the second showing resumed wherever the first was interrupted --
+       * the slide opened mid-sentence, and the copy underneath, which restarts
+       * every time, no longer matched what was on screen.
+       */
+      if (video.currentTime > 0) video.currentTime = 0;
+      play();
+    } else {
+      video.pause();
+    }
 
     // A hidden tab should not be decoding video frames.
     const onVisibility = () => {
@@ -100,7 +122,11 @@ function HeroVideo({ src, isActive }: { src: string; isActive: boolean }) {
         src={shouldLoad ? src : undefined}
         // No `autoPlay`: the effect above owns playback, and the attribute is
         // what made an inactive slide download and decode the whole file.
-        loop
+        //
+        // No `loop` either. The slide is exactly as long as the file: it starts
+        // on the first frame and holds the last one until the crossfade takes
+        // it away, so a restarted second pass can never be cut off mid-way.
+        onEnded={onEnded}
         muted
         playsInline
         preload={shouldLoad ? 'auto' : 'none'}
@@ -138,7 +164,7 @@ const slide2SubPhrases = [
   {
     phrase: 'reach further.',
     description:
-      'No traffic to buy and no storefront to promote. Shoppers already browsing Nexus find your products the day you list them.',
+      'No traffic to buy and no shop of your own to promote. Shoppers already browsing Nexus find your products the day you list them.',
   },
   {
     phrase: 'sell smarter.',
@@ -155,32 +181,50 @@ const slide2SubPhrases = [
 const stats = [
   { value: '0%', label: 'Sales commission', icon: <TrendingUp size={16} /> },
   { value: '₦', label: 'Naira-native pricing', icon: <ShoppingBag size={16} /> },
-  { value: 'One', label: 'Cart, every store', icon: <Users size={16} /> },
+  { value: 'One', label: 'Cart, every merchant', icon: <Users size={16} /> },
   { value: '14-day', label: 'Annual refund window', icon: <Star size={16} /> },
 ];
 
 interface HeroSlide {
   id: string;
-  type: 'image' | 'video' | 'animated-image';
-  duration: number;
-  mediaSrc: string;
+  type: 'wash' | 'video';
+  /**
+   * How long the slide may last.
+   *
+   * For the wash slide this is the timing. For the video slide it is only a
+   * backstop: the video reports its own end, and this number exists so a file
+   * that never plays -- blocked autoplay, a failed decode, a phone where the
+   * video is not mounted at all -- cannot strand the carousel.
+   */
+  durationMs: number;
+  /** The file this slide plays, or null when the slide is just the band. */
+  mediaSrc: string | null;
+  /** When each sub-phrase takes over, in ms from the start of the slide. */
+  subPhraseCues: number[];
   icon: React.ReactNode;
 }
 
 const heroSlides: HeroSlide[] = [
   {
-    id: 'slide-1',
-    type: 'image',
-    duration: 8000,
-    mediaSrc: getAssetUrl('/images/hero-bg.jpg'),
+    id: 'slide-wash',
+    // No media of its own: this slide IS the band, shown clean. It used to lay
+    // hero-bg.jpg over the backdrop at low opacity, which added grey diagonal
+    // streaks and muted every colour underneath for nothing.
+    type: 'wash',
+    durationMs: 8000,
+    mediaSrc: null,
+    subPhraseCues: [],
     icon: <Layout size={14} />,
   },
   {
-    id: 'slide-2',
+    id: 'slide-video',
     type: 'video',
-    duration: 20200,
+    // A second past the file's own length, so the backstop never fires first
+    // on a healthy playback and cuts the last frame short.
+    durationMs: 21200,
     mediaSrc: getAssetUrl('/videos/final-video-slider-v2.mp4'),
-    icon: <Store size={14} />,
+    subPhraseCues: [7000, 14000],
+    icon: <MerchantIcon size={14} />,
   },
 ];
 
@@ -191,6 +235,16 @@ export function Hero() {
   const [videoOpen, setVideoOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
+
+  /*
+   * The video is 16:9 and the hero band on a phone is close to square, so
+   * object-cover was discarding most of every frame to fill it — a crop of a
+   * crop, for 2.1MB over mobile data. Below 768px the slide keeps its copy and
+   * its timing and shows the wash instead. `useMediaQuery` reports the match
+   * on the FIRST render, so on a phone the <video> is never mounted and the
+   * file is never requested.
+   */
+  const hideVideo = useMediaQuery('(max-width: 767px)');
 
   useDismissOnEscape(videoOpen, () => setVideoOpen(false));
 
@@ -242,37 +296,49 @@ export function Hero() {
     return () => ctx.revert();
   }, []);
 
-  // Autonomous Carousel Auto-Advance
+  /**
+   * Moves to the next slide. Guarded by the slide it was scheduled for, so a
+   * late timer belonging to the previous slide cannot skip the current one --
+   * the mix-up that two independent clocks (a timer and a video) otherwise
+   * produce the moment one of them runs slow.
+   */
+  const advanceFrom = useCallback((from: number) => {
+    setActiveSlide(current => (current === from ? (current + 1) % heroSlides.length : current));
+  }, []);
+
+  /*
+   * Slide timing.
+   *
+   * The image slide is on a clock, because an image has no length of its own.
+   * The video slide is NOT: it ends when the file ends (`onEnded` below), so
+   * the slide is exactly as long as the video and the last frame is always the
+   * one you see it finish on. `durationMs` is only a ceiling for it -- if the
+   * file stalls, fails to decode or has autoplay refused, the carousel still
+   * moves on instead of parking on a dead slide forever.
+   *
+   * On a phone there is no video at all, so the ceiling IS the timing.
+   */
   useEffect(() => {
-    const duration = heroSlides[activeSlide].duration;
+    const slide = heroSlides[activeSlide];
 
     setSubIndex(0);
 
-    const slideTimer = setTimeout(() => {
-      setActiveSlide(next => (next + 1) % heroSlides.length);
-    }, duration);
+    const ceiling = setTimeout(() => advanceFrom(activeSlide), slide.durationMs);
 
-    /**
-     * Two timeouts, not a poll.
-     *
-     * This used to be a `setInterval` firing every 100ms that recomputed the
-     * elapsed time and called `setSubIndex` on every tick — around 200 wake-ups
-     * per slide to perform two transitions, each one re-entering React only to
-     * be discarded by the bailout on an unchanged value.
+    /*
+     * Two timeouts, not a poll. This used to be a `setInterval` firing every
+     * 100ms that recomputed the elapsed time and called `setSubIndex` on every
+     * tick -- around 200 wake-ups per slide to perform two transitions.
      */
-    const subTimers =
-      activeSlide === 1
-        ? [
-            setTimeout(() => setSubIndex(1), 7000),
-            setTimeout(() => setSubIndex(2), 14000),
-          ]
-        : [];
+    const subTimers = slide.subPhraseCues.map((at, index) =>
+      setTimeout(() => setSubIndex(index + 1), at)
+    );
 
     return () => {
-      clearTimeout(slideTimer);
+      clearTimeout(ceiling);
       subTimers.forEach(clearTimeout);
     };
-  }, [activeSlide]);
+  }, [activeSlide, advanceFrom]);
 
   const currentPhrase = activeSlide === 0 
     ? slide1Data.phrase 
@@ -337,10 +403,32 @@ export function Hero() {
      * every child resolves dark values without caring what the page is set to.
      */
     <>
+      {/*
+        * The hero band, and only the hero band.
+        *
+        * `.hero-wash` is the colour mix behind it; `data-theme="dark"` pins the
+        * token set for this subtree so the copy resolves light values whatever
+        * the page is set to, because it sits on a video.
+        */}
       <section
         data-theme="dark"
-        className="relative flex flex-col items-center justify-center overflow-hidden bg-[var(--surface-sunken)] text-primary"
+        className="hero-wash relative flex flex-col items-center justify-center overflow-hidden text-primary"
       >
+        {/*
+          The band's backdrop.
+
+          `.hero-wash` paints the same colours as a CSS gradient underneath, so
+          the section is never a flat void while this loads or if it 404s. The
+          image is the reference itself, resized to 1920 and 72KB, and it is
+          decorative: no alt text, never announced, and it carries nothing the
+          copy does not also say.
+        */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
+          style={{ backgroundImage: `url(${getAssetUrl('/images/hero-wash.jpg')})` }}
+          aria-hidden="true"
+        />
+
         {/* GSAP SVG Liquid Path Morphing Ambient Background */}
         <GsapMorphBg />
 
@@ -357,26 +445,31 @@ export function Hero() {
                     isActive ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
-                  {s.type === 'image' && (
-                    <img
-                      src={s.mediaSrc}
-                      alt=""
-                      className={`w-full h-full object-cover opacity-25 transition-transform duration-[8000ms] ease-out ${
-                        isActive ? 'scale-105' : 'scale-100'
-                      }`}
-                    />
+                  {s.type === 'video' && s.mediaSrc && !hideVideo && (
+                    <>
+                      <HeroVideo
+                        src={s.mediaSrc}
+                        isActive={isActive}
+                        onEnded={() => advanceFrom(index)}
+                      />
+                      {/* The video is full-bleed and bright, so it carries a
+                          heavier scrim than the band does. */}
+                      <div className="absolute inset-0 bg-[var(--hero-deep)]/35" />
+                    </>
                   )}
 
-                  {s.type === 'video' && (
-                    <HeroVideo src={s.mediaSrc} isActive={isActive} />
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-b from-[var(--surface-base)]/30 via-[var(--surface-base)]/50 to-[var(--surface-base)]" />
-                  <div className="absolute inset-0 bg-[var(--surface-base)]/15" />
+                  {/* Only the video needs taming; the wash slide is already
+                      dark enough for the copy, and darkening it twice was what
+                      made the band read grey. */}
+                  {s.type === 'video' && <div className="hero-media-scrim absolute inset-0" />}
                 </div>
               );
             })}
           </div>
+
+          {/* Darkens the middle of the band so the quiet text steps keep
+              their contrast; see .hero-copy-scrim. */}
+          <div className="hero-copy-scrim absolute inset-0 z-0 pointer-events-none" aria-hidden="true" />
 
           {/* Content Layer */}
           <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 text-center">
@@ -384,7 +477,7 @@ export function Hero() {
             <button
               ref={heroBadgeRef}
               onClick={() => navigate('pricing')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 bg-[#FFBD2E]/10 text-[var(--brand-yellow-ink)] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:bg-[#FFBD2E]/20 hover:scale-105 transition duration-300 cursor-pointer group"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#FFBD2E]/40 bg-[var(--hero-deep)]/60 text-[var(--brand-yellow-ink)] text-sm font-medium mb-8 backdrop-blur-sm shadow-lg shadow-yellow-500/10 hover:border-[#FFBD2E]/70 hover:bg-[var(--hero-deep)]/75 hover:scale-105 transition duration-300 cursor-pointer group"
             >
               <Sparkles size={14} className="text-[var(--brand-yellow-ink)] group-hover:rotate-12 transition-transform" />
               <span>Every plan starts with a 14-day free trial</span>
@@ -453,14 +546,21 @@ export function Hero() {
               {emailError}
             </p>
 
-            <p className="text-xs text-muted mb-8">
+            {/* `secondary`, not `muted`: at 12px over the brightest part of
+                the band the quietest step measures 4.5:1 on the nose, and
+                this line is a commitment about money. */}
+            <p className="text-xs text-secondary mb-8">
               14-day free trial · No credit card required · Cancel anytime
             </p>
 
-            {/* Watch demo button */}
+            {/*
+              Watch demo button. Desktop and tablet only: a two-minute demo in
+              a lightbox is a sit-down action, and on a phone it takes over the
+              screen of someone who was mid-scroll.
+            */}
             <button
               onClick={() => setVideoOpen(true)}
-              className="inline-flex items-center gap-3 text-sm text-secondary hover:text-primary transition-colors group mb-10 cursor-pointer"
+              className="hidden md:inline-flex items-center gap-3 text-sm text-secondary hover:text-primary transition-colors group mb-10 cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full bg-[var(--ink)]/10 border border-[var(--ink)]/20 flex items-center justify-center group-hover:bg-[#FF5F56]/20 group-hover:border-[#FF5F56]/40 transition-colors">
                 <Play size={14} className="text-primary ml-0.5" fill="currentColor" />
@@ -508,12 +608,12 @@ export function Hero() {
       </section>
 
       {/*
-        * The dashboard mockup sits outside the dark island on purpose.
+        * The dashboard mockup sits OUTSIDE the hero band, on purpose.
         *
-        * Only the hero itself has to stay dark — its text is on a video. This
-        * is a framed image on the page, so it follows the theme like every
-        * other section and the page does not carry a dark band below the fold
-        * in light mode.
+        * Only the hero itself is pinned dark, because its text sits on a video
+        * and a light overlay would wash the video out. This is a framed image
+        * on the page: it follows the app's own theme like every other section,
+        * so in light mode the page does not carry a dark band below the fold.
         */}
       <div className="relative z-10 mt-12 max-w-5xl mx-auto px-4 sm:px-6 w-full pb-16">
         <div className="relative rounded-2xl overflow-hidden border border-[var(--ink)]/10 shadow-2xl shadow-black/15 dark:shadow-black/50 hover:border-[#27C93F]/40 transition-colors">

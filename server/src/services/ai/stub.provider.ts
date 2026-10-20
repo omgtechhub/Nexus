@@ -6,6 +6,7 @@ import {
   WrittenInsight,
   estimateTokens,
 } from './provider.js';
+import { defaultCurrencyCode } from '../../config/currency.js';
 
 /**
  * The provider Nexus IQ runs on until a real model is configured.
@@ -120,13 +121,13 @@ function renderInsight(draft: InsightDraft): { title: string; body: string } {
       return {
         title: 'Your catalogue is empty',
         body:
-          'This store has no products yet, so the storefront has nothing to show and ' +
+          'This merchant has no products yet, so its listings have nothing to show and ' +
           'no order can be placed. Adding one product is the first step to selling.',
       };
   }
 }
 
-function money(amount: number, currency = 'USD'): string {
+function money(amount: number, currency = defaultCurrencyCode()): string {
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
   } catch {
@@ -155,7 +156,7 @@ function answerFromContext(question: string, system: string): string {
 
   if (hits.length > 0) {
     return (
-      `From your store's current data:\n\n` +
+      `From your merchant's current data:\n\n` +
       hits.map(h => `• ${h}`).join('\n') +
       `\n\nNexus IQ is running without a language model configured, so this is a direct ` +
       `lookup rather than an analysis.`
@@ -164,7 +165,7 @@ function answerFromContext(question: string, system: string): string {
 
   return (
     `Nexus IQ is running without a language model configured, so it can only report ` +
-    `figures it can look up directly, and nothing in your store data matches that ` +
+    `figures it can look up directly, and nothing in your merchant data matches that ` +
     `question.\n\nIt can currently answer questions about: ` +
     `${[...facts.keys()].join(', ')}.`
   );

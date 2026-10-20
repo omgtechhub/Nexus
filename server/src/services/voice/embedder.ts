@@ -109,7 +109,7 @@ export class WeSpeakerEmbedder implements SpeakerEmbedder {
    * Open the ONNX session once.
    *
    * Single-threaded on purpose, as in Jarvis: this runs inside a request
-   * handler on a server that is also serving a storefront, and letting
+   * handler on a server that is also serving the shopfront, and letting
    * onnxruntime take every core for a 40 ms inference starves everything else.
    */
   private async load(): Promise<InferenceSession> {

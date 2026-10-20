@@ -35,7 +35,7 @@ const mainFeatures = [
   {
     icon: <Users size={24} />,
     title: 'An Audience Already Here',
-    description: 'No traffic to buy, no store to promote. Shoppers browsing Nexus find your products the day you list them.',
+    description: 'No traffic to buy, no merchant to promote. Shoppers browsing Nexus find your products the day you list them.',
     color: 'blue',
     tag: 'Reach',
   },

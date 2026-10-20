@@ -21,7 +21,7 @@ describe('Identity and account recovery', () => {
   let sellerCookie: string;
   let customerCookie: string;
   let customerId: string;
-  let storeId: string;
+  let merchantId: string;
 
   beforeAll(async () => {
     await prisma.user.deleteMany({ where: { email: { in: [sellerEmail, customerEmail] } } });
@@ -30,11 +30,11 @@ describe('Identity and account recovery', () => {
       name: 'Identity Seller',
       email: sellerEmail,
       password,
-      storeName: `Identity Store ${stamp}`,
+      displayName: `Identity Merchant ${stamp}`,
       userType: 'SELLER',
     });
     sellerCookie = (sellerRes.headers['set-cookie'] as unknown as string[])[0];
-    storeId = sellerRes.body.data.store.id;
+    merchantId = sellerRes.body.data.merchant.id;
 
     const customerRes = await request.post('/api/auth/register').send({
       name: 'Identity Customer',
@@ -61,14 +61,13 @@ describe('Identity and account recovery', () => {
       expect(user?.accountType).toBe(AccountType.CUSTOMER);
     });
 
-    it('a customer stays a customer even if a store is later attached', async () => {
+    it('a customer stays a customer even if a merchant is later attached', async () => {
       // The old code decided portal membership from store presence, so this
       // exact situation silently promoted customers to sellers.
       const user = await prisma.user.findUnique({ where: { email: customerEmail } });
-      await prisma.store.create({
+      await prisma.merchant.create({
         data: {
-          name: `Stray Store ${stamp}`,
-          domain: `stray-${stamp}.nexuscommerce.io`,
+          name: `Stray Merchant ${stamp}`,
           ownerId: user!.id,
         },
       });
@@ -76,7 +75,7 @@ describe('Identity and account recovery', () => {
       const me = await request.get('/api/auth/me').set('Cookie', customerCookie);
       expect(me.body.data.accountType).toBe('CUSTOMER');
 
-      await prisma.store.deleteMany({ where: { name: `Stray Store ${stamp}` } });
+      await prisma.merchant.deleteMany({ where: { name: `Stray Merchant ${stamp}` } });
     });
 
     it('new accounts start unverified', async () => {
@@ -93,22 +92,21 @@ describe('Identity and account recovery', () => {
   });
 
   describe('Unified marketplace customer identity', () => {
-    it('claims guest orders placed before sign-up, across stores', async () => {
+    it('claims guest orders placed before sign-up, across merchants', async () => {
       const guestEmail = `id_guest_${stamp}@example.com`;
 
       // Two different stores, each with its own CRM row for the same shopper.
-      const secondStore = await prisma.store.create({
+      const secondMerchant = await prisma.merchant.create({
         data: {
-          name: `Second Store ${stamp}`,
-          domain: `second-${stamp}.nexuscommerce.io`,
+          name: `Second Merchant ${stamp}`,
           ownerId: (await prisma.user.findUnique({ where: { email: sellerEmail } }))!.id,
         },
       });
 
       await prisma.customer.createMany({
         data: [
-          { storeId, name: 'Guest Shopper', email: guestEmail },
-          { storeId: secondStore.id, name: 'Guest Shopper', email: guestEmail },
+          { merchantId, name: 'Guest Shopper', email: guestEmail },
+          { merchantId: secondMerchant.id, name: 'Guest Shopper', email: guestEmail },
         ],
       });
 
@@ -125,12 +123,12 @@ describe('Identity and account recovery', () => {
       expect(linked.every((c) => c.userId === res.body.data.user.id)).toBe(true);
 
       await prisma.user.deleteMany({ where: { email: guestEmail } });
-      await prisma.store.delete({ where: { id: secondStore.id } });
+      await prisma.merchant.delete({ where: { id: secondMerchant.id } });
     });
 
     it('never reassigns a CRM record that already belongs to someone', async () => {
       const owned = await prisma.customer.create({
-        data: { storeId, name: 'Already Owned', email: customerEmail, userId: customerId },
+        data: { merchantId, name: 'Already Owned', email: customerEmail, userId: customerId },
       });
 
       await request.post('/api/auth/login').send({ email: customerEmail, password });
@@ -286,7 +284,7 @@ describe('Identity and account recovery', () => {
   });
 
   describe('Token storage', () => {
-    it('stores only the digest of a reset token', async () => {
+    it('merchants only the digest of a reset token', async () => {
       const raw = await issueResetTokenFor(customerId);
       const stored = await prisma.passwordResetToken.findFirst({
         where: { userId: customerId, usedAt: null },

@@ -1,18 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
-import { ProductStatus, StoreStatus } from '@prisma/client';
+import { ProductStatus, MerchantStatus } from '@prisma/client';
 
 /**
  * The marketplace catalogue: every published product across every live store.
  *
- * The per-store storefront (`storefront.controller.ts`) answers what one
+ * The per-merchant shop API (`merchantShop.controller.ts`) answers what one
  * merchant sells. This answers what anyone can buy on Nexus, which is what the
  * public homepage needs. The two deliberately return the same product shape, so
  * the frontend keeps one product type and one product card.
  *
  * Everything here is unauthenticated, so the selection rules are the security
  * boundary: only ACTIVE products, only in ACTIVE stores, and only the store
- * fields a shopper is meant to see (id, display name, public handle). Owner
+ * fields a shopper is meant to see (id, display name). Owner
  * identity, contact details, cost prices and settings never leave.
  */
 
@@ -21,17 +21,17 @@ const PRODUCT_INCLUDE = {
   variants: { orderBy: { price: 'asc' } },
   images: { orderBy: { position: 'asc' } },
   inventoryItems: true,
-  store: { select: { id: true, name: true, domain: true, settings: { select: { storeUrl: true } } } },
+  merchant: { select: { id: true, name: true } },
 } as const;
 
 /** Only published products belonging to a live store are purchasable. */
 const PUBLIC_PRODUCT_WHERE = {
   status: ProductStatus.ACTIVE,
-  store: { status: StoreStatus.ACTIVE },
+  merchant: { status: MerchantStatus.ACTIVE },
 };
 
 /**
- * Public product payload. Mirrors the per-store storefront shape and adds the
+ * Public product payload. Mirrors the per-merchant shop shape and adds the
  * selling store, because a marketplace card has to say who the buyer is buying
  * from.
  *
@@ -65,13 +65,10 @@ function toPublicProduct(p: any) {
        has reviewed reports 0/0, and the card is expected to render "No
        reviews yet" rather than an empty five-star run. */
     rating: { average: p.ratingAverage ?? 0, count: p.ratingCount ?? 0 },
-    store: p.store
-      ? {
-          id: p.store.id,
-          name: p.store.name,
-          handle: p.store.settings?.storeUrl || p.store.domain.split('.')[0] || p.store.id,
-        }
-      : undefined,
+    /* Who you are buying from. No handle any more: a merchant had one only
+       so a link could be built to a shopfront of their own, and a listing is
+       addressed by its own globally unique slug now. */
+    merchant: p.merchant ? { id: p.merchant.id, name: p.merchant.name } : undefined,
     variants: p.variants.map((v: any) => ({
       id: v.id,
       title: v.title,
@@ -95,7 +92,7 @@ export async function getMarketplaceProducts(req: Request, res: Response, next: 
     const {
       q,
       category,
-      storeId,
+      merchantId,
       sort = 'newest',
       page = '1',
       limit = '24',
@@ -113,8 +110,8 @@ export async function getMarketplaceProducts(req: Request, res: Response, next: 
       where.category = { equals: category as string, mode: 'insensitive' };
     }
 
-    if (storeId) {
-      where.storeId = storeId as string;
+    if (merchantId) {
+      where.merchantId = merchantId as string;
     }
 
     if (q) {
@@ -273,17 +270,19 @@ export async function getMarketplaceHome(_req: Request, res: Response, next: Nex
 }
 
 /**
- * Public: one product, addressed by its store and slug.
+ * Public: one listing, addressed by its slug alone.
  *
- * `(storeId, slug)` is the product's unique key in the schema, so the pair is
- * the natural public address and no new column is needed.
+ * The address used to be `(merchantId, slug)`, because the slug was only
+ * unique inside one merchant's catalogue -- a per-seller shopfront's shape.
+ * The slug is globally unique now, so a product URL carries nothing but the
+ * product.
  */
 export async function getMarketplaceProduct(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeId, productSlug } = req.params;
+    const { productSlug } = req.params;
 
     const product = await prisma.product.findFirst({
-      where: { ...PUBLIC_PRODUCT_WHERE, storeId, slug: productSlug } as any,
+      where: { ...PUBLIC_PRODUCT_WHERE, slug: productSlug } as any,
       include: PRODUCT_INCLUDE as any,
     });
 

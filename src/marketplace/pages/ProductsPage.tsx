@@ -25,12 +25,12 @@ export function ProductsPage() {
   const q = searchParams.get('q') || '';
   const category = searchParams.get('category') || 'all';
   const sort = searchParams.get('sort') || 'newest';
-  const storeId = searchParams.get('storeId') || '';
+  const merchantId = searchParams.get('merchantId') || '';
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
 
   const params = useMemo(
-    () => ({ q: q || undefined, category, storeId: storeId || undefined, sort, page, limit: 24 }),
-    [q, category, storeId, sort, page]
+    () => ({ q: q || undefined, category, merchantId: merchantId || undefined, sort, page, limit: 24 }),
+    [q, category, merchantId, sort, page]
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useMarketplaceProductsQuery(params);
@@ -54,11 +54,11 @@ export function ProductsPage() {
     // same way instead of only this one path being handled.
   };
 
-  const storeName = products[0]?.store?.name;
+  const displayName = products[0]?.merchant?.name;
   const heading = q
     ? `Results for “${q}”`
-    : storeId
-      ? storeName || 'Store catalogue'
+    : merchantId
+      ? displayName || 'Merchant catalogue'
       : category !== 'all'
         ? category
         : 'All products';
@@ -105,7 +105,7 @@ export function ProductsPage() {
       </header>
 
       {/* Active filters, each individually clearable. */}
-      {(q || category !== 'all' || storeId) && (
+      {(q || category !== 'all' || merchantId) && (
         <ul className="flex flex-wrap items-center gap-2">
           {q && (
             <li>
@@ -120,14 +120,14 @@ export function ProductsPage() {
               </button>
             </li>
           )}
-          {storeId && (
+          {merchantId && (
             <li>
               <button
                 type="button"
-                onClick={() => update({ storeId: null })}
+                onClick={() => update({ merchantId: null })}
                 className="flex items-center gap-1.5 rounded-full border border-[var(--ink)]/15 bg-[var(--ink)]/5 px-3 py-1.5 text-xs font-medium text-strong transition-colors hover:bg-[var(--ink)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
               >
-                Seller: {storeName || 'selected'}
+                Seller: {displayName || 'selected'}
                 <X size={12} aria-hidden="true" />
                 <span className="sr-only">Show every seller</span>
               </button>
@@ -219,7 +219,7 @@ export function ProductsPage() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => update({ q: null, category: null, storeId: null })}
+                      onClick={() => update({ q: null, category: null, merchantId: null })}
                       className="mt-4 rounded-xl bg-[var(--ink)]/10 px-4 py-2 text-xs font-bold text-primary transition-colors hover:bg-[var(--ink)]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
                     >
                       Clear filters

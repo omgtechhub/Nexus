@@ -5,9 +5,9 @@ import { DiscountStatus, DiscountType } from '@prisma/client';
 
 export async function getDiscounts(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const discounts = await prisma.discount.findMany({
-      where: { storeId },
+      where: { merchantId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -34,23 +34,23 @@ export async function getDiscounts(req: Request, res: Response, next: NextFuncti
 
 export async function createDiscount(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const body = discountSchema.parse(req.body);
 
     const cleanCode = body.code.toUpperCase().trim().replace(/\s+/g, '');
 
     const existing = await prisma.discount.findUnique({
-      where: { storeId_code: { storeId, code: cleanCode } },
+      where: { merchantId_code: { merchantId, code: cleanCode } },
     });
 
     if (existing) {
-      res.status(400).json({ success: false, error: 'Discount code already exists for this store' });
+      res.status(400).json({ success: false, error: 'Discount code already exists for this merchant' });
       return;
     }
 
     const discount = await prisma.discount.create({
       data: {
-        storeId,
+        merchantId,
         code: cleanCode,
         type: body.type as DiscountType,
         value: String(body.value),
@@ -71,11 +71,11 @@ export async function createDiscount(req: Request, res: Response, next: NextFunc
 
 export async function updateDiscount(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.discount.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -103,11 +103,11 @@ export async function updateDiscount(req: Request, res: Response, next: NextFunc
 
 export async function deleteDiscount(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.discount.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -124,35 +124,35 @@ export async function deleteDiscount(req: Request, res: Response, next: NextFunc
 
 export async function validateDiscountCode(req: Request, res: Response, next: NextFunction) {
   try {
-    const { code, subtotal, storeDomain } = req.body;
+    const { code, subtotal, merchantRef } = req.body;
 
     if (!code) {
       res.status(400).json({ success: false, valid: false, message: 'Discount code is required' });
       return;
     }
 
-    let storeId = req.store?.id;
-    if (!storeId && storeDomain) {
-      const store = await prisma.store.findFirst({
-        where: { OR: [{ domain: storeDomain }, { id: storeDomain }] },
+    let merchantId = req.merchant?.id;
+    if (!merchantId && merchantRef) {
+      const merchant = await prisma.merchant.findFirst({
+        where: { id: merchantRef },
       });
-      if (store) storeId = store.id;
+      if (merchant) merchantId = merchant.id;
     }
 
-    if (!storeId) {
+    if (!merchantId) {
       // Default to main demo store if public store call
-      const firstStore = await prisma.store.findFirst();
-      if (firstStore) storeId = firstStore.id;
+      const firstMerchant = await prisma.merchant.findFirst();
+      if (firstMerchant) merchantId = firstMerchant.id;
     }
 
-    if (!storeId) {
-      res.status(400).json({ success: false, valid: false, message: 'Store context missing' });
+    if (!merchantId) {
+      res.status(400).json({ success: false, valid: false, message: 'Merchant context missing' });
       return;
     }
 
     const cleanCode = code.toUpperCase().trim();
     const discount = await prisma.discount.findUnique({
-      where: { storeId_code: { storeId, code: cleanCode } },
+      where: { merchantId_code: { merchantId, code: cleanCode } },
     });
 
     if (!discount) {

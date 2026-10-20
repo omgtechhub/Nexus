@@ -1,23 +1,21 @@
 import { apiClient } from './client';
-import type { StorefrontProduct } from './storefront';
+import type { ShopProduct } from './shop';
 
 /**
- * The public marketplace catalogue: products from every live store, which is
+ * The public marketplace catalogue: products from every live merchant, which is
  * what the Nexus homepage and `/products` browse the shopper through.
  *
- * The payload is the same shape the per-store storefront returns, plus the
- * selling store, so `ProductCard` and the cart work against one type.
+ * The payload is the same shape the per-merchant shop API returns, plus the
+ * selling merchant, so `ProductCard` and the cart work against one type.
  */
 
-export interface MarketplaceStoreRef {
+export interface MarketplaceMerchantRef {
   id: string;
   name: string;
-  /** Public handle, used for the per-store storefront link. */
-  handle: string;
 }
 
-export interface MarketplaceProduct extends StorefrontProduct {
-  store?: MarketplaceStoreRef;
+export interface MarketplaceProduct extends ShopProduct {
+  merchant?: MarketplaceMerchantRef;
   createdAt?: string;
   /** Present only on bestsellers, where it is a real sum of order quantities. */
   unitsSold?: number;
@@ -50,7 +48,7 @@ export interface MarketplaceHomeResult {
 export interface MarketplaceProductsParams {
   q?: string;
   category?: string;
-  storeId?: string;
+  merchantId?: string;
   sort?: string;
   page?: number;
   limit?: number;
@@ -72,7 +70,7 @@ export async function fetchMarketplaceProductsApi(
   const query = new URLSearchParams();
   if (params.q) query.append('q', params.q);
   if (params.category && params.category !== 'all') query.append('category', params.category);
-  if (params.storeId) query.append('storeId', params.storeId);
+  if (params.merchantId) query.append('merchantId', params.merchantId);
   if (params.sort) query.append('sort', params.sort);
   if (params.page) query.append('page', String(params.page));
   if (params.limit) query.append('limit', String(params.limit));
@@ -84,10 +82,9 @@ export async function fetchMarketplaceProductsApi(
 }
 
 export async function fetchMarketplaceProductApi(
-  storeId: string,
   productSlug: string
 ): Promise<{ product: MarketplaceProduct; related: MarketplaceProduct[] }> {
   return apiClient<{ product: MarketplaceProduct; related: MarketplaceProduct[] }>(
-    `/marketplace/products/${encodeURIComponent(storeId)}/${encodeURIComponent(productSlug)}`
+    `/marketplace/products/${encodeURIComponent(productSlug)}`
   );
 }

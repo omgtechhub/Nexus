@@ -4,15 +4,15 @@ import { NotificationType } from '@prisma/client';
 
 export async function getNotifications(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const notifications = await prisma.notification.findMany({
-      where: { storeId },
+      where: { merchantId },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
     const unreadCount = await prisma.notification.count({
-      where: { storeId, read: false },
+      where: { merchantId, read: false },
     });
 
     const formatted = notifications.map((n) => ({
@@ -33,11 +33,11 @@ export async function getNotifications(req: Request, res: Response, next: NextFu
 
 export async function markNotificationRead(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.notification.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -58,9 +58,9 @@ export async function markNotificationRead(req: Request, res: Response, next: Ne
 
 export async function markAllRead(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     await prisma.notification.updateMany({
-      where: { storeId, read: false },
+      where: { merchantId, read: false },
       data: { read: true },
     });
     res.json({ success: true, message: 'All notifications marked as read' });
@@ -70,7 +70,7 @@ export async function markAllRead(req: Request, res: Response, next: NextFunctio
 }
 
 export async function createNotificationHelper(
-  storeId: string,
+  merchantId: string,
   userId: string,
   type: NotificationType,
   title: string,
@@ -79,7 +79,7 @@ export async function createNotificationHelper(
 ) {
   return prisma.notification.create({
     data: {
-      storeId,
+      merchantId,
       userId,
       type,
       title,

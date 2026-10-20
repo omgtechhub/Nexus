@@ -15,7 +15,7 @@ export interface PolicyFinding {
   kind: string;
   severity: PolicySeverity;
   summary: string;
-  subject: { type: 'store' | 'order' | 'product' | 'review' | 'platform'; id: string; label: string };
+  subject: { type: 'merchant' | 'order' | 'product' | 'review' | 'platform'; id: string; label: string };
   evidence: Record<string, string | number | boolean | null>;
 }
 
@@ -24,12 +24,12 @@ export interface PolicyReport {
   findings: PolicyFinding[];
   counts: { critical: number; warning: number; info: number; total: number };
   /** What was examined, so "no violations" is checkable rather than a claim. */
-  scanned: { stores: number; orders: number; products: number; reviews: number; checks: number };
+  scanned: { merchants: number; orders: number; products: number; reviews: number; checks: number };
 }
 
 export interface ActivitySummary {
   windowHours: number;
-  newStores: number;
+  newMerchants: number;
   newCustomers: number;
   orders: number;
   paidOrders: number;

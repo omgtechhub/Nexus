@@ -29,12 +29,12 @@ export const sensitiveActionRateLimiter = rateLimit({
  *
  * Until this existed, only `/auth`, `/payments`, `/payouts` and the public
  * assistant were limited, and **every other route was unmetered** — the
- * marketplace catalogue, storefront reads, review listings, `/plans`, and
+ * marketplace catalogue, shop reads, review listings, `/plans`, and
  * every authenticated seller endpoint. That is a free scraping endpoint for
  * the whole catalogue and an unbounded request sink on a single small box.
  *
  * Set generously: this is a backstop against floods, not a usage quota. A
- * shopper browsing a storefront fires several reads per page, so a limit
+ * shopper browsing the catalogue fires several reads per page, so a limit
  * tight enough to notice would break ordinary use. The specific limiters stay
  * where they are and remain much stricter — express-rate-limit runs both, and
  * the tighter one wins.
@@ -65,6 +65,22 @@ export const apiRateLimiter = rateLimit({
  * -in seller could fill the disk — and a full disk takes Postgres down with
  * it, not just the images.
  */
+/**
+ * The public contact form.
+ *
+ * Unauthenticated and it sends mail, so it is a spam relay if it is not
+ * bounded: five messages per IP per fifteen minutes is generous for a person
+ * and useless for a script.
+ */
+export const contactRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
+  message: { success: false, error: 'Too many messages from this address. Try again in a little while.' },
+});
+
 export const uploadRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,

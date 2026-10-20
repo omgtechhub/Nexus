@@ -88,7 +88,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
   const password = 'Password123!';
   let merchantCookie: string;
   let merchantUserId: string;
-  let storeId: string;
+  let merchantId: string;
 
   beforeAll(async () => {
     setSpeakerEmbedder(fakeEmbedder());
@@ -97,12 +97,12 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
       name: 'Voice Merchant',
       email: `iq_voice_${stamp}@nexus.io`,
       password,
-      storeName: `IQ Voice Store ${stamp}`,
+      displayName: `IQ Voice Merchant ${stamp}`,
     });
     expect(merchant.status).toBe(201);
     merchantCookie = merchant.headers['set-cookie'][0];
     merchantUserId = merchant.body.data.user.id;
-    storeId = merchant.body.data.store.id;
+    merchantId = merchant.body.data.merchant.id;
   });
 
   afterAll(() => setSpeakerEmbedder(null));
@@ -114,7 +114,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
       ).rejects.toThrow(/at least/i);
     });
 
-    it('derives the bar from held-out samples and stores it', async () => {
+    it('derives the bar from held-out samples and merchants it', async () => {
       const result = await enrolVoice(merchantUserId, VoicePortal.SELLER, clipsFor(1, 4));
 
       expect(result.samples).toBe(4);
@@ -183,7 +183,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
         name: 'Unenrolled Merchant',
         email: `iq_noenrol_${stamp}@nexus.io`,
         password,
-        storeName: `IQ No Enrol ${stamp}`,
+        displayName: `IQ No Enrol ${stamp}`,
       });
       const [clip] = clipsFor(1, 1);
       const decision = await verifyVoice(other.body.data.user.id, VoicePortal.SELLER, clip.samples);
@@ -322,7 +322,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
       const winner = await productWithCost('Profitable Thing', 100, 60);
       await sell(winner, 2);
 
-      const summary = await computeProfitSummary(storeId);
+      const summary = await computeProfitSummary(merchantId);
       expect(summary.revenue).toBe(200);
       expect(summary.cost).toBe(120);
       expect(summary.profit).toBe(80);
@@ -334,7 +334,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
       const loser = await productWithCost('Loss Leader', 50, 80);
       await sell(loser, 1);
 
-      const summary = await computeProfitSummary(storeId);
+      const summary = await computeProfitSummary(merchantId);
       const flagged = summary.lossMakers.find(p => p.title === 'Loss Leader');
       expect(flagged).toBeTruthy();
       expect(flagged!.profit).toBe(-30);
@@ -345,7 +345,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
       const unknown = await productWithCost('No Cost Recorded', 40, null);
       await sell(unknown, 3);
 
-      const summary = await computeProfitSummary(storeId);
+      const summary = await computeProfitSummary(merchantId);
 
       // The 120 shows up in revenue but must not inflate profit: a missing
       // cost is unknown, not free, and assuming free flatters the figure in
@@ -359,7 +359,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
     });
 
     it('ignores cancelled orders', async () => {
-      const before = await computeProfitSummary(storeId);
+      const before = await computeProfitSummary(merchantId);
       const product = await productWithCost('Cancelled Item', 70, 10);
 
       const order = await request.post('/api/orders').set('Cookie', [merchantCookie]).send({
@@ -376,14 +376,14 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
         .set('Cookie', [merchantCookie])
         .send({ paymentStatus: 'PAID', status: 'CANCELLED' });
 
-      const after = await computeProfitSummary(storeId);
+      const after = await computeProfitSummary(merchantId);
       expect(after.revenue).toBe(before.revenue);
     });
   });
 
   describe('price benchmarking', () => {
     it('declines to call a handful of listings a market', async () => {
-      const benchmarks = await computePriceBenchmarks(storeId, 20);
+      const benchmarks = await computePriceBenchmarks(merchantId, 20);
       const thin = benchmarks.find(b => b.sampleSize < 3);
 
       // A median of two listings is not a market, and reporting one as though
@@ -394,13 +394,13 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
       }
     });
 
-    it('places a price against other live stores when there are enough of them', async () => {
+    it('places a price against other live merchants when there are enough of them', async () => {
       const stampB = `${stamp}b`;
       const rival = await request.post('/api/auth/register').send({
         name: 'Rival Merchant',
         email: `iq_rival_${stampB}@nexus.io`,
         password,
-        storeName: `IQ Rival ${stampB}`,
+        displayName: `IQ Rival ${stampB}`,
       });
       const rivalCookie = rival.headers['set-cookie'][0];
 
@@ -421,7 +421,7 @@ describe('Nexus IQ voice: identity, audio and margins', () => {
         inventory: 10,
       });
 
-      const benchmarks = await computePriceBenchmarks(storeId, 30);
+      const benchmarks = await computePriceBenchmarks(merchantId, 30);
       const mine = benchmarks.find(b => b.category === 'Benchmarked');
 
       expect(mine).toBeTruthy();

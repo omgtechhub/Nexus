@@ -6,7 +6,7 @@ import {
   deleteDiscount,
   validateDiscountCode,
 } from '../controllers/discounts.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 
 export const discountsRouter = Router();
 
@@ -15,7 +15,7 @@ discountsRouter.post('/validate', validateDiscountCode);
 
 // Merchant management endpoints
 discountsRouter.use(authMiddleware);
-discountsRouter.use(requireStoreMembership);
+discountsRouter.use(requireMerchantMembership);
 
 discountsRouter.get('/', getDiscounts);
 discountsRouter.post('/', createDiscount);

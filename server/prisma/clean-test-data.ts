@@ -42,7 +42,7 @@ const STAMP = /\d{13}/;
 const EMAIL_STAMP = /\d{10,13}@/;
 
 /** Rows that must survive regardless of what any pattern says. */
-const PROTECTED_STORE_IDS = new Set(['str_aura_apparel']);
+const PROTECTED_MERCHANT_IDS = new Set(['str_aura_apparel']);
 const PROTECTED_USER_EMAILS = new Set(['alex@nexuscommerce.io', 'admin@nexuscommerce.io']);
 
 function assertNotTestDatabase() {
@@ -61,7 +61,7 @@ async function main() {
   console.log(`Database: ${dbName}`);
   console.log(APPLY ? 'Mode: APPLY (rows will be deleted)\n' : 'Mode: DRY RUN (nothing will change)\n');
 
-  const stores = await prisma.store.findMany({
+  const merchants = await prisma.merchant.findMany({
     select: {
       id: true,
       name: true,
@@ -70,23 +70,23 @@ async function main() {
     },
   });
 
-  const doomed = stores.filter(
+  const doomed = merchants.filter(
     s =>
-      !PROTECTED_STORE_IDS.has(s.id) &&
+      !PROTECTED_MERCHANT_IDS.has(s.id) &&
       !PROTECTED_USER_EMAILS.has(s.owner.email) &&
       (STAMP.test(s.name) || STAMP.test(s.owner.email))
   );
-  const kept = stores.filter(s => !doomed.includes(s));
+  const kept = merchants.filter(s => !doomed.includes(s));
 
-  console.log(`Stores: ${stores.length} total, ${doomed.length} to delete, ${kept.length} to keep`);
-  console.log('\nKEEPING these stores:');
+  console.log(`Merchants: ${merchants.length} total, ${doomed.length} to delete, ${kept.length} to keep`);
+  console.log('\nKEEPING these merchants:');
   for (const s of kept) {
     console.log(`  ${s.name}  (${s.owner.email})  products=${s._count.products} orders=${s._count.orders}`);
   }
 
-  const doomedStoreIds = doomed.map(s => s.id);
-  const productCount = await prisma.product.count({ where: { storeId: { in: doomedStoreIds } } });
-  const orderCount = await prisma.order.count({ where: { storeId: { in: doomedStoreIds } } });
+  const doomedMerchantIds = doomed.map(s => s.id);
+  const productCount = await prisma.product.count({ where: { merchantId: { in: doomedMerchantIds } } });
+  const orderCount = await prisma.order.count({ where: { merchantId: { in: doomedMerchantIds } } });
 
   /**
    * Test users to remove as well. A User is the parent of a Store, so deleting
@@ -101,14 +101,14 @@ async function main() {
   const survivingCustomerUserIds = new Set(
     (
       await prisma.customer.findMany({
-        where: { storeId: { notIn: doomedStoreIds }, userId: { not: null } },
+        where: { merchantId: { notIn: doomedMerchantIds }, userId: { not: null } },
         select: { userId: true },
       })
     ).map(c => c.userId as string)
   );
 
   const candidateUsers = await prisma.user.findMany({
-    select: { id: true, email: true, platformRole: true, ownedStores: { select: { id: true } } },
+    select: { id: true, email: true, platformRole: true, ownedMerchants: { select: { id: true } } },
   });
 
   /**
@@ -128,7 +128,7 @@ async function main() {
       !PROTECTED_USER_EMAILS.has(u.email) &&
       !survivingCustomerUserIds.has(u.id) &&
       // Every store they own must itself be going.
-      u.ownedStores.every(s => doomedStoreIds.includes(s.id))
+      u.ownedMerchants.every(s => doomedMerchantIds.includes(s.id))
   );
 
   const doomedAdmins = doomedUsers.filter(u => u.platformRole);
@@ -138,7 +138,7 @@ async function main() {
   }
 
   console.log(`\nWould delete:`);
-  console.log(`  ${doomed.length} stores  ->  cascades to ${productCount} products and ${orderCount} orders`);
+  console.log(`  ${doomed.length} merchants  ->  cascades to ${productCount} products and ${orderCount} orders`);
   console.log(`  ${doomedUsers.length} test users (of ${candidateUsers.length} non-admin users)`);
 
   if (!APPLY) {
@@ -155,24 +155,24 @@ async function main() {
    * referencing it. Removing the orders first takes their items with them
    * (every Order relation does cascade), which clears the way.
    */
-  const crossStore = await prisma.orderItem.count({
+  const crossMerchant = await prisma.orderItem.count({
     where: {
-      order: { storeId: { notIn: doomedStoreIds } },
-      product: { storeId: { in: doomedStoreIds } },
+      order: { merchantId: { notIn: doomedMerchantIds } },
+      product: { merchantId: { in: doomedMerchantIds } },
     },
   });
-  if (crossStore > 0) {
+  if (crossMerchant > 0) {
     throw new Error(
-      `Aborting: ${crossStore} order lines in a store being KEPT reference a product in a ` +
-        'store being deleted. Deleting would damage surviving order history.'
+      `Aborting: ${crossMerchant} order lines in a merchant being KEPT reference a product in a ` +
+        'merchant being deleted. Deleting would damage surviving order history.'
     );
   }
 
-  const deletedOrders = await prisma.order.deleteMany({ where: { storeId: { in: doomedStoreIds } } });
+  const deletedOrders = await prisma.order.deleteMany({ where: { merchantId: { in: doomedMerchantIds } } });
   console.log(`Deleted ${deletedOrders.count} orders (with their items, addresses, payments and shipments)`);
 
-  const deletedStores = await prisma.store.deleteMany({ where: { id: { in: doomedStoreIds } } });
-  console.log(`\nDeleted ${deletedStores.count} stores (and everything scoped to them)`);
+  const deletedMerchants = await prisma.merchant.deleteMany({ where: { id: { in: doomedMerchantIds } } });
+  console.log(`\nDeleted ${deletedMerchants.count} merchants (and everything scoped to them)`);
 
   const deletedUsers = await prisma.user.deleteMany({
     where: { id: { in: doomedUsers.map(u => u.id) } },
@@ -184,16 +184,16 @@ async function main() {
   // match over titles would be a risk taken for no benefit.
 
   console.log('\nApplying the marketplace catalogue...');
-  await applyCatalogue(prisma, { demoStoreId: 'str_aura_apparel', log: msg => console.log(msg) });
+  await applyCatalogue(prisma, { demoMerchantId: 'str_aura_apparel', log: msg => console.log(msg) });
 
   const live = await prisma.product.count({
-    where: { status: 'ACTIVE', store: { status: 'ACTIVE' } },
+    where: { status: 'ACTIVE', merchant: { status: 'ACTIVE' } },
   });
-  const liveStores = await prisma.store.count({ where: { status: 'ACTIVE' } });
+  const liveMerchants = await prisma.merchant.count({ where: { status: 'ACTIVE' } });
   const withImage = await prisma.product.count({
-    where: { status: 'ACTIVE', store: { status: 'ACTIVE' }, images: { some: {} } },
+    where: { status: 'ACTIVE', merchant: { status: 'ACTIVE' }, images: { some: {} } },
   });
-  console.log(`\nResult: ${live} live products across ${liveStores} live stores, ${withImage} with at least one image`);
+  console.log(`\nResult: ${live} live products across ${liveMerchants} live merchants, ${withImage} with at least one image`);
 
   await prisma.$disconnect();
 }

@@ -115,7 +115,7 @@ async function settleOrderPayment(params: {
     await tx.transaction.create({
       data: {
         paymentId: payment.id,
-        storeId: payment.storeId,
+        merchantId: payment.merchantId,
         type: 'CHARGE',
         amount: payment.amount,
         currency: payment.currency,

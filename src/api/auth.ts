@@ -1,9 +1,9 @@
 import { apiClient } from './client';
-import { User, Store } from '../types';
+import { User, Merchant } from '../types';
 
 export interface AuthSessionResponse {
   user: User;
-  store: Store | null;
+  merchant: Merchant | null;
   membership: {
     id: string;
     role: 'owner' | 'admin' | 'staff' | 'viewer';
@@ -11,10 +11,10 @@ export interface AuthSessionResponse {
   accountType?: 'CUSTOMER' | 'SELLER' | 'ADMIN';
 }
 
-export async function registerApi(name: string, email: string, password: string, storeName?: string, userType?: 'CUSTOMER' | 'SELLER') {
+export async function registerApi(name: string, email: string, password: string, displayName?: string, userType?: 'CUSTOMER' | 'SELLER') {
   const res = await apiClient<{ success: boolean; data: AuthSessionResponse }>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ name, email, password, storeName, userType }),
+    body: JSON.stringify({ name, email, password, displayName, userType }),
   });
   return res.data;
 }
@@ -97,4 +97,17 @@ export async function verifyEmailApi(token: string) {
     method: 'POST',
     body: JSON.stringify({ token }),
   });
+}
+
+/**
+ * Updates the signed-in account's own name or avatar.
+ *
+ * The avatar is a URL from `/api/upload/image`, not image bytes: the row holds
+ * a link, and the picture survives a reload.
+ */
+export async function updateOwnProfileApi(updates: { name?: string; avatar?: string | null }) {
+  return apiClient<{ success: boolean; data: { id: string; name: string; email: string; avatar: string | null } }>(
+    '/auth/profile',
+    { method: 'PATCH', body: JSON.stringify(updates) }
+  );
 }

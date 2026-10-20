@@ -23,7 +23,7 @@ export interface User {
   twoFactorEnabled: boolean;
   lastLoginAt?: string | null;
   createdAt: Date;
-  /** Store-scoped membership role, present only when resolved from a StoreMember. */
+  /** Store-scoped membership role, present only when resolved from a MerchantMember. */
   role?: 'OWNER' | 'ADMIN' | 'STAFF' | 'VIEWER';
   /** Client-side preference set; not part of the User row. */
   notificationPrefs?: NotificationPrefs;
@@ -47,7 +47,7 @@ export interface BillingInfo {
   currency: string;
 }
 
-export interface Store {
+export interface Merchant {
   id: string;
   name: string;
   domain: string;
@@ -232,15 +232,24 @@ export interface DiscountCode {
   createdAt: string;
 }
 
-export interface StoreSettings {
-  storeName: string;
-  storeUrl: string;
+/**
+ * A merchant's own profile, as `/api/settings` returns it.
+ *
+ * The shopfront half of this -- a handle, an announcement bar, a theme, a
+ * brand colour and a custom domain -- went with the shopfront. What is left
+ * describes the seller: who they are, how a buyer reaches them, and what they
+ * trade in.
+ */
+export interface MerchantSettings {
+  displayName: string;
+  description: string | null;
+  logoUrl: string | null;
   currency: string;
   industry: string;
-  announcementText: string;
-  activeTheme: string;
-  primaryColor: string;
-  customDomain: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  defaultShippingFee: number;
+  freeShippingThreshold: number | null;
 }
 
 export type Theme = 'dark' | 'light';

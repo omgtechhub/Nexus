@@ -265,7 +265,7 @@ export function Overview() {
       <div className="stat-card p-5">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-sm font-semibold text-primary">Store Visitors</h3>
+            <h3 className="text-sm font-semibold text-primary">Merchant Visitors</h3>
             <p className="text-xs text-muted">Unique visitors over time</p>
           </div>
         </div>

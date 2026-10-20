@@ -76,7 +76,7 @@ function ProviderNotice() {
       <div className="text-sm">
         <p className="font-semibold text-primary">Running without a language model</p>
         <p className="mt-1 leading-relaxed text-secondary">
-          Insights below are computed directly from your store's data and each one shows the
+          Insights below are computed directly from your merchant's data and each one shows the
           figures behind it. Answers in Ask Nexus IQ are looked up from those same figures
           rather than written by a model.
         </p>
@@ -331,7 +331,7 @@ function ChatPanel() {
         {!activeId ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
             <MessageSquare size={20} className="mb-3 text-muted" aria-hidden="true" />
-            <p className="text-sm text-secondary">Ask about your store</p>
+            <p className="text-sm text-secondary">Ask about your merchant</p>
             <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
               Start a conversation to ask about stock, orders, revenue or your best sellers.
             </p>
@@ -382,7 +382,7 @@ function ChatPanel() {
 
             <form onSubmit={handleSend} className="flex gap-2 border-t border-[var(--ink)]/10 p-3">
               <label htmlFor="iq-message" className="sr-only">
-                Ask Nexus IQ about your store
+                Ask Nexus IQ about your merchant
               </label>
               <input
                 id="iq-message"

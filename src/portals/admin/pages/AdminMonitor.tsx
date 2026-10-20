@@ -117,7 +117,7 @@ export function AdminMonitor() {
       <header>
         <h1 className="text-xl font-bold text-primary">Monitoring</h1>
         <p className="mt-1 text-sm text-secondary">
-          Policy checks across every store, order, product and review on the platform.
+          Policy checks across every merchant, order, product and review on the platform.
         </p>
       </header>
 
@@ -168,7 +168,7 @@ export function AdminMonitor() {
             <Tile label="Paid" value={activity.paidOrders} />
             <Tile label="Revenue" value={activity.revenue} />
             <Tile label="New customers" value={activity.newCustomers} />
-            <Tile label="New stores" value={activity.newStores} />
+            <Tile label="New merchants" value={activity.newMerchants} />
             <Tile label="Refunds" value={activity.refunds} />
           </dl>
         ) : null}
@@ -334,7 +334,7 @@ export function AdminMonitor() {
             {/* What was examined, so a clean report means something. */}
             {report && (
               <p className="mt-1 text-xs text-secondary">
-                {report.scanned.checks} checks across {report.scanned.stores} store(s),{' '}
+                {report.scanned.checks} checks across {report.scanned.merchants} merchant(s),{' '}
                 {report.scanned.orders} order(s), {report.scanned.products} product(s) and{' '}
                 {report.scanned.reviews} review(s).
               </p>

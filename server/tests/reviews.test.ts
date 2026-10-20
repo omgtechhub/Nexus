@@ -34,7 +34,7 @@ describe('Product reviews: only delivered buyers may rate', () => {
   /** Nobody bought this one. */
   let unboughtProductId: string;
   /** Belongs to a second store, so the first merchant must not reach it. */
-  let otherStoreProductId: string;
+  let otherMerchantProductId: string;
 
   let reviewId: string;
 
@@ -82,14 +82,14 @@ describe('Product reviews: only delivered buyers may rate', () => {
   beforeAll(async () => {
     const merchant = await request.post('/api/auth/register').send({
       name: 'Review Merchant', email: `rv_m_${stamp}@nexus.io`, password,
-      storeName: `RV Store ${stamp}`,
+      displayName: `RV Merchant ${stamp}`,
     });
     expect(merchant.status).toBe(201);
     merchantCookie = merchant.headers['set-cookie'][0];
 
     const otherMerchant = await request.post('/api/auth/register').send({
       name: 'Other Merchant', email: `rv_m2_${stamp}@nexus.io`, password,
-      storeName: `RV Store Two ${stamp}`,
+      displayName: `RV Merchant Two ${stamp}`,
     });
     expect(otherMerchant.status).toBe(201);
     otherMerchantCookie = otherMerchant.headers['set-cookie'][0];
@@ -97,7 +97,7 @@ describe('Product reviews: only delivered buyers may rate', () => {
     deliveredProductId = await createProduct(merchantCookie, 'D');
     undeliveredProductId = await createProduct(merchantCookie, 'U');
     unboughtProductId = await createProduct(merchantCookie, 'N');
-    otherStoreProductId = await createProduct(otherMerchantCookie, 'O');
+    otherMerchantProductId = await createProduct(otherMerchantCookie, 'O');
 
     // Orders are raised against the buyer's email before the buyer has an
     // account, which is the ordinary guest-checkout sequence.
@@ -314,7 +314,7 @@ describe('Product reviews: only delivered buyers may rate', () => {
       expect(res.body.data.merchantReply).toContain('Thanks for the feedback');
     });
 
-    it('refuses a merchant replying to another store’s review', async () => {
+    it('refuses a merchant replying to another merchant’s review', async () => {
       const res = await request
         .post(`/api/reviews/${reviewId}/reply`)
         .set('Cookie', [otherMerchantCookie])
@@ -334,7 +334,7 @@ describe('Product reviews: only delivered buyers may rate', () => {
       expect(res.body.data.rating).toBe(3);
     });
 
-    it('scopes the merchant listing to the merchant’s own store', async () => {
+    it('scopes the merchant listing to the merchant’s own merchant', async () => {
       const mine = await request.get('/api/reviews/seller').set('Cookie', [merchantCookie]);
       expect(mine.status).toBe(200);
       expect(mine.body.data.length).toBeGreaterThan(0);
@@ -369,11 +369,11 @@ describe('Product reviews: only delivered buyers may rate', () => {
       expect(res.status).toBe(201);
     });
 
-    it('still refuses the product from the other store', async () => {
+    it('still refuses the product from the other merchant', async () => {
       const res = await request
-        .post(`/api/reviews/product/${otherStoreProductId}`)
+        .post(`/api/reviews/product/${otherMerchantProductId}`)
         .set('Cookie', [buyerCookie])
-        .send({ rating: 5, body: 'A product from a store this buyer never ordered from.' });
+        .send({ rating: 5, body: 'A product from a merchant this buyer never ordered from.' });
 
       expect(res.status).toBe(403);
       expect(res.body.reason).toBe('NOT_PURCHASED');

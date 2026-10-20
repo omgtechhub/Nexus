@@ -5,19 +5,19 @@ import {
   createProductReviewApi,
   updateProductReviewApi,
   deleteProductReviewApi,
-  fetchStoreReviewsApi,
+  fetchMerchantReviewsApi,
   replyToReviewApi,
   deleteReviewReplyApi,
   type ListReviewsParams,
   type ReviewInput,
-  type StoreReviewsParams,
+  type MerchantReviewsParams,
 } from '../api/reviews';
 
 export const reviewQueryKeys = {
   product: (productId: string, params: ListReviewsParams) =>
     ['reviews', 'product', productId, params] as const,
   eligibility: (productId: string) => ['reviews', 'eligibility', productId] as const,
-  store: (params: StoreReviewsParams) => ['reviews', 'store', params] as const,
+  merchant: (params: MerchantReviewsParams) => ['reviews', 'merchant', params] as const,
 };
 
 export function useProductReviewsQuery(productId?: string, params: ListReviewsParams = {}) {
@@ -56,7 +56,7 @@ function useInvalidateAfterReviewWrite(productId?: string) {
   return () => {
     queryClient.invalidateQueries({ queryKey: ['reviews'] });
     queryClient.invalidateQueries({ queryKey: ['marketplace'] });
-    queryClient.invalidateQueries({ queryKey: ['storefront'] });
+    queryClient.invalidateQueries({ queryKey: ['shop'] });
     if (productId) queryClient.invalidateQueries({ queryKey: ['reviews', 'eligibility', productId] });
   };
 }
@@ -88,10 +88,10 @@ export function useDeleteReviewMutation(productId?: string) {
 
 /* ---- Merchant ---------------------------------------------------------- */
 
-export function useStoreReviewsQuery(params: StoreReviewsParams = {}) {
+export function useMerchantReviewsQuery(params: MerchantReviewsParams = {}) {
   return useQuery({
-    queryKey: reviewQueryKeys.store(params),
-    queryFn: () => fetchStoreReviewsApi(params),
+    queryKey: reviewQueryKeys.merchant(params),
+    queryFn: () => fetchMerchantReviewsApi(params),
     placeholderData: previous => previous,
   });
 }

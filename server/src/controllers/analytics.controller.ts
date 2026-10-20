@@ -3,7 +3,7 @@ import { prisma } from '../prisma.js';
 
 export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const range = (req.query.range as string) || '30d';
 
     const now = new Date();
@@ -34,7 +34,7 @@ export async function getAnalytics(req: Request, res: Response, next: NextFuncti
     // Orders in range
     const orders = await prisma.order.findMany({
       where: {
-        storeId,
+        merchantId,
         createdAt: { gte: start, lte: end },
       },
       include: {
@@ -46,7 +46,7 @@ export async function getAnalytics(req: Request, res: Response, next: NextFuncti
     // Refunds in range
     const refunds = await prisma.refund.findMany({
       where: {
-        storeId,
+        merchantId,
         createdAt: { gte: start, lte: end },
       },
     });
@@ -54,7 +54,7 @@ export async function getAnalytics(req: Request, res: Response, next: NextFuncti
     // Customers created in range
     const customersCount = await prisma.customer.count({
       where: {
-        storeId,
+        merchantId,
         createdAt: { gte: start, lte: end },
       },
     });
@@ -133,7 +133,7 @@ export async function getAnalytics(req: Request, res: Response, next: NextFuncti
 
     // Recent activity from Notifications
     const notifications = await prisma.notification.findMany({
-      where: { storeId },
+      where: { merchantId },
       orderBy: { createdAt: 'desc' },
       take: 5,
     });

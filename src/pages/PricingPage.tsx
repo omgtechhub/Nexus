@@ -190,8 +190,8 @@ export function PricingPage() {
       a: 'Nexus IQ keeps working. Your plan’s token figure is what is included in the price, not a switch that cuts the assistant off mid-month — usage past it is simply metered and shown in your dashboard, and we talk to you before anything is billed on top.',
     },
     {
-      q: 'Do I get a storefront of my own?',
-      a: 'Not one you have to build. Your products are listed in the shared Nexus shopfront where shoppers already browse, and you also get a seller page that collects everything you have listed. There are no themes to pick, no checkout to configure and no traffic to buy — that side of it is ours to run.',
+      q: 'Do I get a shop of my own?',
+      a: 'No, and that is the point. Your products are listed in the one shared Nexus shopfront where shoppers already browse. There are no themes to pick, no checkout to configure and no traffic to buy — that side of it is ours to run.',
     },
   ];
 

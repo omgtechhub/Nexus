@@ -16,16 +16,16 @@ export interface CartItem {
    * marketplace carries it, and checkout needs it because an order belongs to
    * exactly one merchant.
    */
-  storeId?: string;
-  storeName?: string;
+  merchantId?: string;
+  displayName?: string;
   /** Product slug, so the cart can link back to the product page. */
   productSlug?: string;
 }
 
 /** One merchant's lines within the cart. Checkout runs per group. */
-export interface CartStoreGroup {
-  storeId: string;
-  storeName: string;
+export interface CartMerchantGroup {
+  merchantId: string;
+  displayName: string;
   items: CartItem[];
   subtotal: number;
   itemCount: number;
@@ -44,7 +44,7 @@ interface CartContextType {
   itemCount: number;
   subtotal: number;
   /** Cart lines grouped by selling store, in insertion order. */
-  groups: CartStoreGroup[];
+  groups: CartMerchantGroup[];
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
   addToCart: (item: CartItem) => void;
@@ -52,7 +52,7 @@ interface CartContextType {
   removeFromCart: (variantId: string) => void;
   clearCart: () => void;
   /** Drop one store's lines, e.g. after that group's order is placed. */
-  clearStore: (storeId: string) => void;
+  clearMerchant: (merchantId: string) => void;
   /** Apply trusted server values to the cart after a validation round-trip. */
   reconcile: (corrections: CartCorrection[]) => void;
 }
@@ -122,9 +122,10 @@ export function mergeCartItems(base: CartItem[], incoming: CartItem[]): CartItem
 interface CartProviderProps {
   children: ReactNode;
   /**
-   * Which catalogue this cart belongs to: a single store handle for a per-store
-   * storefront, or `marketplace` for the public Nexus storefront. Carts in
-   * different scopes are independent.
+   * Which catalogue this cart belongs to. `marketplace` is the public Nexus
+   * shopfront, which is the only scope in use now that there is no per-seller
+   * shop; the parameter stays because carts in different scopes have to be
+   * independent, and the signed-in/guest split below relies on that.
    */
   scope: string;
   /**
@@ -223,8 +224,8 @@ export function CartProvider({ children, scope, identityKey }: CartProviderProps
 
   const clearCart = useCallback(() => setItems([]), []);
 
-  const clearStore = useCallback((storeId: string) => {
-    setItems(prev => prev.filter(item => item.storeId !== storeId));
+  const clearMerchant = useCallback((merchantId: string) => {
+    setItems(prev => prev.filter(item => item.merchantId !== merchantId));
   }, []);
 
   const reconcile = useCallback((corrections: CartCorrection[]) => {
@@ -253,29 +254,29 @@ export function CartProvider({ children, scope, identityKey }: CartProviderProps
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const groups = useMemo<CartStoreGroup[]>(() => {
+  const groups = useMemo<CartMerchantGroup[]>(() => {
     const order: string[] = [];
-    const byStore = new Map<string, CartStoreGroup>();
+    const byMerchant = new Map<string, CartMerchantGroup>();
 
     for (const item of items) {
-      const storeId = item.storeId || 'unknown';
-      if (!byStore.has(storeId)) {
-        order.push(storeId);
-        byStore.set(storeId, {
-          storeId,
-          storeName: item.storeName || 'Nexus store',
+      const merchantId = item.merchantId || 'unknown';
+      if (!byMerchant.has(merchantId)) {
+        order.push(merchantId);
+        byMerchant.set(merchantId, {
+          merchantId,
+          displayName: item.displayName || 'Nexus merchant',
           items: [],
           subtotal: 0,
           itemCount: 0,
         });
       }
-      const group = byStore.get(storeId)!;
+      const group = byMerchant.get(merchantId)!;
       group.items.push(item);
       group.subtotal += item.price * item.quantity;
       group.itemCount += item.quantity;
     }
 
-    return order.map(id => byStore.get(id)!);
+    return order.map(id => byMerchant.get(id)!);
   }, [items]);
 
   const value = useMemo<CartContextType>(
@@ -290,10 +291,10 @@ export function CartProvider({ children, scope, identityKey }: CartProviderProps
       updateQuantity,
       removeFromCart,
       clearCart,
-      clearStore,
+      clearMerchant,
       reconcile,
     }),
-    [items, itemCount, subtotal, groups, cartOpen, addToCart, updateQuantity, removeFromCart, clearCart, clearStore, reconcile]
+    [items, itemCount, subtotal, groups, cartOpen, addToCart, updateQuantity, removeFromCart, clearCart, clearMerchant, reconcile]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

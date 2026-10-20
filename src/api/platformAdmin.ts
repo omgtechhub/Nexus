@@ -2,7 +2,7 @@ import { apiClient } from './client';
 import { SubscriptionPlanData, InvoiceData } from './billing';
 
 export interface PlatformMetricsData {
-  totalStores: number;
+  totalMerchants: number;
   totalUsers: number;
   activeSubscriptionsCount: number;
   mrr: number;
@@ -43,7 +43,7 @@ export interface PlatformTransactionData {
   provider: string;
   providerReference: string;
   createdAt: string;
-  store: { id: string; name: string } | null;
+  merchant: { id: string; name: string } | null;
 }
 
 export async function getPlatformMetricsApi(): Promise<PlatformMetricsData> {

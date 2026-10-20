@@ -6,67 +6,67 @@ import { prisma } from '../src/prisma.js';
 const request = supertest(app);
 
 describe('Nexus Commerce Phase 9 Integration & Security Audit Tests', () => {
-  const storeAEmail = `merchant_p9_a_${Date.now()}@nexus.io`;
-  const storeBEmail = `merchant_p9_b_${Date.now()}@nexus.io`;
+  const merchantAEmail = `merchant_p9_a_${Date.now()}@nexus.io`;
+  const merchantBEmail = `merchant_p9_b_${Date.now()}@nexus.io`;
   const password = 'Password123!';
 
-  let storeACookie: string;
-  let storeBCookie: string;
-  let storeAProduct: any;
-  let storeACustomer: any;
-  let storeAOrder: any;
+  let merchantACookie: string;
+  let merchantBCookie: string;
+  let merchantAProduct: any;
+  let merchantACustomer: any;
+  let merchantAOrder: any;
 
   beforeAll(async () => {
     // Register Store A
     const resA = await request.post('/api/auth/register').send({
-      name: 'Store A Owner',
-      email: storeAEmail,
+      name: 'Merchant A Owner',
+      email: merchantAEmail,
       password,
-      storeName: 'Phase 9 Store A',
+      displayName: 'Phase 9 Merchant A',
     });
     expect(resA.status).toBe(201);
-    storeACookie = resA.headers['set-cookie'][0];
+    merchantACookie = resA.headers['set-cookie'][0];
 
     // Register Store B
     const resB = await request.post('/api/auth/register').send({
-      name: 'Store B Owner',
-      email: storeBEmail,
+      name: 'Merchant B Owner',
+      email: merchantBEmail,
       password,
-      storeName: 'Phase 9 Store B',
+      displayName: 'Phase 9 Merchant B',
     });
     expect(resB.status).toBe(201);
-    storeBCookie = resB.headers['set-cookie'][0];
+    merchantBCookie = resB.headers['set-cookie'][0];
 
     // Create resource in Store A
     const prodRes = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
-        title: 'Store A Secret Widget',
+        title: 'Merchant A Secret Widget',
         price: 99.99,
         sku: `SKU-P9-A-${Date.now()}`,
         inventory: 100,
       });
     expect(prodRes.status).toBe(201);
-    storeAProduct = prodRes.body.data;
+    merchantAProduct = prodRes.body.data;
 
     const custRes = await request
       .post('/api/customers')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
-        name: 'Store A Confidential Customer',
+        name: 'Merchant A Confidential Customer',
         email: `cust_a_${Date.now()}@example.com`,
       });
     expect(custRes.status).toBe(201);
-    storeACustomer = custRes.body.data;
+    merchantACustomer = custRes.body.data;
 
     const orderRes = await request
       .post('/api/orders')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
-        customerName: storeACustomer.name,
-        customerEmail: storeACustomer.email,
-        items: [{ productId: storeAProduct.id, quantity: 1 }],
+        customerName: merchantACustomer.name,
+        customerEmail: merchantACustomer.email,
+        items: [{ productId: merchantAProduct.id, quantity: 1 }],
         shippingAddress: {
           firstName: 'John',
           lastName: 'Doe',
@@ -78,7 +78,7 @@ describe('Nexus Commerce Phase 9 Integration & Security Audit Tests', () => {
         },
       });
     expect(orderRes.status).toBe(201);
-    storeAOrder = orderRes.body.data;
+    merchantAOrder = orderRes.body.data;
   });
 
   it('1. Health & Readiness Probes: Verifies system availability and DB connectivity', async () => {
@@ -98,45 +98,45 @@ describe('Nexus Commerce Phase 9 Integration & Security Audit Tests', () => {
     expect(res.headers['content-security-policy']).toBeDefined();
   });
 
-  it('3. Multi-Tenant Cross-Isolation (Products): Prevents Store B from accessing/modifying Store A product', async () => {
+  it('3. Multi-Tenant Cross-Isolation (Products): Prevents Merchant B from accessing/modifying Merchant A product', async () => {
     // Store B tries to view Store A product detail
     const getRes = await request
-      .get(`/api/products/${storeAProduct.id}`)
-      .set('Cookie', [storeBCookie]);
+      .get(`/api/products/${merchantAProduct.id}`)
+      .set('Cookie', [merchantBCookie]);
     expect([403, 404]).toContain(getRes.status);
 
     // Store B tries to update Store A product
     const updateRes = await request
-      .put(`/api/products/${storeAProduct.id}`)
-      .set('Cookie', [storeBCookie])
+      .put(`/api/products/${merchantAProduct.id}`)
+      .set('Cookie', [merchantBCookie])
       .send({ title: 'Hacked Product Title' });
     expect([403, 404]).toContain(updateRes.status);
 
     // Store B tries to delete Store A product
     const deleteRes = await request
-      .delete(`/api/products/${storeAProduct.id}`)
-      .set('Cookie', [storeBCookie]);
+      .delete(`/api/products/${merchantAProduct.id}`)
+      .set('Cookie', [merchantBCookie]);
     expect([403, 404]).toContain(deleteRes.status);
   });
 
-  it('4. Multi-Tenant Cross-Isolation (Orders & Customers): Denies Store B access to Store A orders & customers', async () => {
+  it('4. Multi-Tenant Cross-Isolation (Orders & Customers): Denies Merchant B access to Merchant A orders & customers', async () => {
     // Store B tries to access Store A order
     const orderRes = await request
-      .get(`/api/orders/${storeAOrder.id}`)
-      .set('Cookie', [storeBCookie]);
+      .get(`/api/orders/${merchantAOrder.id}`)
+      .set('Cookie', [merchantBCookie]);
     expect([403, 404]).toContain(orderRes.status);
 
     // Store B tries to access Store A customer
     const custRes = await request
-      .get(`/api/customers/${storeACustomer.id}`)
-      .set('Cookie', [storeBCookie]);
+      .get(`/api/customers/${merchantACustomer.id}`)
+      .set('Cookie', [merchantBCookie]);
     expect([403, 404]).toContain(custRes.status);
   });
 
   it('5. Platform RBAC Security: Prevents standard merchants from accessing platform admin routes', async () => {
     const adminRes = await request
       .get('/api/admin/metrics')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
     expect(adminRes.status).toBe(403);
     expect(adminRes.body.error).toContain('Forbidden');
   });

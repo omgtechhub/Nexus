@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, Store, Layers, FileText, CreditCard, LogOut, Menu, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Activity, Store as MerchantIcon, Layers, FileText, CreditCard, LogOut, Menu, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { AdminNavDrawer } from './AdminNavDrawer';
 import { useApp } from '../../../context/AppContext';
 import { cn } from '../../../utils/cn';
@@ -8,7 +8,7 @@ import { ThemeToggle } from '../../../components/ui/ThemeToggle';
 
 const NAV_ITEMS = [
   { label: 'Overview', path: '/admin/dashboard', icon: Activity },
-  { label: 'Merchants', path: '/admin/merchants', icon: Store },
+  { label: 'Merchants', path: '/admin/merchants', icon: MerchantIcon },
   { label: 'Monitoring', path: '/admin/monitoring', icon: ShieldAlert },
   { label: 'Plans', path: '/admin/plans', icon: Layers },
   { label: 'Invoices', path: '/admin/invoices', icon: FileText },

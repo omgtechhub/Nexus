@@ -6,6 +6,7 @@ import { useAccountOrdersQuery } from '../../../hooks/useAccount';
 import { OrderCard } from '../components/OrderCard';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { formatMoney } from '../orderProgress';
+import { PLATFORM_CURRENCY } from '../../../utils/money';
 
 export function CustomerDashboard() {
   const { user } = useApp();
@@ -23,7 +24,7 @@ export function CustomerDashboard() {
 
   // Totals only mean something within one currency, so a mixed history shows
   // the order count instead of a sum that silently adds dollars to naira.
-  const currencies = new Set(list.map(o => o.currency || 'USD'));
+  const currencies = new Set(list.map(o => o.currency || PLATFORM_CURRENCY));
   const singleCurrency = currencies.size === 1 ? [...currencies][0] : null;
   const lifetime = singleCurrency ? list.reduce((sum, o) => sum + o.total, 0) : null;
 
@@ -34,7 +35,7 @@ export function CustomerDashboard() {
           {firstName ? `Welcome back, ${firstName}` : 'Your account'}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Every order you place on Nexus, from any store, in one place.
+          Every order you place on Nexus, from any merchant, in one place.
         </p>
       </div>
 
@@ -42,7 +43,7 @@ export function CustomerDashboard() {
         <EmptyState
           icon={<Package size={20} aria-hidden="true" />}
           title="No orders yet"
-          description="Once you buy from a store on Nexus, your orders and delivery updates will show up here."
+          description="Once you buy from a merchant on Nexus, your orders and delivery updates will show up here."
           action={
             /* `/products`, the marketplace. `/storefront` needs a store slug
                and renders "No storefront specified" without one — so this

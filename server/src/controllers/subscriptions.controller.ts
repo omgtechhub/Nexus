@@ -34,10 +34,10 @@ function handleBillingError(err: unknown, res: Response): boolean {
 
 export async function getCurrentSubscription(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const [sub, entitlements] = await Promise.all([
-      saasBillingService.getCurrentSubscription(storeId),
-      entitlementService.getStoreEntitlements(storeId),
+      saasBillingService.getCurrentSubscription(merchantId),
+      entitlementService.getMerchantEntitlements(merchantId),
     ]);
 
     res.json({
@@ -54,7 +54,7 @@ export async function getCurrentSubscription(req: Request, res: Response, next: 
 
 export async function subscribeToPlan(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const user = req.user!;
     const { planCode, interval, provider } = req.body;
 
@@ -64,7 +64,7 @@ export async function subscribeToPlan(req: Request, res: Response, next: NextFun
     }
 
     const result = await saasBillingService.subscribeToPlan(
-      storeId,
+      merchantId,
       user.email,
       user.name,
       planCode,
@@ -83,7 +83,7 @@ export async function subscribeToPlan(req: Request, res: Response, next: NextFun
 
 export async function changePlan(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { planCode } = req.body;
 
     if (!planCode) {
@@ -91,7 +91,7 @@ export async function changePlan(req: Request, res: Response, next: NextFunction
       return;
     }
 
-    const updatedSub = await saasBillingService.changePlan(storeId, planCode);
+    const updatedSub = await saasBillingService.changePlan(merchantId, planCode);
     res.json({ success: true, data: updatedSub });
   } catch (err) {
     // An upgrade throws PaymentRequiredError; it is a 402, not a 500.
@@ -102,7 +102,7 @@ export async function changePlan(req: Request, res: Response, next: NextFunction
 
 export async function changeInterval(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { interval } = req.body;
 
     if (!interval || !['MONTHLY', 'ANNUAL'].includes(interval)) {
@@ -110,7 +110,7 @@ export async function changeInterval(req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const updatedSub = await saasBillingService.changeInterval(storeId, interval);
+    const updatedSub = await saasBillingService.changeInterval(merchantId, interval);
     res.json({ success: true, data: updatedSub });
   } catch (err) {
     if (handleBillingError(err, res)) return;
@@ -120,8 +120,8 @@ export async function changeInterval(req: Request, res: Response, next: NextFunc
 
 export async function cancelSubscription(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
-    const updatedSub = await saasBillingService.cancelSubscription(storeId);
+    const merchantId = req.merchant!.id;
+    const updatedSub = await saasBillingService.cancelSubscription(merchantId);
     res.json({ success: true, message: 'Subscription will cancel at current period end.', data: updatedSub });
   } catch (err) {
     next(err);
@@ -130,8 +130,8 @@ export async function cancelSubscription(req: Request, res: Response, next: Next
 
 export async function resumeSubscription(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
-    const updatedSub = await saasBillingService.resumeSubscription(storeId);
+    const merchantId = req.merchant!.id;
+    const updatedSub = await saasBillingService.resumeSubscription(merchantId);
     res.json({ success: true, message: 'Subscription resumed successfully.', data: updatedSub });
   } catch (err) {
     if (handleBillingError(err, res)) return;
@@ -141,9 +141,9 @@ export async function resumeSubscription(req: Request, res: Response, next: Next
 
 export async function getInvoices(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const invoices = await prisma.invoice.findMany({
-      where: { storeId },
+      where: { merchantId },
       include: { items: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -156,12 +156,12 @@ export async function getInvoices(req: Request, res: Response, next: NextFunctio
 
 export async function getInvoiceDetails(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const invoice = await prisma.invoice.findFirst({
-      where: { id, storeId },
-      include: { items: true, store: true, plan: true },
+      where: { id, merchantId },
+      include: { items: true, merchant: true, plan: true },
     });
 
     if (!invoice) {

@@ -4,13 +4,13 @@ import {
   getMyPayouts,
   getMyPayoutAccount,
   upsertMyPayoutAccount,
-  listPayableStores,
+  listPayableMerchants,
   listAllPayouts,
-  createPayoutForStore,
+  createPayoutForMerchant,
   setPayoutStatus,
   sendPayout,
 } from '../controllers/payouts.controller.js';
-import { authMiddleware, requireStoreMembership, requirePlatformAdmin } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership, requirePlatformAdmin } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/rbac.middleware.js';
 import { sensitiveActionRateLimiter } from '../middleware/rateLimit.middleware.js';
 
@@ -29,7 +29,7 @@ import { sensitiveActionRateLimiter } from '../middleware/rateLimit.middleware.j
 export const payoutsRouter = Router();
 
 payoutsRouter.use(authMiddleware);
-payoutsRouter.use(requireStoreMembership);
+payoutsRouter.use(requireMerchantMembership);
 
 payoutsRouter.get('/balance', getMyBalance);
 payoutsRouter.get('/', getMyPayouts);
@@ -49,9 +49,9 @@ export const adminPayoutsRouter = Router();
 adminPayoutsRouter.use(authMiddleware);
 adminPayoutsRouter.use(requirePlatformAdmin);
 
-adminPayoutsRouter.get('/payable', listPayableStores);
+adminPayoutsRouter.get('/payable', listPayableMerchants);
 adminPayoutsRouter.get('/', listAllPayouts);
-adminPayoutsRouter.post('/', sensitiveActionRateLimiter, createPayoutForStore);
+adminPayoutsRouter.post('/', sensitiveActionRateLimiter, createPayoutForMerchant);
 adminPayoutsRouter.patch('/:id', sensitiveActionRateLimiter, setPayoutStatus);
 // Sends the money. Separate from creating the obligation on purpose.
 adminPayoutsRouter.post('/:id/send', sensitiveActionRateLimiter, sendPayout);

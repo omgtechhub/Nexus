@@ -2,7 +2,7 @@ import { apiClient } from './client';
 
 export interface AuditLogData {
   id: string;
-  storeId: string;
+  merchantId: string;
   userId: string | null;
   userEmail: string | null;
   action: string;

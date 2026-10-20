@@ -2,7 +2,7 @@ import { apiClient } from './client';
 
 export interface InventoryItemResponse {
   id: string;
-  storeId: string;
+  merchantId: string;
   productId: string;
   variantId?: string;
   sku: string;

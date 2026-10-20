@@ -22,7 +22,7 @@ export interface ShopProduct {
   inStock: boolean;
   availableStock: number;
   rating: { average: number; count: number };
-  store: { id: string; name: string; handle: string };
+  merchant: { id: string; name: string; handle: string };
   variants: { id: string; title: string; sku: string; price: number; inventoryQuantity: number }[];
 }
 
@@ -31,7 +31,7 @@ export type CartAction =
   | { type: 'REMOVE'; productId: string }
   | { type: 'CLEAR' }
   /** `SUMMARY` asks the shopper for a yes; `GO` is the yes. Only `GO` moves. */
-  | { type: 'CHECKOUT'; storeId: string; confirmToken: string; stage: 'SUMMARY' | 'GO' };
+  | { type: 'CHECKOUT'; merchantId: string; confirmToken: string; stage: 'SUMMARY' | 'GO' };
 
 export type ShopIntent =
   | 'SEARCH'
@@ -68,8 +68,8 @@ export interface SpokenCartLine {
   title: string;
   quantity: number;
   price: number;
-  storeId?: string;
-  storeName?: string;
+  merchantId?: string;
+  displayName?: string;
 }
 
 export async function getShopVoiceStatusApi(): Promise<VoiceStatus> {

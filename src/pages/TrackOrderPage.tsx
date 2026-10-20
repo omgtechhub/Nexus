@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Package, Store } from 'lucide-react';
+import { Search, Package, Store as MerchantIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../components/marketing/Navbar';
 import { Footer } from '../components/marketing/Footer';
@@ -103,8 +103,8 @@ export function TrackOrderPage() {
                 <div>
                   <p className="font-mono text-lg font-bold text-[var(--brand-yellow-ink)]">{order.orderNumber}</p>
                   <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted">
-                    <Store size={13} aria-hidden="true" />
-                    {order.storeName}
+                    <MerchantIcon size={13} aria-hidden="true" />
+                    {order.displayName}
                   </p>
                 </div>
                 <Badge variant={statusVariant(order.status)} size="sm">

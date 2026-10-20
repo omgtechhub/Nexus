@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { initializePayment, verifyPayment, refundOrder, getPayments } from '../controllers/payments.controller.js';
-import { authMiddleware, requireStoreMembership, optionalAuth } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership, optionalAuth } from '../middleware/auth.middleware.js';
 import { paymentRateLimiter } from '../middleware/rateLimit.middleware.js';
 
 export const paymentsRouter = Router();
@@ -20,7 +20,7 @@ paymentsRouter.get('/:reference/verify', paymentRateLimiter, verifyPayment);
 
 // Authenticated merchant endpoints
 paymentsRouter.use(authMiddleware);
-paymentsRouter.use(requireStoreMembership);
+paymentsRouter.use(requireMerchantMembership);
 
 paymentsRouter.get('/', getPayments);
 paymentsRouter.post('/orders/:orderId/refund', paymentRateLimiter, refundOrder);

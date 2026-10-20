@@ -84,7 +84,7 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
   {
     code: 'starter',
     name: 'Starter Plan',
-    description: 'Ideal for early stage stores and boutique merchants.',
+    description: 'For a seller finding their first customers.',
     monthlyPrice: monthlyFrom(50_000),
     annualPrice: 50_000,
     currency: 'NGN',
@@ -92,9 +92,7 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
     displayOrder: 1,
     maxProducts: 50,
     maxTeamMembers: 2,
-    maxStores: 1,
     storageMb: 1000,
-    customDomainAllowed: true,
     advancedAnalyticsAllowed: false,
     aiTokensPerMonth: 1000,
     features: [
@@ -116,9 +114,7 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
     displayOrder: 2,
     maxProducts: 500,
     maxTeamMembers: 5,
-    maxStores: 1,
     storageMb: 5000,
-    customDomainAllowed: true,
     advancedAnalyticsAllowed: true,
     aiTokensPerMonth: 10000,
     features: [
@@ -140,15 +136,12 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
     displayOrder: 3,
     maxProducts: 2500,
     maxTeamMembers: 15,
-    maxStores: 3,
     storageMb: 25000,
-    customDomainAllowed: true,
     advancedAnalyticsAllowed: true,
     aiTokensPerMonth: 100000,
     features: [
       'Up to 2,500 active products',
       '15 team members',
-      'Multi-store support',
       'Advanced analytics',
       'VIP 24/7 support',
     ],
@@ -156,7 +149,7 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
   {
     code: 'enterprise',
     name: 'Enterprise Plan',
-    description: 'Custom infrastructure, unlimited scaling, and SLA guarantee.',
+    description: 'Custom limits and dedicated support, agreed case by case.',
     monthlyPrice: monthlyFrom(450_000),
     annualPrice: 450_000,
     currency: 'NGN',
@@ -164,9 +157,7 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
     displayOrder: 4,
     maxProducts: 10000,
     maxTeamMembers: 50,
-    maxStores: 10,
     storageMb: 100000,
-    customDomainAllowed: true,
     advancedAnalyticsAllowed: true,
     // Null is the unlimited allowance the pricing page promises this tier.
     aiTokensPerMonth: null,
@@ -175,7 +166,6 @@ export const PLANS: Prisma.SubscriptionPlanCreateInput[] = [
       '50 team members',
       'Dedicated account manager',
       'Custom integrations',
-      '99.99% SLA',
     ],
   },
 ];

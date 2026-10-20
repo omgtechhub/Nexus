@@ -25,18 +25,18 @@ describe('Public Nexus IQ: open to visitors, and only as far as the public data'
   const stamp = Date.now();
   const password = 'Password123!';
 
-  let liveStoreId: string;
+  let liveMerchantId: string;
 
   beforeAll(async () => {
     const merchant = await request.post('/api/auth/register').send({
       name: 'Concierge Merchant',
       email: `concierge_${stamp}@nexus.io`,
       password,
-      storeName: `Concierge Store ${stamp}`,
+      displayName: `Concierge Merchant ${stamp}`,
     });
     expect(merchant.status).toBe(201);
     const cookie = merchant.headers['set-cookie'][0];
-    liveStoreId = merchant.body.data.store.id;
+    liveMerchantId = merchant.body.data.merchant.id;
 
     const product = await request
       .post('/api/products')
@@ -51,8 +51,8 @@ describe('Public Nexus IQ: open to visitors, and only as far as the public data'
       });
     expect(product.status).toBe(201);
 
-    await prisma.store.update({
-      where: { id: liveStoreId },
+    await prisma.merchant.update({
+      where: { id: liveMerchantId },
       data: { status: 'ACTIVE' },
     });
   });

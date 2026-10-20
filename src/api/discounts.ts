@@ -18,7 +18,7 @@ export async function deleteDiscountApi(id: string): Promise<void> {
   await apiClient(`/discounts/${id}`, { method: 'DELETE' });
 }
 
-export async function validateDiscountApi(code: string, subtotal: number, storeDomain?: string): Promise<{
+export async function validateDiscountApi(code: string, subtotal: number, merchantRef?: string): Promise<{
   valid: boolean;
   code?: string;
   discountType?: string;
@@ -38,7 +38,7 @@ export async function validateDiscountApi(code: string, subtotal: number, storeD
     message?: string;
   }>('/discounts/validate', {
     method: 'POST',
-    body: JSON.stringify({ code, subtotal, storeDomain }),
+    body: JSON.stringify({ code, subtotal, merchantRef }),
   });
   return res;
 }

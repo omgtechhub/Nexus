@@ -8,6 +8,7 @@ import {
   RefundResult,
 } from './payment.interface.js';
 import { PaymentGatewayError, PaymentNotConfiguredError, isUsableSecretKey } from './errors.js';
+import { defaultCurrencyCode } from '../../config/currency.js';
 
 /**
  * Paystack.
@@ -96,7 +97,7 @@ export class PaystackProvider implements IPaymentProvider {
         amount: Math.round(params.amount * 100), // kobo
         email: params.email,
         reference: params.reference,
-        currency: params.currency || 'USD',
+        currency: params.currency || defaultCurrencyCode(),
         callback_url: params.callbackUrl,
         metadata: params.metadata,
       }),
@@ -137,7 +138,7 @@ export class PaystackProvider implements IPaymentProvider {
       success: status === 'SUCCESS',
       reference: data.reference || reference,
       amount: typeof data.amount === 'number' ? data.amount / 100 : 0,
-      currency: data.currency || 'USD',
+      currency: data.currency || defaultCurrencyCode(),
       status,
       gatewayResponse: data.gateway_response,
       rawResponse: data,
@@ -179,7 +180,7 @@ export class PaystackProvider implements IPaymentProvider {
       success: true,
       refundReference: data.reference || String(data.id || ''),
       amount: typeof data.amount === 'number' ? data.amount / 100 : params.amount || 0,
-      currency: data.currency || 'USD',
+      currency: data.currency || defaultCurrencyCode(),
       status: 'SUCCESS',
       rawResponse: data,
     };

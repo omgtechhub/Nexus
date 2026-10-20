@@ -65,7 +65,7 @@ export function CustomerProfile() {
                 )}
               </div>
               <p className="mt-1.5 text-xs text-muted">
-                Your email identifies your orders across every store, so it cannot be
+                Your email identifies your orders across every merchant, so it cannot be
                 changed here.
               </p>
             </div>

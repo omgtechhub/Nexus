@@ -39,7 +39,7 @@ describe('Merchant payouts', () => {
 
   let merchantCookie: string;
   let adminCookie: string;
-  let storeId: string;
+  let merchantId: string;
   let productId: string;
 
   const originalCommission = process.env.PLATFORM_COMMISSION_PERCENT;
@@ -49,11 +49,11 @@ describe('Merchant payouts', () => {
       name: 'Payouts Merchant',
       email: merchantEmail,
       password,
-      storeName: 'Payouts Store',
+      displayName: 'Payouts Merchant',
     });
     expect(reg.status).toBe(201);
     merchantCookie = reg.headers['set-cookie'][0];
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
 
     const prod = await request
       .post('/api/products')
@@ -89,7 +89,7 @@ describe('Merchant payouts', () => {
   async function settledSale(amount: number) {
     const order = await prisma.order.create({
       data: {
-        storeId,
+        merchantId,
         orderNumber: `#PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         customerName: 'Payout Buyer',
         customerEmail: 'payout.buyer@example.com',
@@ -106,7 +106,7 @@ describe('Merchant payouts', () => {
 
     const payment = await prisma.payment.create({
       data: {
-        storeId,
+        merchantId,
         orderId: order.id,
         provider: PaymentProvider.PAYSTACK,
         providerReference: `ref_po_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
@@ -179,9 +179,9 @@ describe('Merchant payouts', () => {
     it('is what the merchant is owed after fees, refunds and payouts', async () => {
       delete process.env.PLATFORM_COMMISSION_PERCENT;
 
-      const before = await merchantBalance(storeId);
+      const before = await merchantBalance(merchantId);
       await settledSale(500);
-      const after = await merchantBalance(storeId);
+      const after = await merchantBalance(merchantId);
 
       expect(after.grossEarned).toBe(before.grossEarned + 500);
       expect(after.available).toBe(before.available + 500);
@@ -190,13 +190,13 @@ describe('Merchant payouts', () => {
 
     it('deducts a refund from what is owed', async () => {
       const payment = await settledSale(300);
-      const before = await merchantBalance(storeId);
+      const before = await merchantBalance(merchantId);
 
       await prisma.refund.create({
         data: {
           paymentId: payment.id,
           orderId: payment.orderId,
-          storeId,
+          merchantId,
           amount: 300,
           currency: 'NGN',
           reason: 'Customer returned it',
@@ -205,7 +205,7 @@ describe('Merchant payouts', () => {
         },
       });
 
-      const after = await merchantBalance(storeId);
+      const after = await merchantBalance(merchantId);
       expect(after.refunded).toBe(before.refunded + 300);
       expect(after.available).toBe(before.available - 300);
     });
@@ -217,13 +217,13 @@ describe('Merchant payouts', () => {
         name: 'Negative Balance Merchant',
         email: `neg_${Date.now()}@nexus.io`,
         password,
-        storeName: 'Negative Store',
+        displayName: 'Negative Merchant',
       });
-      const negStoreId = fresh.body.data.store.id;
+      const negMerchantId = fresh.body.data.merchant.id;
 
       const order = await prisma.order.create({
         data: {
-          storeId: negStoreId,
+          merchantId: negMerchantId,
           orderNumber: `#NEG-${Date.now()}`,
           customerName: 'X',
           customerEmail: 'x@example.com',
@@ -232,7 +232,7 @@ describe('Merchant payouts', () => {
       });
       const payment = await prisma.payment.create({
         data: {
-          storeId: negStoreId,
+          merchantId: negMerchantId,
           orderId: order.id,
           provider: PaymentProvider.PAYSTACK,
           providerReference: `ref_neg_${Date.now()}`,
@@ -242,13 +242,13 @@ describe('Merchant payouts', () => {
       await recordCommissionForPayment(payment.id);
       await prisma.refund.create({
         data: {
-          paymentId: payment.id, orderId: order.id, storeId: negStoreId,
+          paymentId: payment.id, orderId: order.id, merchantId: negMerchantId,
           amount: 1000, currency: 'NGN', reason: 'Oversized refund',
           status: 'SUCCESS', providerReference: `rf_neg_${Date.now()}`,
         },
       });
 
-      const balance = await merchantBalance(negStoreId);
+      const balance = await merchantBalance(negMerchantId);
       expect(balance.available).toBe(0);
     });
 
@@ -271,10 +271,10 @@ describe('Merchant payouts', () => {
 
   describe('creating and settling a payout', () => {
     it('refuses to pay out more than is available', async () => {
-      const balance = await merchantBalance(storeId);
+      const balance = await merchantBalance(merchantId);
 
       await expect(
-        createPayout({ storeId, amount: balance.available + 1000 })
+        createPayout({ merchantId, amount: balance.available + 1000 })
       ).rejects.toThrow(PayoutError);
     });
 
@@ -283,21 +283,21 @@ describe('Merchant payouts', () => {
         name: 'Empty Balance Merchant',
         email: `empty_${Date.now()}@nexus.io`,
         password,
-        storeName: 'Empty Store',
+        displayName: 'Empty Merchant',
       });
 
       await expect(
-        createPayout({ storeId: fresh.body.data.store.id })
+        createPayout({ merchantId: fresh.body.data.merchant.id })
       ).rejects.toThrow(/nothing available/i);
     });
 
     it('reduces the available balance once created, before any money moves', async () => {
-      const before = await merchantBalance(storeId);
-      const payout = await createPayout({ storeId, amount: 100, note: 'Test run' });
+      const before = await merchantBalance(merchantId);
+      const payout = await createPayout({ merchantId, amount: 100, note: 'Test run' });
 
       expect(payout.status).toBe(PayoutStatus.PENDING);
 
-      const after = await merchantBalance(storeId);
+      const after = await merchantBalance(merchantId);
       // Counted against the balance immediately, so two admins acting at once
       // cannot together pay out more than is owed.
       expect(after.pendingPayouts).toBe(before.pendingPayouts + 100);
@@ -305,8 +305,8 @@ describe('Merchant payouts', () => {
     });
 
     it('a failed payout returns the money to the balance', async () => {
-      const payout = await createPayout({ storeId, amount: 50 });
-      const duringPending = await merchantBalance(storeId);
+      const payout = await createPayout({ merchantId, amount: 50 });
+      const duringPending = await merchantBalance(merchantId);
 
       await updatePayoutStatus({
         payoutId: payout.id,
@@ -314,13 +314,13 @@ describe('Merchant payouts', () => {
         failureReason: 'Bank rejected the transfer',
       });
 
-      const after = await merchantBalance(storeId);
+      const after = await merchantBalance(merchantId);
       // It never reached the merchant, so they are still owed it.
       expect(after.available).toBe(duringPending.available + 50);
     });
 
     it('rejects an impossible status transition', async () => {
-      const payout = await createPayout({ storeId, amount: 25 });
+      const payout = await createPayout({ merchantId, amount: 25 });
       await updatePayoutStatus({ payoutId: payout.id, status: PayoutStatus.PAID });
 
       // PAID may only become REVERSED.
@@ -346,12 +346,12 @@ describe('Merchant payouts', () => {
       expect(Array.isArray(listRes.body.data)).toBe(true);
     });
 
-    it('stores only the last four digits of a bank account', async () => {
+    it('merchants only the last four digits of a bank account', async () => {
       const res = await request
         .put('/api/payouts/account')
         .set('Cookie', [merchantCookie])
         .send({
-          accountName: 'Payouts Store Ltd',
+          accountName: 'Payouts Merchant Ltd',
           bankName: 'Guaranty Trust Bank',
           bankCode: '058',
           accountNumber: '0123456789',
@@ -363,7 +363,7 @@ describe('Merchant payouts', () => {
       // operational benefit — the provider recipient token replaces it.
       expect(JSON.stringify(res.body)).not.toContain('0123456789');
 
-      const stored = await prisma.merchantPayoutAccount.findUnique({ where: { storeId } });
+      const stored = await prisma.merchantPayoutAccount.findUnique({ where: { merchantId } });
       expect(stored!.accountNumberLast4).toBe('6789');
       expect(JSON.stringify(stored)).not.toContain('0123456789');
       // Not verified: that needs a live provider call.
@@ -375,7 +375,7 @@ describe('Merchant payouts', () => {
         .put('/api/payouts/account')
         .set('Cookie', [merchantCookie])
         .send({
-          accountName: 'Payouts Store Ltd',
+          accountName: 'Payouts Merchant Ltd',
           bankName: 'GTB',
           bankCode: '058',
           accountNumber: 'not-digits',
@@ -390,7 +390,7 @@ describe('Merchant payouts', () => {
       const res = await request
         .post('/api/admin/payouts')
         .set('Cookie', [merchantCookie])
-        .send({ storeId, amount: 10 });
+        .send({ merchantId, amount: 10 });
 
       expect(res.status).toBe(403);
     });
@@ -413,14 +413,14 @@ describe('Merchant payouts', () => {
         .get('/api/admin/payouts/payable')
         .set('Cookie', [adminCookie]);
       expect(payableRes.status).toBe(200);
-      const row = payableRes.body.data.find((r: any) => r.storeId === storeId);
+      const row = payableRes.body.data.find((r: any) => r.merchantId === merchantId);
       expect(row).toBeTruthy();
       expect(row.balance).toBeTruthy();
 
       const createRes = await request
         .post('/api/admin/payouts')
         .set('Cookie', [adminCookie])
-        .send({ storeId, amount: 10, note: 'Admin-recorded payout' });
+        .send({ merchantId, amount: 10, note: 'Admin-recorded payout' });
 
       expect(createRes.status).toBe(201);
       expect(createRes.body.data.reference).toMatch(/^PO-\d{8}-[0-9A-F]{6}$/);
@@ -439,7 +439,7 @@ describe('Merchant payouts', () => {
       const res = await request
         .post('/api/admin/payouts')
         .set('Cookie', [adminCookie])
-        .send({ storeId, amount: 99_999_999 });
+        .send({ merchantId, amount: 99_999_999 });
 
       expect(res.status).toBe(400);
       expect(res.body.error).toMatch(/exceeds the available balance/i);
@@ -457,7 +457,7 @@ describe('Merchant payouts', () => {
  */
 describe('Payout execution', () => {
   const password = 'Password123!';
-  let execStoreId: string;
+  let execMerchantId: string;
   let execAdminCookie: string;
   let execMerchantCookie: string;
 
@@ -466,10 +466,10 @@ describe('Payout execution', () => {
       name: 'Transfer Merchant',
       email: `transfer_${Date.now()}@nexus.io`,
       password,
-      storeName: 'Transfer Store',
+      displayName: 'Transfer Merchant',
     });
     execMerchantCookie = reg.headers['set-cookie'][0];
-    execStoreId = reg.body.data.store.id;
+    execMerchantId = reg.body.data.merchant.id;
 
     const adminEmail = `transfer_admin_${Date.now()}@nexus.io`;
     await prisma.user.create({
@@ -487,7 +487,7 @@ describe('Payout execution', () => {
     // Something to be owed.
     const order = await prisma.order.create({
       data: {
-        storeId: execStoreId,
+        merchantId: execMerchantId,
         orderNumber: `#TR-${Date.now()}`,
         customerName: 'T',
         customerEmail: 't@example.com',
@@ -496,7 +496,7 @@ describe('Payout execution', () => {
     });
     const payment = await prisma.payment.create({
       data: {
-        storeId: execStoreId,
+        merchantId: execMerchantId,
         orderId: order.id,
         provider: PaymentProvider.PAYSTACK,
         providerReference: `ref_tr_${Date.now()}`,
@@ -507,7 +507,7 @@ describe('Payout execution', () => {
   });
 
   it('refuses to send when there is no verified recipient, and keeps the debt', async () => {
-    const payout = await createPayout({ storeId: execStoreId, amount: 100 });
+    const payout = await createPayout({ merchantId: execMerchantId, amount: 100 });
 
     /**
      * Without a Paystack recipient code there is nowhere to send the money,
@@ -529,7 +529,7 @@ describe('Payout execution', () => {
       .put('/api/payouts/account')
       .set('Cookie', [execMerchantCookie])
       .send({
-        accountName: 'Transfer Store Ltd',
+        accountName: 'Transfer Merchant Ltd',
         bankName: 'Guaranty Trust Bank',
         bankCode: '058',
         accountNumber: '0123456789',
@@ -539,7 +539,7 @@ describe('Payout execution', () => {
     expect(res.body.data.accountNumberLast4).toBe('6789');
 
     const stored = await prisma.merchantPayoutAccount.findUnique({
-      where: { storeId: execStoreId },
+      where: { merchantId: execMerchantId },
     });
     // No live key in the suite, so no recipient and no verification.
     expect(stored!.providerRecipientId).toBeNull();
@@ -549,7 +549,7 @@ describe('Payout execution', () => {
   });
 
   it('exposes send as an admin-only action that never fakes success', async () => {
-    const payout = await createPayout({ storeId: execStoreId, amount: 50 });
+    const payout = await createPayout({ merchantId: execMerchantId, amount: 50 });
 
     const asMerchant = await request
       .post(`/api/admin/payouts/${payout.id}/send`)
@@ -572,7 +572,7 @@ describe('Payout execution', () => {
   });
 
   it('settles a payout only on the transfer webhook, never on initiation', async () => {
-    const payout = await createPayout({ storeId: execStoreId, amount: 25 });
+    const payout = await createPayout({ merchantId: execMerchantId, amount: 25 });
 
     // Stand in for executePayout having reached Paystack.
     await prisma.payout.update({
@@ -599,13 +599,13 @@ describe('Payout execution', () => {
   });
 
   it('returns the money to the balance when a transfer fails', async () => {
-    const payout = await createPayout({ storeId: execStoreId, amount: 30 });
+    const payout = await createPayout({ merchantId: execMerchantId, amount: 30 });
     await prisma.payout.update({
       where: { id: payout.id },
       data: { status: PayoutStatus.PROCESSING },
     });
 
-    const beforeBalance = await merchantBalance(execStoreId);
+    const beforeBalance = await merchantBalance(execMerchantId);
 
     const body = {
       event: 'transfer.failed',
@@ -623,7 +623,7 @@ describe('Payout execution', () => {
     expect(after!.failureReason).toContain('Account closed');
 
     // It never reached the merchant, so they are still owed it.
-    const afterBalance = await merchantBalance(execStoreId);
+    const afterBalance = await merchantBalance(execMerchantId);
     expect(afterBalance.available).toBe(beforeBalance.available + 30);
   });
 });

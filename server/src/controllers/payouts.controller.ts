@@ -39,7 +39,7 @@ const payoutAccountSchema = z.object({
 });
 
 const createPayoutSchema = z.object({
-  storeId: z.string().min(1, 'storeId is required'),
+  merchantId: z.string().min(1, 'merchantId is required'),
   // Omitted pays out the whole available balance.
   amount: z.number().positive().optional(),
   method: z.nativeEnum(PayoutMethod).optional(),
@@ -57,7 +57,7 @@ const updatePayoutSchema = z.object({
 /** What this store is owed, and the rate it is calculated at. */
 export async function getMyBalance(req: Request, res: Response, next: NextFunction) {
   try {
-    const balance = await merchantBalance(req.store!.id);
+    const balance = await merchantBalance(req.merchant!.id);
     res.json({ success: true, data: balance });
   } catch (err) {
     next(err);
@@ -67,7 +67,7 @@ export async function getMyBalance(req: Request, res: Response, next: NextFuncti
 export async function getMyPayouts(req: Request, res: Response, next: NextFunction) {
   try {
     const payouts = await prisma.payout.findMany({
-      where: { storeId: req.store!.id },
+      where: { merchantId: req.merchant!.id },
       orderBy: { createdAt: 'desc' },
       take: 100,
       select: {
@@ -95,7 +95,7 @@ export async function getMyPayouts(req: Request, res: Response, next: NextFuncti
 export async function getMyPayoutAccount(req: Request, res: Response, next: NextFunction) {
   try {
     const account = await prisma.merchantPayoutAccount.findUnique({
-      where: { storeId: req.store!.id },
+      where: { merchantId: req.merchant!.id },
       select: {
         accountName: true,
         bankName: true,
@@ -115,7 +115,7 @@ export async function getMyPayoutAccount(req: Request, res: Response, next: Next
 
 export async function upsertMyPayoutAccount(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const body = payoutAccountSchema.parse(req.body);
     const last4 = body.accountNumber.slice(-4);
 
@@ -145,7 +145,7 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
           accountName: resolved.accountName,
           accountNumber: body.accountNumber,
           bankCode: body.bankCode,
-          currency: currencyCodeOf(req.store!.currency),
+          currency: currencyCodeOf(req.merchant!.currency),
         });
         verifiedAt = new Date();
 
@@ -164,7 +164,7 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
          */
         logger.warn({
           msg: 'Could not verify a payout account with Paystack',
-          storeId,
+          merchantId,
           error: err?.message,
         });
         verificationNote = `We could not verify this account with Paystack: ${err?.message ?? 'unknown error'}. `
@@ -173,7 +173,7 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
     }
 
     const account = await prisma.merchantPayoutAccount.upsert({
-      where: { storeId },
+      where: { merchantId },
       update: {
         accountName: resolvedName,
         bankName: body.bankName,
@@ -183,7 +183,7 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
         verifiedAt,
       },
       create: {
-        storeId,
+        merchantId,
         accountName: resolvedName,
         bankName: body.bankName,
         bankCode: body.bankCode,
@@ -194,7 +194,7 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
     });
 
     await logAuditEvent({
-      storeId,
+      merchantId,
       userId: req.user!.id,
       actorName: req.user!.name,
       actorEmail: req.user!.email,
@@ -230,20 +230,20 @@ export async function upsertMyPayoutAccount(req: Request, res: Response, next: N
 /* ------------------------------------------------------------------- admin */
 
 /** Every store's balance, for deciding who to pay. */
-export async function listPayableStores(_req: Request, res: Response, next: NextFunction) {
+export async function listPayableMerchants(_req: Request, res: Response, next: NextFunction) {
   try {
-    const stores = await prisma.store.findMany({
+    const merchants = await prisma.merchant.findMany({
       where: { status: 'ACTIVE' },
       select: { id: true, name: true, payoutAccount: { select: { accountNumberLast4: true, bankName: true, verifiedAt: true } } },
       take: 200,
     });
 
     const rows = await Promise.all(
-      stores.map(async store => ({
-        storeId: store.id,
-        storeName: store.name,
-        payoutAccount: store.payoutAccount,
-        balance: await merchantBalance(store.id),
+      merchants.map(async merchant => ({
+        merchantId: merchant.id,
+        displayName: merchant.name,
+        payoutAccount: merchant.payoutAccount,
+        balance: await merchantBalance(merchant.id),
       }))
     );
 
@@ -265,7 +265,7 @@ export async function listAllPayouts(req: Request, res: Response, next: NextFunc
       where: status && status in PayoutStatus ? { status: status as PayoutStatus } : {},
       orderBy: { createdAt: 'desc' },
       take: 200,
-      include: { store: { select: { id: true, name: true } } },
+      include: { merchant: { select: { id: true, name: true } } },
     });
 
     res.json({ success: true, data: payouts });
@@ -274,18 +274,18 @@ export async function listAllPayouts(req: Request, res: Response, next: NextFunc
   }
 }
 
-export async function createPayoutForStore(req: Request, res: Response, next: NextFunction) {
+export async function createPayoutForMerchant(req: Request, res: Response, next: NextFunction) {
   try {
     const body = createPayoutSchema.parse(req.body);
 
-    const store = await prisma.store.findUnique({ where: { id: body.storeId } });
-    if (!store) {
-      res.status(404).json({ success: false, error: 'Store not found' });
+    const merchant = await prisma.merchant.findUnique({ where: { id: body.merchantId } });
+    if (!merchant) {
+      res.status(404).json({ success: false, error: 'Merchant not found' });
       return;
     }
 
     const payout = await createPayout({
-      storeId: body.storeId,
+      merchantId: body.merchantId,
       amount: body.amount,
       method: body.method,
       note: body.note,
@@ -293,7 +293,7 @@ export async function createPayoutForStore(req: Request, res: Response, next: Ne
     });
 
     await logAuditEvent({
-      storeId: body.storeId,
+      merchantId: body.merchantId,
       userId: req.user!.id,
       actorName: req.user!.name,
       actorEmail: req.user!.email,
@@ -329,7 +329,7 @@ export async function setPayoutStatus(req: Request, res: Response, next: NextFun
     });
 
     await logAuditEvent({
-      storeId: updated.storeId,
+      merchantId: updated.merchantId,
       userId: req.user!.id,
       actorName: req.user!.name,
       actorEmail: req.user!.email,
@@ -367,7 +367,7 @@ export async function sendPayout(req: Request, res: Response, next: NextFunction
     const payout = await prisma.payout.findUnique({ where: { id: req.params.id } });
 
     await logAuditEvent({
-      storeId: payout!.storeId,
+      merchantId: payout!.merchantId,
       userId: req.user!.id,
       actorName: req.user!.name,
       actorEmail: req.user!.email,

@@ -13,7 +13,7 @@ export interface SubscriptionPlanData {
   displayOrder: number;
   maxProducts: number;
   maxTeamMembers: number;
-  maxStores: number;
+  maxMerchants: number;
   storageMb: number;
   customDomainAllowed: boolean;
   advancedAnalyticsAllowed: boolean;
@@ -35,7 +35,7 @@ export interface EntitlementsData {
 export interface InvoiceData {
   id: string;
   invoiceNumber: string;
-  storeId: string;
+  merchantId: string;
   status: 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
   subtotal: number;
   tax: number;
@@ -52,7 +52,7 @@ export interface InvoiceData {
 
 export interface SubscriptionData {
   id: string;
-  storeId: string;
+  merchantId: string;
   planId: string;
   plan: SubscriptionPlanData;
   billingInterval: 'MONTHLY' | 'ANNUAL';

@@ -79,7 +79,6 @@ const ACCOUNT_SCOPED = [
   '/products',
   '/cart',
   '/checkout',
-  '/storefront',
   '/account',
   '/customer-portal',
   '/seller',

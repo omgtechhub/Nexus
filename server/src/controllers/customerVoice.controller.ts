@@ -13,6 +13,7 @@ import {
   type ShopProduct,
   type SearchOutcome,
 } from '../services/ai/shopping.service.js';
+import { defaultCurrencyCode } from '../config/currency.js';
 
 /**
  * The shopping assistant.
@@ -59,7 +60,7 @@ export type CartAction =
    * these two turns should move the shopper to payment, so the turn says which
    * one it is rather than leaving the page to infer it.
    */
-  | { type: 'CHECKOUT'; storeId: string; confirmToken: string; stage: 'SUMMARY' | 'GO' };
+  | { type: 'CHECKOUT'; merchantId: string; confirmToken: string; stage: 'SUMMARY' | 'GO' };
 
 interface TurnResult {
   transcript: string;
@@ -101,7 +102,7 @@ interface VoiceContext {
   lastResults: ShopProduct[];
   /** What was searched for last, so "anything cheaper?" can re-run it. */
   lastQuery: string | null;
-  pendingCheckout: { token: string; storeId: string; signature: string; total: number } | null;
+  pendingCheckout: { token: string; merchantId: string; signature: string; total: number } | null;
   pendingOffer: PendingOffer | null;
   touchedAt: number;
 }
@@ -151,8 +152,8 @@ interface ClientCartLine {
   title: string;
   quantity: number;
   price: number;
-  storeId?: string;
-  storeName?: string;
+  merchantId?: string;
+  displayName?: string;
 }
 
 /**
@@ -226,7 +227,7 @@ function describe(product: ShopProduct, currency: string): string {
           product.rating.count === 1 ? '' : 's'
         }`
       : '';
-  return `${product.title} from ${product.store.name}, ${price}${rating}`;
+  return `${product.title} from ${product.merchant.name}, ${price}${rating}`;
 }
 
 /**
@@ -512,33 +513,33 @@ export async function runIntent(
 
       // One order belongs to one merchant, so a mixed bag has to be split and
       // the shopper told which store they are paying.
-      const stores = [...new Set(cart.map(l => l.storeId).filter(Boolean))] as string[];
-      if (stores.length > 1) {
-        const names = [...new Set(cart.map(l => l.storeName).filter(Boolean))] as string[];
+      const merchants = [...new Set(cart.map(l => l.merchantId).filter(Boolean))] as string[];
+      if (merchants.length > 1) {
+        const names = [...new Set(cart.map(l => l.displayName).filter(Boolean))] as string[];
         return {
           reply:
-            `Your bag has items from ${stores.length} stores — ${spokenList(names)} — and each ` +
-            'is paid separately. Say the store name you want to pay for first.',
+            `Your bag has items from ${merchants.length} merchants — ${spokenList(names)} — and each ` +
+            'is paid separately. Say the merchant name you want to pay for first.',
         };
       }
 
-      const storeId = stores[0];
-      if (!storeId) {
-        return { reply: 'Those items are missing their store, so I cannot check out. Open your bag to finish there.' };
+      const merchantId = merchants[0];
+      if (!merchantId) {
+        return { reply: 'Those items are missing their merchant, so I cannot check out. Open your bag to finish there.' };
       }
 
       const total = cart.reduce((sum, l) => sum + l.price * l.quantity, 0);
       const token = crypto.randomUUID();
-      context.pendingCheckout = { token, storeId, signature: signCart(cart), total };
+      context.pendingCheckout = { token, merchantId, signature: signCart(cart), total };
       context.pendingOffer = null;
 
       const lines = cart.map(l => `${l.quantity} ${l.title}`);
       return {
         reply:
           `That is ${spokenList(lines)}, ${spokenPrice(total, currency)} before delivery, from ` +
-          `${cart[0].storeName ?? 'this store'}. Say yes and I will take you to payment, where ` +
+          `${cart[0].displayName ?? 'this merchant'}. Say yes and I will take you to payment, where ` +
           'you authorise it yourself.',
-        action: { type: 'CHECKOUT', storeId, confirmToken: token, stage: 'SUMMARY' },
+        action: { type: 'CHECKOUT', merchantId, confirmToken: token, stage: 'SUMMARY' },
       };
     }
 
@@ -617,7 +618,7 @@ export async function runIntent(
           'You will need to authorise the payment yourself.',
         action: {
           type: 'CHECKOUT',
-          storeId: pending.storeId,
+          merchantId: pending.merchantId,
           confirmToken: pending.token,
           stage: 'GO',
         },
@@ -750,7 +751,7 @@ export async function shopVoiceCommand(req: Request, res: Response, next: NextFu
       cart = [];
     }
 
-    const currency = typeof req.body?.currency === 'string' ? req.body.currency : 'USD';
+    const currency = typeof req.body?.currency === 'string' ? req.body.currency : defaultCurrencyCode();
     const context = contextFor(userId);
     const steps = parseUtterance(transcript);
     const outcome = await runPlan(steps, context, cart, currency);
@@ -829,7 +830,7 @@ export async function shopAssistantMessage(req: Request, res: Response, next: Ne
     // the spoken route treats it that way: the shopper asked a question, and
     // "your bag is empty" is a better answer than an error.
     const cart: ClientCartLine[] = Array.isArray(req.body?.cart) ? req.body.cart : [];
-    const currency = typeof req.body?.currency === 'string' ? req.body.currency : 'USD';
+    const currency = typeof req.body?.currency === 'string' ? req.body.currency : defaultCurrencyCode();
 
     const context = contextFor(userId);
     const steps = parseUtterance(message);

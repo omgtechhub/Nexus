@@ -65,7 +65,7 @@ export class SaaSBillingService {
   /**
    * Get the store's subscription, creating a trial for a store that has none.
    */
-  async getCurrentSubscription(storeId: string) {
+  async getCurrentSubscription(merchantId: string) {
     const include = {
       plan: true,
       invoices: {
@@ -75,7 +75,7 @@ export class SaaSBillingService {
       },
     };
 
-    const sub = await prisma.subscription.findUnique({ where: { storeId }, include });
+    const sub = await prisma.subscription.findUnique({ where: { merchantId }, include });
     if (sub) return sub;
 
     // A new store needs working entitlements before it can be asked to pay for
@@ -90,7 +90,7 @@ export class SaaSBillingService {
 
     return prisma.subscription.create({
       data: {
-        storeId,
+        merchantId,
         planId: trialPlan.id,
         billingInterval: BillingInterval.MONTHLY,
         status: SubscriptionStatus.TRIALING,
@@ -111,7 +111,7 @@ export class SaaSBillingService {
    * `settlePaidInvoice` applies it. Nothing here grants an entitlement.
    */
   async subscribeToPlan(
-    storeId: string,
+    merchantId: string,
     userEmail: string,
     userName: string,
     planCode: string,
@@ -130,10 +130,10 @@ export class SaaSBillingService {
 
     // The subscription row has to exist so the invoice can hang off it, but it
     // keeps its current plan. A store with no row gets its trial first.
-    const sub = (await this.getCurrentSubscription(storeId))
+    const sub = (await this.getCurrentSubscription(merchantId))
       ?? (await prisma.subscription.create({
         data: {
-          storeId,
+          merchantId,
           planId: plan.id,
           billingInterval: interval as BillingInterval,
           status: SubscriptionStatus.PAST_DUE,
@@ -154,7 +154,7 @@ export class SaaSBillingService {
       email: userEmail,
       reference: ref,
       customerName: userName,
-      metadata: { storeId, planCode, interval, type: 'SAAS_SUBSCRIPTION' },
+      metadata: { merchantId, planCode, interval, type: 'SAAS_SUBSCRIPTION' },
     });
 
     const periodStart = new Date();
@@ -168,7 +168,7 @@ export class SaaSBillingService {
     const invoice = await prisma.invoice.create({
       data: {
         invoiceNumber,
-        storeId,
+        merchantId,
         subscriptionId: sub.id,
         planId: plan.id,
         // Not PAID. Nobody has paid yet.
@@ -189,7 +189,7 @@ export class SaaSBillingService {
 
     await prisma.billingTransaction.create({
       data: {
-        storeId,
+        merchantId,
         subscriptionId: sub.id,
         invoiceId: invoice.id,
         amount: price,
@@ -206,7 +206,7 @@ export class SaaSBillingService {
     });
 
     await logAuditEvent({
-      storeId,
+      merchantId,
       userId: undefined,
       actorName: userName,
       actorEmail: userEmail,
@@ -343,7 +343,7 @@ export class SaaSBillingService {
    * decision, and the alternative (silently refunding the difference) moves
    * money without anyone asking for it.
    */
-  async changePlan(storeId: string, newPlanCode: string) {
+  async changePlan(merchantId: string, newPlanCode: string) {
     const plan = await prisma.subscriptionPlan.findUnique({ where: { code: newPlanCode } });
 
     if (!plan || !plan.isActive) {
@@ -352,9 +352,9 @@ export class SaaSBillingService {
       throw err;
     }
 
-    const currentSub = await this.getCurrentSubscription(storeId);
+    const currentSub = await this.getCurrentSubscription(merchantId);
     if (!currentSub) {
-      const err: any = new Error('Store subscription not found');
+      const err: any = new Error('Merchant subscription not found');
       err.statusCode = 404;
       throw err;
     }
@@ -377,7 +377,7 @@ export class SaaSBillingService {
 
     const fromPlanId = currentSub.planId;
     const updated = await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: { planId: plan.id },
       include: { plan: true },
     });
@@ -407,10 +407,10 @@ export class SaaSBillingService {
    * Same rule as `changePlan`: monthly → annual multiplies what is owed, so it
    * goes through the gateway. Annual → monthly lowers it and applies at once.
    */
-  async changeInterval(storeId: string, interval: 'MONTHLY' | 'ANNUAL') {
-    const currentSub = await this.getCurrentSubscription(storeId);
+  async changeInterval(merchantId: string, interval: 'MONTHLY' | 'ANNUAL') {
+    const currentSub = await this.getCurrentSubscription(merchantId);
     if (!currentSub) {
-      const err: any = new Error('Store subscription not found');
+      const err: any = new Error('Merchant subscription not found');
       err.statusCode = 404;
       throw err;
     }
@@ -431,7 +431,7 @@ export class SaaSBillingService {
     }
 
     const sub = await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: { billingInterval: interval as BillingInterval },
       include: { plan: true },
     });
@@ -452,8 +452,8 @@ export class SaaSBillingService {
   /**
    * Cancel Subscription at period end
    */
-  async cancelSubscription(storeId: string) {
-    const currentSub = await prisma.subscription.findUnique({ where: { storeId } });
+  async cancelSubscription(merchantId: string) {
+    const currentSub = await prisma.subscription.findUnique({ where: { merchantId } });
     if (!currentSub) {
       const err: any = new Error('No active subscription found to cancel');
       err.statusCode = 404;
@@ -461,7 +461,7 @@ export class SaaSBillingService {
     }
 
     const updated = await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: {
         cancelAtPeriodEnd: true,
         cancelledAt: new Date(),
@@ -489,8 +489,8 @@ export class SaaSBillingService {
    * EXPIRED or PAST_DUE — that would be reinstating a lapsed paid plan with no
    * payment, which is `subscribeToPlan`'s job.
    */
-  async resumeSubscription(storeId: string) {
-    const currentSub = await prisma.subscription.findUnique({ where: { storeId } });
+  async resumeSubscription(merchantId: string) {
+    const currentSub = await prisma.subscription.findUnique({ where: { merchantId } });
     if (!currentSub) {
       const err: any = new Error('No subscription found to resume');
       err.statusCode = 404;
@@ -510,7 +510,7 @@ export class SaaSBillingService {
     }
 
     const updated = await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: {
         cancelAtPeriodEnd: false,
         cancelledAt: null,

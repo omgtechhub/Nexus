@@ -73,7 +73,7 @@ describe('bootstrap: the plan definitions are the deliverable', () => {
     }
   });
 
-  it('stores whole naira, not floating-point dust', () => {
+  it('merchants whole naira, not floating-point dust', () => {
     // 50_000 * 1.1 is 55000.00000000001. Stored unrounded, the pricing card
     // rendered "Saves ₦5,000.00" beside a neighbouring tier's "₦8,000".
     expect(50_000 * MONTHLY_UPLIFT).not.toBe(55_000);

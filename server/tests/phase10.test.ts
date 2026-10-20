@@ -10,7 +10,7 @@ describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verificatio
   const password = 'Password123!';
 
   let merchantCookie: string;
-  let storeId: string;
+  let merchantId: string;
   let productId: string;
   let customerId: string;
   let orderId: string;
@@ -31,19 +31,19 @@ describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verificatio
     expect(healthRes.body.status).toBe('ok');
   });
 
-  it('2. End-to-End E2E Merchant Onboarding & Store Creation', async () => {
+  it('2. End-to-End E2E Merchant Onboarding & Merchant Creation', async () => {
     const regRes = await request.post('/api/auth/register').send({
-      name: 'Phase 10 Store Owner',
+      name: 'Phase 10 Merchant Owner',
       email: merchantEmail,
       password,
-      storeName: 'Phase 10 Production Store',
+      displayName: 'Phase 10 Production Merchant',
     });
 
     expect(regRes.status).toBe(201);
     expect(regRes.body.success).toBe(true);
     merchantCookie = regRes.headers['set-cookie'][0];
-    storeId = regRes.body.data.store.id;
-    expect(storeId).toBeDefined();
+    merchantId = regRes.body.data.merchant.id;
+    expect(merchantId).toBeDefined();
   });
 
   it('3. Product Catalog & Inventory Reservation Workflow', async () => {
@@ -99,7 +99,7 @@ describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verificatio
 
     // Verify stock was decremented from 50 to 48
     const updatedProd = await prisma.inventoryItem.findFirst({
-      where: { storeId, productId },
+      where: { merchantId, productId },
     });
     expect(updatedProd?.stock).toBe(48);
   });
@@ -117,17 +117,6 @@ describe('Nexus Commerce Phase 10 Production Readiness & E2E Release Verificatio
     expect(inviteRes.status).toBe(201);
     expect(inviteRes.body.success).toBe(true);
     expect(inviteRes.body.data.invitation.token).toBeDefined();
-  });
-
-  it('6. Custom Domain Mapping & DNS Status Check', async () => {
-    const domainName = `p10-store-${Date.now()}.nexusshop.com`;
-    const addDomainRes = await request
-      .post('/api/domains')
-      .set('Cookie', [merchantCookie])
-      .send({ domain: domainName });
-
-    expect(addDomainRes.status).toBe(201);
-    expect(addDomainRes.body.data.domain).toBe(domainName);
   });
 
   it('7. SaaS Subscription Plan Entitlements & Invoice Breakdown', async () => {

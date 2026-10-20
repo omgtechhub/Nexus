@@ -21,7 +21,7 @@ describe('Hardening: CSRF surface, CORS and origin handling', () => {
 
   beforeAll(async () => {
     const res = await request.post('/api/auth/register').send({
-      name: 'Harden Merchant', email, password, storeName: `Harden Store ${stamp}`,
+      name: 'Harden Merchant', email, password, displayName: `Harden Merchant ${stamp}`,
     });
     expect(res.status).toBe(201);
     cookie = res.headers['set-cookie'][0];

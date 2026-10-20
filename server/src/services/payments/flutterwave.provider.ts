@@ -8,6 +8,7 @@ import {
   RefundResult,
 } from './payment.interface.js';
 import { PaymentGatewayError, PaymentNotConfiguredError, isUsableSecretKey } from './errors.js';
+import { defaultCurrencyCode } from '../../config/currency.js';
 
 /**
  * Flutterwave.
@@ -77,7 +78,7 @@ export class FlutterwaveProvider implements IPaymentProvider {
       body: JSON.stringify({
         tx_ref: params.reference,
         amount: params.amount,
-        currency: params.currency || 'USD',
+        currency: params.currency || defaultCurrencyCode(),
         redirect_url: params.callbackUrl,
         customer: { email: params.email, name: params.customerName },
         meta: params.metadata,
@@ -118,7 +119,7 @@ export class FlutterwaveProvider implements IPaymentProvider {
       success: status === 'SUCCESS',
       reference: data.tx_ref || reference,
       amount: typeof data.amount === 'number' ? data.amount : 0,
-      currency: data.currency || 'USD',
+      currency: data.currency || defaultCurrencyCode(),
       status,
       gatewayResponse: data.processor_response,
       rawResponse: data,
@@ -152,7 +153,7 @@ export class FlutterwaveProvider implements IPaymentProvider {
       success: true,
       refundReference: String(data.id || params.transactionReference),
       amount: typeof data.amount_refunded === 'number' ? data.amount_refunded : params.amount || 0,
-      currency: data.currency || 'USD',
+      currency: data.currency || defaultCurrencyCode(),
       status: 'SUCCESS',
       rawResponse: data,
     };

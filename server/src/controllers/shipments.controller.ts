@@ -20,16 +20,16 @@ const updateShipmentSchema = z.object({
  */
 export async function fulfillOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { orderId } = req.params;
     const { carrier, trackingNumber, notes } = fulfillOrderSchema.parse(req.body);
 
     const order = await prisma.order.findFirst({
-      where: { id: orderId, storeId },
+      where: { id: orderId, merchantId },
     });
 
     if (!order) {
-      return res.status(404).json({ success: false, error: 'Order not found for store' });
+      return res.status(404).json({ success: false, error: 'Order not found for merchant' });
     }
 
     if (order.fulfillmentStatus === FulfillmentStatus.FULFILLED) {
@@ -49,7 +49,7 @@ export async function fulfillOrder(req: Request, res: Response, next: NextFuncti
       const shipment = await tx.shipment.create({
         data: {
           orderId: order.id,
-          storeId,
+          merchantId,
           carrier,
           trackingNumber,
           status: ShipmentStatus.IN_TRANSIT,
@@ -98,16 +98,16 @@ export async function fulfillOrder(req: Request, res: Response, next: NextFuncti
  */
 export async function updateShipmentStatus(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
     const { status, location, description } = updateShipmentSchema.parse(req.body);
 
     const shipment = await prisma.shipment.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!shipment) {
-      return res.status(404).json({ success: false, error: 'Shipment not found for store' });
+      return res.status(404).json({ success: false, error: 'Shipment not found for merchant' });
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -147,9 +147,9 @@ export async function updateShipmentStatus(req: Request, res: Response, next: Ne
  */
 export async function getShipments(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const shipments = await prisma.shipment.findMany({
-      where: { storeId },
+      where: { merchantId },
       include: {
         order: { select: { id: true, orderNumber: true, customerName: true } },
         trackingEvents: { orderBy: { timestamp: 'desc' } },
@@ -169,12 +169,12 @@ export async function getShipments(req: Request, res: Response, next: NextFuncti
 export async function getOrderShipment(req: Request, res: Response, next: NextFunction) {
   try {
     const { orderId } = req.params;
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
 
     // Scoped to the caller's store, so another merchant's shipment simply does
     // not match rather than being found and then checked.
     const shipment = await prisma.shipment.findFirst({
-      where: { orderId, storeId },
+      where: { orderId, merchantId },
       include: {
         trackingEvents: { orderBy: { timestamp: 'desc' } },
       },

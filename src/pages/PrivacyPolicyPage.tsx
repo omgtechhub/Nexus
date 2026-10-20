@@ -40,7 +40,7 @@ import { CONTACT, LEGAL_ENTITY, POSTAL_ADDRESS } from '../config/contact';
  *    now composes a real message to the privacy mailbox.
  *  - **The controller/processor split.** It cast the merchant as controller
  *    of shopper data with Nexus "strictly a processor under your direction".
- *    That describes a hosted-storefront product. Nexus is a single
+ *    That describes a hosted-shop product. Nexus is a single
  *    marketplace: it runs the shopfront, takes the payment and issues the
  *    receipt, so it is the controller of shopper data. Getting this backwards
  *    pushes obligations onto merchants who have no way to discharge them, and
@@ -152,7 +152,7 @@ export function PrivacyPolicyPage() {
                 </span>
               </h1>
               <p className="text-lg text-secondary leading-relaxed mb-6">
-                How Nexus collects, uses, stores and shares personal data — written to describe
+                How Nexus collects, uses, merchants and shares personal data — written to describe
                 what the platform actually does, so that you can hold us to it.
               </p>
               <div className="flex flex-wrap items-center gap-4 text-xs text-muted">
@@ -253,7 +253,7 @@ export function PrivacyPolicyPage() {
                   <h2 className="text-2xl font-bold text-primary">2. Our role in your data</h2>
                 </div>
                 <p className="text-body leading-relaxed">
-                  Nexus is a marketplace, not a storefront host. We run the shopfront, we take the
+                  Nexus is a marketplace, not a shop host. We run the shopfront, we take the
                   payment and we issue the receipt. That makes{' '}
                   <strong className="text-primary">Nexus the data controller</strong> for shopper
                   personal data — we decide what is collected at checkout and why — rather than a
@@ -295,7 +295,7 @@ export function PrivacyPolicyPage() {
                     Google password.
                   </li>
                   <li>
-                    <strong className="text-primary">Seller details.</strong> Business name, store
+                    <strong className="text-primary">Seller details.</strong> Business name, merchant
                     settings, and the bank account used for payouts.
                   </li>
                   <li>
@@ -307,13 +307,13 @@ export function PrivacyPolicyPage() {
                     reference, amount, currency and status returned by the payment provider.{' '}
                     <strong className="text-primary">Card details are entered on the payment
                     provider&apos;s own page and never reach Nexus servers</strong> — we neither
-                    receive nor store a card number.
+                    receive nor merchant a card number.
                   </li>
                   <li>
                     <strong className="text-primary">Session and security records.</strong> For each
-                    sign-in we store the IP address and browser user-agent alongside a hashed
+                    sign-in we merchant the IP address and browser user-agent alongside a hashed
                     session token, so you can see and revoke your own sessions and so we can
-                    investigate abuse. Seller actions on a store are written to an audit log.
+                    investigate abuse. Seller actions on a merchant are written to an audit log.
                   </li>
                   <li>
                     <strong className="text-primary">Support and assistant messages.</strong> What
@@ -405,7 +405,7 @@ export function PrivacyPolicyPage() {
                     </strong>
                     <p className="text-xs text-secondary leading-relaxed">
                       If you choose to enrol your voice so that spoken commands can be checked
-                      against it, we store a <em>voiceprint</em>: a numerical representation of how
+                      against it, we merchant a <em>voiceprint</em>: a numerical representation of how
                       your voice sounds, derived from your enrolment recordings. The recordings
                       themselves are not kept, and the voiceprint cannot be played back as audio.
                     </p>
@@ -448,7 +448,7 @@ export function PrivacyPolicyPage() {
                   </div>
                   <div className="p-4 rounded-xl bg-[var(--surface-3)] border border-[var(--ink)]/10 space-y-2">
                     <div className="flex items-center gap-2 text-[var(--brand-green-ink)] text-xs font-bold">
-                      <CheckCircle2 size={14} /> Scoped to your own store
+                      <CheckCircle2 size={14} /> Scoped to your own merchant
                     </div>
                     <p className="text-xs text-secondary leading-relaxed">
                       When Nexus IQ answers a seller&apos;s question it reads that seller&apos;s own
@@ -528,7 +528,7 @@ export function PrivacyPolicyPage() {
                   <div className="p-4 rounded-xl bg-[var(--ink)]/5 border border-[var(--ink)]/10 space-y-1">
                     <span className="text-[var(--brand-yellow-ink)] font-bold block">Access control</span>
                     <p className="text-muted leading-relaxed">
-                      Every record is scoped to the store that owns it, seller roles limit what
+                      Every record is scoped to the merchant that owns it, seller roles limit what
                       each team member can do, and privileged actions are written to an audit log.
                     </p>
                   </div>

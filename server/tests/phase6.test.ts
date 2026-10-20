@@ -6,14 +6,14 @@ import { prisma } from '../src/prisma.js';
 const request = supertest(app);
 
 describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifications, Emails & Background Jobs)', () => {
-  const storeAEmail = `storeA_p6_${Date.now()}@nexus.io`;
-  const storeBEmail = `storeB_p6_${Date.now()}@nexus.io`;
+  const merchantAEmail = `merchantA_p6_${Date.now()}@nexus.io`;
+  const merchantBEmail = `merchantB_p6_${Date.now()}@nexus.io`;
   const password = 'Password123!';
 
-  let storeACookie: string;
-  let storeBCookie: string;
-  let storeAId: string;
-  let storeBId: string;
+  let merchantACookie: string;
+  let merchantBCookie: string;
+  let merchantAId: string;
+  let merchantBId: string;
 
   let activeProductId: string;
   let activeVariantId: string;
@@ -24,30 +24,30 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     // 1. Register Store A
     const resA = await request.post('/api/auth/register').send({
       name: 'Commerce Alpha Owner',
-      email: storeAEmail,
+      email: merchantAEmail,
       password,
-      storeName: 'Commerce Alpha',
+      displayName: 'Commerce Alpha',
     });
     expect(resA.status).toBe(201);
-    storeACookie = resA.headers['set-cookie'][0];
-    storeAId = resA.body.data.store.id;
+    merchantACookie = resA.headers['set-cookie'][0];
+    merchantAId = resA.body.data.merchant.id;
 
     // 2. Register Store B
     const resB = await request.post('/api/auth/register').send({
       name: 'Commerce Beta Owner',
-      email: storeBEmail,
+      email: merchantBEmail,
       password,
-      storeName: 'Commerce Beta',
+      displayName: 'Commerce Beta',
     });
     expect(resB.status).toBe(201);
-    storeBCookie = resB.headers['set-cookie'][0];
-    storeBId = resB.body.data.store.id;
+    merchantBCookie = resB.headers['set-cookie'][0];
+    merchantBId = resB.body.data.merchant.id;
 
     // 3. Create active product for Store A
     const skuP6 = `SKU-P6-${Date.now()}`;
     const prodARes = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Phase 6 Denim Jacket',
         description: 'Classic vintage indigo denim jacket',
@@ -66,7 +66,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     // Create Discount Code
     const createRes = await request
       .post('/api/discounts')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         code: discountCodeName,
         type: 'PERCENTAGE',
@@ -81,14 +81,14 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     discountId = createRes.body.data.id;
 
     // List Discounts
-    const listRes = await request.get('/api/discounts').set('Cookie', [storeACookie]);
+    const listRes = await request.get('/api/discounts').set('Cookie', [merchantACookie]);
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.length).toBeGreaterThanOrEqual(1);
 
     // Update Discount
     const updateRes = await request
       .patch(`/api/discounts/${discountId}`)
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ maxRedemptions: 100 });
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.data.maxRedemptions).toBe(100);
@@ -99,7 +99,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     const validRes = await request.post('/api/discounts/validate').send({
       code: discountCodeName,
       subtotal: 100.0,
-      storeDomain: storeAId,
+      merchantRef: merchantAId,
     });
     expect(validRes.status).toBe(200);
     expect(validRes.body.valid).toBe(true);
@@ -110,7 +110,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     const minOrderRes = await request.post('/api/discounts/validate').send({
       code: discountCodeName,
       subtotal: 30.0,
-      storeDomain: storeAId,
+      merchantRef: merchantAId,
     });
     expect(minOrderRes.status).toBe(200);
     expect(minOrderRes.body.valid).toBe(false);
@@ -120,7 +120,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     const invalidRes = await request.post('/api/discounts/validate').send({
       code: 'INVALID_CODE_99',
       subtotal: 100.0,
-      storeDomain: storeAId,
+      merchantRef: merchantAId,
     });
     expect(invalidRes.status).toBe(200);
     expect(invalidRes.body.valid).toBe(false);
@@ -128,7 +128,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
 
   it('3. Checkout Discount Integration: Applies discount code to order and increments redemptions count', async () => {
     const checkoutRes = await request
-      .post(`/api/storefront/${storeAId}/checkout`)
+      .post(`/api/shop/${merchantAId}/checkout`)
       .send({
         items: [{ variantId: activeVariantId, quantity: 1 }],
         customer: { email: 'phase6buyer@example.com', name: 'Phase6 Customer' },
@@ -156,7 +156,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
   it('4. Analytics API with Date Range Filtering: Aggregates real revenue, orders, and customer metrics', async () => {
     const res30d = await request
       .get('/api/analytics?range=30d')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(res30d.status).toBe(200);
     expect(res30d.body.success).toBe(true);
@@ -165,7 +165,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
 
     const resToday = await request
       .get('/api/analytics?range=today')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(resToday.status).toBe(200);
     expect(resToday.body.data.range).toBe('today');
@@ -175,7 +175,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     // List notifications (should include new order notification created in test 3)
     const notifRes = await request
       .get('/api/notifications')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(notifRes.status).toBe(200);
     expect(notifRes.body.success).toBe(true);
@@ -186,7 +186,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     // Mark single notification read
     const markReadRes = await request
       .patch(`/api/notifications/${firstNotifId}/read`)
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(markReadRes.status).toBe(200);
     expect(markReadRes.body.data.read).toBe(true);
@@ -194,7 +194,7 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     // Mark all read
     const markAllRes = await request
       .patch('/api/notifications/read-all')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(markAllRes.status).toBe(200);
     expect(markAllRes.body.success).toBe(true);
@@ -226,20 +226,20 @@ describe('Nexus Commerce Phase 6 Integration Tests (Discounts, Analytics, Notifi
     );
   });
 
-  it('7. Store Multi-Tenant Security Isolation: Ensures Store B cannot view Store A discounts or notifications', async () => {
+  it('7. Merchant Multi-Tenant Security Isolation: Ensures Merchant B cannot view Merchant A discounts or notifications', async () => {
     // Store B trying to read Store A discounts
-    const storeBDiscounts = await request
+    const merchantBDiscounts = await request
       .get('/api/discounts')
-      .set('Cookie', [storeBCookie]);
+      .set('Cookie', [merchantBCookie]);
 
-    expect(storeBDiscounts.status).toBe(200);
-    const codesInB = storeBDiscounts.body.data.map((d: any) => d.code);
+    expect(merchantBDiscounts.status).toBe(200);
+    const codesInB = merchantBDiscounts.body.data.map((d: any) => d.code);
     expect(codesInB).not.toContain(discountCodeName.toUpperCase());
 
     // Store B trying to delete Store A discount code
     const deleteCrossRes = await request
       .delete(`/api/discounts/${discountId}`)
-      .set('Cookie', [storeBCookie]);
+      .set('Cookie', [merchantBCookie]);
 
     expect(deleteCrossRes.status).toBe(404);
   });

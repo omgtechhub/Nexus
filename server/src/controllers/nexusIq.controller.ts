@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../prisma.js';
 import { AiInsightStatus, AiMessageRole, AiUsageKind } from '@prisma/client';
 import { getAiProvider } from '../services/ai/index.js';
-import { regenerateInsights, buildStoreContext } from '../services/ai/insights.service.js';
+import { regenerateInsights, buildMerchantContext } from '../services/ai/insights.service.js';
 import { getUsage, recordUsage } from '../services/ai/usage.service.js';
 
 const messageSchema = z.object({
@@ -20,9 +20,9 @@ function providerInfo() {
 
 export async function listInsights(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const insights = await prisma.aiInsight.findMany({
-      where: { storeId, status: AiInsightStatus.READY },
+      where: { merchantId, status: AiInsightStatus.READY },
       orderBy: [{ severity: 'desc' }, { generatedAt: 'desc' }],
     });
 
@@ -34,10 +34,10 @@ export async function listInsights(req: Request, res: Response, next: NextFuncti
 
 export async function refreshInsights(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
-    const count = await regenerateInsights(storeId);
+    const merchantId = req.merchant!.id;
+    const count = await regenerateInsights(merchantId);
     const insights = await prisma.aiInsight.findMany({
-      where: { storeId, status: AiInsightStatus.READY },
+      where: { merchantId, status: AiInsightStatus.READY },
       orderBy: [{ severity: 'desc' }, { generatedAt: 'desc' }],
     });
 
@@ -54,12 +54,12 @@ export async function refreshInsights(req: Request, res: Response, next: NextFun
 
 export async function dismissInsight(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     // Scoped to the caller's store, so another store's insight simply does not match.
     const updated = await prisma.aiInsight.updateMany({
-      where: { id, storeId },
+      where: { id, merchantId },
       data: { status: AiInsightStatus.DISMISSED, dismissedAt: new Date() },
     });
 
@@ -79,7 +79,7 @@ export async function dismissInsight(req: Request, res: Response, next: NextFunc
 export async function listConversations(req: Request, res: Response, next: NextFunction) {
   try {
     const conversations = await prisma.aiConversation.findMany({
-      where: { storeId: req.store!.id },
+      where: { merchantId: req.merchant!.id },
       orderBy: { updatedAt: 'desc' },
       take: 50,
       include: { _count: { select: { messages: true } } },
@@ -94,7 +94,7 @@ export async function listConversations(req: Request, res: Response, next: NextF
 export async function createConversation(req: Request, res: Response, next: NextFunction) {
   try {
     const conversation = await prisma.aiConversation.create({
-      data: { storeId: req.store!.id, userId: req.user!.id },
+      data: { merchantId: req.merchant!.id, userId: req.user!.id },
       include: { messages: true },
     });
 
@@ -107,7 +107,7 @@ export async function createConversation(req: Request, res: Response, next: Next
 export async function getConversation(req: Request, res: Response, next: NextFunction) {
   try {
     const conversation = await prisma.aiConversation.findFirst({
-      where: { id: req.params.id, storeId: req.store!.id },
+      where: { id: req.params.id, merchantId: req.merchant!.id },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
 
@@ -125,7 +125,7 @@ export async function getConversation(req: Request, res: Response, next: NextFun
 export async function deleteConversation(req: Request, res: Response, next: NextFunction) {
   try {
     const deleted = await prisma.aiConversation.deleteMany({
-      where: { id: req.params.id, storeId: req.store!.id },
+      where: { id: req.params.id, merchantId: req.merchant!.id },
     });
 
     if (deleted.count === 0) {
@@ -141,11 +141,11 @@ export async function deleteConversation(req: Request, res: Response, next: Next
 
 export async function sendMessage(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { content } = messageSchema.parse(req.body);
 
     const conversation = await prisma.aiConversation.findFirst({
-      where: { id: req.params.id, storeId },
+      where: { id: req.params.id, merchantId },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
 
@@ -155,7 +155,7 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
     }
 
     const provider = getAiProvider();
-    const system = await buildStoreContext(storeId);
+    const system = await buildMerchantContext(merchantId);
 
     const turns = [
       ...conversation.messages.map(m => ({
@@ -196,7 +196,7 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
     ]);
 
     await recordUsage({
-      storeId,
+      merchantId,
       kind: AiUsageKind.CHAT,
       provider: answer.provider,
       model: answer.model,
@@ -218,7 +218,7 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
 
 export async function getUsageSummary(req: Request, res: Response, next: NextFunction) {
   try {
-    const usage = await getUsage(req.store!.id);
+    const usage = await getUsage(req.merchant!.id);
     res.json({ success: true, data: usage, meta: providerInfo() });
   } catch (err) {
     next(err);

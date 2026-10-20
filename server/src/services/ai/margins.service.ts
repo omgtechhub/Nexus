@@ -1,5 +1,6 @@
-import { PaymentStatus, OrderStatus, ProductStatus, StoreStatus } from '@prisma/client';
+import { PaymentStatus, OrderStatus, ProductStatus, MerchantStatus } from '@prisma/client';
 import { prisma } from '../../prisma.js';
+import { defaultCurrencyLabel } from '../../config/currency.js';
 
 /**
  * Profit, loss and price position — computed, never estimated.
@@ -73,19 +74,19 @@ function round(value: number): number {
  * numbers differ.
  */
 export async function computeProfitSummary(
-  storeId: string,
+  merchantId: string,
   windowDays = 30
 ): Promise<ProfitSummary> {
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
-  const [store, orders] = await Promise.all([
-    prisma.store.findUnique({
-      where: { id: storeId },
+  const [merchant, orders] = await Promise.all([
+    prisma.merchant.findUnique({
+      where: { id: merchantId },
       select: { settings: { select: { currency: true } } },
     }),
     prisma.order.findMany({
       where: {
-        storeId,
+        merchantId,
         createdAt: { gte: since },
         paymentStatus: { in: PAID_STATES },
         status: { notIn: EXCLUDED_STATES },
@@ -164,7 +165,7 @@ export async function computeProfitSummary(
 
   return {
     windowDays,
-    currency: store?.settings?.currency || 'USD',
+    currency: merchant?.settings?.currency || defaultCurrencyLabel(),
     orders: orders.length,
     revenue: round(revenue),
     cost: round(cost),
@@ -219,11 +220,11 @@ function median(values: number[]): number {
 const MIN_SAMPLE = 3;
 
 export async function computePriceBenchmarks(
-  storeId: string,
+  merchantId: string,
   limit = 10
 ): Promise<PriceBenchmark[]> {
   const mine = await prisma.product.findMany({
-    where: { storeId, status: ProductStatus.ACTIVE },
+    where: { merchantId, status: ProductStatus.ACTIVE },
     select: { id: true, title: true, category: true, price: true },
     orderBy: { updatedAt: 'desc' },
     take: limit,
@@ -235,9 +236,9 @@ export async function computePriceBenchmarks(
   // Everyone else's live listings in those categories, in one query.
   const others = await prisma.product.findMany({
     where: {
-      storeId: { not: storeId },
+      merchantId: { not: merchantId },
       status: ProductStatus.ACTIVE,
-      store: { status: StoreStatus.ACTIVE },
+      merchant: { status: MerchantStatus.ACTIVE },
       category: { in: categories },
     },
     select: { category: true, price: true },
@@ -294,10 +295,10 @@ export async function computePriceBenchmarks(
  * Appended to `buildStoreContext`, so a spoken or typed question is answered
  * from the same figures either way.
  */
-export async function buildMarginContext(storeId: string): Promise<string[]> {
+export async function buildMarginContext(merchantId: string): Promise<string[]> {
   const [profit, benchmarks] = await Promise.all([
-    computeProfitSummary(storeId),
-    computePriceBenchmarks(storeId, 5),
+    computeProfitSummary(merchantId),
+    computePriceBenchmarks(merchantId, 5),
   ]);
 
   const lines: string[] = [];
@@ -348,7 +349,7 @@ export async function buildMarginContext(storeId: string): Promise<string[]> {
       lines.push(
         `- price of ${b.title}: ${cur} ${b.yourPrice}, ${b.position} the Nexus median of ` +
           `${cur} ${b.marketMedian} for ${b.category} (${b.differencePercent}%, ` +
-          `range ${cur} ${b.marketLow}-${b.marketHigh}, ${b.sampleSize} listings from other stores)`
+          `range ${cur} ${b.marketLow}-${b.marketHigh}, ${b.sampleSize} listings from other merchants)`
       );
     }
   }

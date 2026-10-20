@@ -1,9 +1,9 @@
-import { User, Store, StoreMember, Role } from '@prisma/client';
+import { User, Merchant, MerchantMember, Role } from '@prisma/client';
 
 export interface AuthenticatedUser extends Omit<User, 'passwordHash'> {}
 
 export interface AuthenticatedContext {
   user: AuthenticatedUser;
-  store: Store;
-  membership: StoreMember;
+  merchant: Merchant;
+  membership: MerchantMember;
 }

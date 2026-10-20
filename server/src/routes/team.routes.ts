@@ -8,7 +8,7 @@ import {
   updateMemberRole,
   removeMember,
 } from '../controllers/team.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/rbac.middleware.js';
 
 export const teamRouter = Router();
@@ -18,7 +18,7 @@ teamRouter.use(authMiddleware);
 teamRouter.post('/accept-invite', acceptInvitation);
 teamRouter.post('/invitations/accept', acceptInvitation);
 
-teamRouter.use(requireStoreMembership);
+teamRouter.use(requireMerchantMembership);
 teamRouter.get('/', getTeam);
 teamRouter.post('/invite', requireRole(['OWNER', 'ADMIN']), createInvitation);
 teamRouter.post('/invitations', requireRole(['OWNER', 'ADMIN']), createInvitation);

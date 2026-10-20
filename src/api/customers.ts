@@ -37,3 +37,17 @@ export async function updateCustomerApi(id: string, updates: Partial<Customer>):
 export async function deleteCustomerApi(id: string): Promise<void> {
   await apiClient(`/customers/${id}`, { method: 'DELETE' });
 }
+
+/**
+ * Emails one of this merchant's own customers.
+ *
+ * The recipient address is resolved on the server from the customer id, so it
+ * is never something the browser can choose.
+ */
+export async function emailCustomerApi(id: string, subject: string, body: string): Promise<string> {
+  const res = await apiClient<{ success: boolean; data: { to: string } }>(`/customers/${id}/email`, {
+    method: 'POST',
+    body: JSON.stringify({ subject, body }),
+  });
+  return res.data.to;
+}

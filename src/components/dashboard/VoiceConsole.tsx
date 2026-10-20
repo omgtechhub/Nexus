@@ -243,7 +243,7 @@ function CommandPanel({
           doc: this decides whether IQ answers, not what it is allowed to see. */}
       <p className="text-[11px] leading-relaxed text-muted">
         Voice matching decides whether Nexus IQ replies. It is not a security check — your
-        sign-in is what protects your store&apos;s data.
+        sign-in is what protects your merchant&apos;s data.
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { uploadImage, deleteUploadedImage } from '../controllers/upload.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 import { uploadRateLimiter } from '../middleware/rateLimit.middleware.js';
 
 /**
@@ -28,7 +28,7 @@ const upload = multer({
 export const uploadRouter = Router();
 
 uploadRouter.use(authMiddleware);
-uploadRouter.use(requireStoreMembership);
+uploadRouter.use(requireMerchantMembership);
 
 // The limiter runs before multer, so a flood is rejected before 10 MB per
 // request is buffered into memory.

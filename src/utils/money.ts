@@ -21,7 +21,7 @@
  */
 
 /** The ISO code every figure in the app is denominated in. */
-export const PLATFORM_CURRENCY = (import.meta.env.VITE_DEFAULT_CURRENCY || 'USD')
+export const PLATFORM_CURRENCY = (import.meta.env.VITE_DEFAULT_CURRENCY || 'NGN')
   .trim()
   .toUpperCase();
 

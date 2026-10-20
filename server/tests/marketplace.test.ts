@@ -13,13 +13,13 @@ const request = supertest(app);
  * leaves out (anything a merchant would not publish), and what it refuses to
  * list (drafts, archived products, and stores that are not live).
  */
-describe('Marketplace: the public cross-store catalogue', () => {
+describe('Marketplace: the public cross-merchant catalogue', () => {
   const stamp = Date.now();
   const password = 'Password123!';
 
-  let storeAId: string;
-  let storeBId: string;
-  let suspendedStoreId: string;
+  let merchantAId: string;
+  let merchantBId: string;
+  let suspendedMerchantId: string;
   let liveSlug: string;
   let draftSlug: string;
 
@@ -34,31 +34,31 @@ describe('Marketplace: the public cross-store catalogue', () => {
       name: 'MP Merchant A',
       email: `mp_a_${stamp}@nexus.io`,
       password,
-      storeName: `MP Store A ${stamp}`,
+      displayName: `MP Merchant A ${stamp}`,
     });
     expect(merchantA.status).toBe(201);
     const cookieA = merchantA.headers['set-cookie'][0];
-    storeAId = merchantA.body.data.store.id;
+    merchantAId = merchantA.body.data.merchant.id;
 
     const merchantB = await request.post('/api/auth/register').send({
       name: 'MP Merchant B',
       email: `mp_b_${stamp}@nexus.io`,
       password,
-      storeName: `MP Store B ${stamp}`,
+      displayName: `MP Merchant B ${stamp}`,
     });
     expect(merchantB.status).toBe(201);
     const cookieB = merchantB.headers['set-cookie'][0];
-    storeBId = merchantB.body.data.store.id;
+    merchantBId = merchantB.body.data.merchant.id;
 
     const suspended = await request.post('/api/auth/register').send({
       name: 'MP Merchant S',
       email: `mp_s_${stamp}@nexus.io`,
       password,
-      storeName: `MP Store S ${stamp}`,
+      displayName: `MP Merchant S ${stamp}`,
     });
     expect(suspended.status).toBe(201);
     const cookieS = suspended.headers['set-cookie'][0];
-    suspendedStoreId = suspended.body.data.store.id;
+    suspendedMerchantId = suspended.body.data.merchant.id;
 
     const live = await createProduct(cookieA, {
       title: `MP Live Lamp ${stamp}`,
@@ -82,7 +82,7 @@ describe('Marketplace: the public cross-store catalogue', () => {
     draftSlug = draft.slug;
 
     await createProduct(cookieB, {
-      title: `MP Other Store Chair ${stamp}`,
+      title: `MP Other Merchant Chair ${stamp}`,
       price: 300,
       sku: `MP-B-${stamp}`,
       category: `MPCat${stamp}`,
@@ -97,23 +97,23 @@ describe('Marketplace: the public cross-store catalogue', () => {
       inventory: 9,
     });
 
-    await prisma.store.update({
-      where: { id: suspendedStoreId },
+    await prisma.merchant.update({
+      where: { id: suspendedMerchantId },
       data: { status: 'SUSPENDED' },
     });
   });
 
-  it('lists products from more than one store without a session', async () => {
+  it('lists products from more than one merchant without a session', async () => {
     const res = await request.get('/api/marketplace/products').query({ category: `MPCat${stamp}` });
 
     expect(res.status).toBe(200);
-    const storeIds = new Set(res.body.products.map((p: any) => p.store.id));
-    expect(storeIds.has(storeAId)).toBe(true);
-    expect(storeIds.has(storeBId)).toBe(true);
+    const merchantIds = new Set(res.body.products.map((p: any) => p.merchant.id));
+    expect(merchantIds.has(merchantAId)).toBe(true);
+    expect(merchantIds.has(merchantBId)).toBe(true);
     expect(res.body.pagination.total).toBeGreaterThanOrEqual(2);
   });
 
-  it('never exposes a store owner, cost price or settings on a public product', async () => {
+  it('never exposes a merchant owner, cost price or settings on a public product', async () => {
     const res = await request.get('/api/marketplace/products').query({ q: `MP Live Lamp ${stamp}` });
 
     expect(res.status).toBe(200);
@@ -122,13 +122,13 @@ describe('Marketplace: the public cross-store catalogue', () => {
 
     // The merchant's margin and identity are not shopper-facing.
     expect(product.costPrice).toBeUndefined();
-    expect(product.store.ownerId).toBeUndefined();
-    expect(product.store.owner).toBeUndefined();
-    expect(product.store.settings).toBeUndefined();
+    expect(product.merchant.ownerId).toBeUndefined();
+    expect(product.merchant.owner).toBeUndefined();
+    expect(product.merchant.settings).toBeUndefined();
     // The whole serialised payload must not carry an owner email either.
     expect(JSON.stringify(res.body)).not.toContain(`mp_a_${stamp}@nexus.io`);
     // What a shopper does need is present.
-    expect(product.store.name).toContain(`MP Store A ${stamp}`);
+    expect(product.merchant.name).toContain(`MP Merchant A ${stamp}`);
     expect(product.price).toBe(120);
   });
 
@@ -141,23 +141,23 @@ describe('Marketplace: the public cross-store catalogue', () => {
     expect(titles).not.toContain(`MP Draft Lamp ${stamp}`);
   });
 
-  it('excludes every product belonging to a suspended store', async () => {
+  it('excludes every product belonging to a suspended merchant', async () => {
     const res = await request.get('/api/marketplace/products').query({ category: `MPCat${stamp}` });
 
     expect(res.status).toBe(200);
-    const storeIds = res.body.products.map((p: any) => p.store.id);
-    expect(storeIds).not.toContain(suspendedStoreId);
+    const merchantIds = res.body.products.map((p: any) => p.merchant.id);
+    expect(merchantIds).not.toContain(suspendedMerchantId);
   });
 
-  it('refuses to serve a suspended store its own public storefront', async () => {
-    const info = await request.get(`/api/storefront/${suspendedStoreId}`);
+  it('refuses to serve a suspended merchant its own public storefront', async () => {
+    const info = await request.get(`/api/shop/${suspendedMerchantId}`);
     expect(info.status).toBe(404);
 
-    const products = await request.get(`/api/storefront/${suspendedStoreId}/products`);
+    const products = await request.get(`/api/shop/${suspendedMerchantId}/products`);
     expect(products.status).toBe(404);
 
     // And it cannot take an order either.
-    const checkout = await request.post(`/api/storefront/${suspendedStoreId}/checkout`).send({
+    const checkout = await request.post(`/api/shop/${suspendedMerchantId}/checkout`).send({
       items: [{ variantId: 'anything', quantity: 1 }],
       customer: { email: 'buyer@example.com', name: 'Buyer' },
       shippingAddress: {
@@ -169,9 +169,9 @@ describe('Marketplace: the public cross-store catalogue', () => {
   });
 
   it('searches by title and filters by category and price', async () => {
-    const byTitle = await request.get('/api/marketplace/products').query({ q: 'Other Store Chair' });
+    const byTitle = await request.get('/api/marketplace/products').query({ q: 'Other Merchant Chair' });
     expect(byTitle.status).toBe(200);
-    expect(byTitle.body.products.some((p: any) => p.title.includes('Other Store Chair'))).toBe(true);
+    expect(byTitle.body.products.some((p: any) => p.title.includes('Other Merchant Chair'))).toBe(true);
 
     const byPrice = await request
       .get('/api/marketplace/products')
@@ -206,23 +206,44 @@ describe('Marketplace: the public cross-store catalogue', () => {
     expect(res.body.pagination.pages).toBeGreaterThanOrEqual(2);
   });
 
-  it('serves a single product by store and slug, with related products', async () => {
-    const res = await request.get(`/api/marketplace/products/${storeAId}/${liveSlug}`);
+  it('serves a single product by slug alone, with related products', async () => {
+    const res = await request.get(`/api/marketplace/products/${liveSlug}`);
 
     expect(res.status).toBe(200);
     expect(res.body.product.slug).toBe(liveSlug);
-    expect(res.body.product.store.id).toBe(storeAId);
+    expect(res.body.product.merchant.id).toBe(merchantAId);
     expect(Array.isArray(res.body.related)).toBe(true);
     // Related products are in the same category and never the product itself.
     expect(res.body.related.every((p: any) => p.id !== res.body.product.id)).toBe(true);
   });
 
-  it('404s for an unpublished product and for the wrong store', async () => {
-    const draft = await request.get(`/api/marketplace/products/${storeAId}/${draftSlug}`);
+  it('404s for an unpublished product', async () => {
+    const draft = await request.get(`/api/marketplace/products/${draftSlug}`);
     expect(draft.status).toBe(404);
+  });
 
-    const wrongStore = await request.get(`/api/marketplace/products/${storeBId}/${liveSlug}`);
-    expect(wrongStore.status).toBe(404);
+  /*
+   * The slug is the whole address now, so it has to be unique across every
+   * merchant -- not just within one catalogue, which is what the constraint
+   * used to say. Without this, two sellers listing "black-hoodie" would make
+   * one of the two unreachable, and which one would depend on insert order.
+   */
+  it('refuses a second product with a slug another merchant already holds', async () => {
+    const taken = await prisma.product.findFirst({ where: { slug: liveSlug } });
+    expect(taken).toBeTruthy();
+
+    await expect(
+      prisma.product.create({
+        data: {
+          merchantId: merchantBId,
+          title: 'Clashing slug',
+          name: 'Clashing slug',
+          slug: liveSlug,
+          price: 100,
+          sku: `CLASH-${Date.now()}`,
+        },
+      })
+    ).rejects.toThrow();
   });
 
   it('returns categories with counts, and only ones that have live products', async () => {
@@ -257,7 +278,7 @@ describe('Marketplace: the public cross-store catalogue', () => {
 
     // No suspended store and no draft leaks into any homepage section.
     const everything = [...res.body.newArrivals, ...res.body.deals, ...res.body.bestsellers];
-    expect(everything.every((p: any) => p.store.id !== suspendedStoreId)).toBe(true);
+    expect(everything.every((p: any) => p.merchant.id !== suspendedMerchantId)).toBe(true);
     expect(everything.every((p: any) => !p.title.includes('MP Draft Lamp'))).toBe(true);
   });
 

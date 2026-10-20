@@ -37,14 +37,14 @@ const createOrderSchema = z.object({
 
 export async function getOrders(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { q, status, page = '1', limit = '50' } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = { storeId };
+    const where: any = { merchantId };
 
     if (q) {
       where.OR = [
@@ -147,11 +147,11 @@ export async function getOrders(req: Request, res: Response, next: NextFunction)
 
 export async function getOrderById(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const order = await prisma.order.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
       include: {
         items: { include: { product: true, variant: true } },
         addresses: true,
@@ -173,7 +173,7 @@ export async function getOrderById(req: Request, res: Response, next: NextFuncti
 
 export async function createOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const body = createOrderSchema.parse(req.body);
 
     const email = body.customerEmail.toLowerCase().trim();
@@ -196,12 +196,12 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
 
     for (const item of body.items) {
       const product = await prisma.product.findFirst({
-        where: { id: item.productId, storeId },
+        where: { id: item.productId, merchantId },
         include: { variants: true },
       });
 
       if (!product) {
-        res.status(400).json({ success: false, error: `Product ID ${item.productId} not found in store.` });
+        res.status(400).json({ success: false, error: `Product ID ${item.productId} not found in merchant.` });
         return;
       }
 
@@ -222,7 +222,7 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
 
       const invItem = await prisma.inventoryItem.findFirst({
         where: {
-          storeId,
+          merchantId,
           productId: product.id,
           ...(item.variantId ? { variantId: item.variantId } : {}),
         },
@@ -261,7 +261,7 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
     if (body.discountCode) {
       const cleanCode = body.discountCode.toUpperCase().trim();
       const disc = await prisma.discount.findUnique({
-        where: { storeId_code: { storeId, code: cleanCode } },
+        where: { merchantId_code: { merchantId, code: cleanCode } },
       });
 
       if (disc && disc.status === 'ACTIVE' && disc.redemptions < disc.maxRedemptions) {
@@ -289,13 +289,13 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
     const result = await prisma.$transaction(async (tx) => {
       // Find or create customer
       let customer = await tx.customer.findFirst({
-        where: { storeId, email },
+        where: { merchantId, email },
       });
 
       if (!customer) {
         customer = await tx.customer.create({
           data: {
-            storeId,
+            merchantId,
             name: body.customerName.trim(),
             email,
             phone: body.customerPhone,
@@ -309,7 +309,7 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
       // Create Order
       const order = await tx.order.create({
         data: {
-          storeId,
+          merchantId,
           orderNumber,
           customerId: customer.id,
           customerName: body.customerName.trim(),
@@ -327,7 +327,7 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
           // The store's own trading currency, not a hardcoded USD. A manual
           // order was stamped USD regardless of what the store sells in, so a
           // naira merchant's phone order was recorded in dollars.
-          currency: currencyCodeOf(req.store!.currency),
+          currency: currencyCodeOf(req.merchant!.currency),
           notes: body.notes,
           items: {
             create: lineItemDetails.map(l => ({
@@ -382,7 +382,7 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
 
         await tx.inventoryMovement.create({
           data: {
-            storeId,
+            merchantId,
             inventoryItemId: item.inventoryItemId,
             productId: item.productId,
             variantId: item.variantId,
@@ -413,16 +413,16 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
       });
 
       // Emit Notification for Store Owner
-      const storeOwner = await tx.store.findUnique({
-        where: { id: storeId },
+      const merchantOwner = await tx.merchant.findUnique({
+        where: { id: merchantId },
         select: { ownerId: true },
       });
 
-      if (storeOwner) {
+      if (merchantOwner) {
         await tx.notification.create({
           data: {
-            storeId,
-            userId: storeOwner.ownerId,
+            merchantId,
+            userId: merchantOwner.ownerId,
             type: 'SUCCESS',
             title: `New Order ${orderNumber}`,
             message: `Order received for $${computedTotal.toFixed(2)} from ${body.customerName.trim()}`,
@@ -445,7 +445,7 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
         currency: result.currency,
         items: lineItemDetails.map(i => ({ productTitle: i.productTitle, quantity: i.quantity, price: i.price })),
       });
-      jobQueue.enqueue('CHECK_LOW_STOCK', { storeId });
+      jobQueue.enqueue('CHECK_LOW_STOCK', { merchantId });
     } catch (e) {
       // non-blocking
     }
@@ -458,12 +458,12 @@ export async function createOrder(req: Request, res: Response, next: NextFunctio
 
 export async function updateOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
     const { status, paymentStatus, fulfillmentStatus, notes } = req.body;
 
     const existing = await prisma.order.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -505,11 +505,11 @@ export async function updateOrder(req: Request, res: Response, next: NextFunctio
 
 export async function cancelOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const order = await prisma.order.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
       include: { items: true },
     });
 
@@ -548,7 +548,7 @@ export async function cancelOrder(req: Request, res: Response, next: NextFunctio
       for (const item of order.items) {
         const invItem = await tx.inventoryItem.findFirst({
           where: {
-            storeId,
+            merchantId,
             productId: item.productId,
             ...(item.variantId ? { variantId: item.variantId } : {}),
           },
@@ -567,7 +567,7 @@ export async function cancelOrder(req: Request, res: Response, next: NextFunctio
 
           await tx.inventoryMovement.create({
             data: {
-              storeId,
+              merchantId,
               inventoryItemId: invItem.id,
               productId: item.productId,
               variantId: item.variantId,

@@ -7,7 +7,7 @@ export const registerSchema = z.object({
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
-  storeName: z.string().optional(),
+  displayName: z.string().optional(),
   userType: z.enum(['CUSTOMER', 'SELLER']).optional().default('SELLER'),
 });
 
@@ -56,15 +56,22 @@ export const discountSchema = z.object({
   maxRedemptions: z.number().int().min(1).default(100),
 });
 
+/*
+ * A merchant's own profile.
+ *
+ * The shopfront fields are gone with the shopfront itself: a handle, an
+ * announcement bar, a theme, a brand colour and a custom domain all described
+ * a shopfront the seller does not have. What a merchant still owns is who
+ * they are and how a buyer reaches them.
+ */
 export const settingsSchema = z.object({
-  storeName: z.string().min(1),
-  storeUrl: z.string().min(1),
+  displayName: z.string().min(1),
+  description: z.string().max(500).optional(),
+  logoUrl: z.string().url().optional().or(z.literal('')),
   currency: z.string().min(1),
   industry: z.string().min(1),
-  announcementText: z.string().optional(),
-  activeTheme: z.string().optional(),
-  primaryColor: z.string().optional(),
-  customDomain: z.string().optional(),
+  contactEmail: z.string().email().optional().or(z.literal('')),
+  contactPhone: z.string().max(40).optional(),
 
   /**
    * Delivery, which checkout reads. Tax is deliberately absent.

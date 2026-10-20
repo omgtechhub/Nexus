@@ -34,7 +34,7 @@ export function CTA() {
               No credit card required
             </div>
 
-            {/* The headline used to read "Your store is one click away from
+            {/* The headline used to read "Your merchant is one click away from
                 launch", which promised sellers a shopfront of their own to set
                 up. Nexus is a marketplace: a seller lists products and the
                 platform brings the shoppers, so the ask is to start selling,

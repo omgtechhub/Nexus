@@ -125,7 +125,7 @@ describe('Blocker 5+6: image upload cannot write or delete outside its own direc
 
 describe('Blocker 4: a settled payment is never re-settled', () => {
   const merchantEmail = `blocker4_${Date.now()}@nexus.io`;
-  let storeId: string;
+  let merchantId: string;
   let cookie: string;
   let orderId: string;
   let productId: string;
@@ -135,10 +135,10 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
       name: 'Blocker Four Merchant',
       email: merchantEmail,
       password: 'Password123!',
-      storeName: 'Blocker Four Store',
+      displayName: 'Blocker Four Merchant',
     });
     cookie = reg.headers['set-cookie'][0];
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
 
     const prod = await request
       .post('/api/products')
@@ -154,7 +154,7 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
 
     const order = await prisma.order.create({
       data: {
-        storeId,
+        merchantId,
         orderNumber: `#B4-${Date.now()}`,
         customerName: 'Stock Tester',
         customerEmail: 'stock@example.com',
@@ -184,7 +184,7 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
     const reference = `ref_blocker4_${Date.now()}`;
     await prisma.payment.create({
       data: {
-        storeId,
+        merchantId,
         orderId,
         provider: PaymentProvider.PAYSTACK,
         providerReference: reference,
@@ -195,7 +195,7 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
       },
     });
 
-    const before = await prisma.inventoryItem.findFirst({ where: { storeId, productId } });
+    const before = await prisma.inventoryItem.findFirst({ where: { merchantId, productId } });
 
     // The old guard only short-circuited on SUCCESS, so a FAILED payment fell
     // through to the gateway and then into the release loop on EVERY call.
@@ -206,7 +206,7 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
       expect(res.body.data.paymentStatus).toBe('FAILED');
     }
 
-    const after = await prisma.inventoryItem.findFirst({ where: { storeId, productId } });
+    const after = await prisma.inventoryItem.findFirst({ where: { merchantId, productId } });
     expect(after?.availableStock).toBe(before?.availableStock);
   });
 
@@ -214,7 +214,7 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
     const reference = `ref_blocker4ok_${Date.now()}`;
     const payment = await prisma.payment.create({
       data: {
-        storeId,
+        merchantId,
         orderId,
         provider: PaymentProvider.PAYSTACK,
         providerReference: reference,
@@ -236,7 +236,7 @@ describe('Blocker 4: a settled payment is never re-settled', () => {
 
 describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
   const merchantEmail = `blocker23_${Date.now()}@nexus.io`;
-  let storeId: string;
+  let merchantId: string;
   let cookie: string;
 
   beforeAll(async () => {
@@ -244,14 +244,14 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
       name: 'Blocker TwoThree Merchant',
       email: merchantEmail,
       password: 'Password123!',
-      storeName: 'Blocker TwoThree Store',
+      displayName: 'Blocker TwoThree Merchant',
     });
     cookie = reg.headers['set-cookie'][0];
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
   });
 
-  it('puts a new store on the cheapest plan as a dated trial, not a free paid plan', async () => {
-    const sub = await saasBillingService.getCurrentSubscription(storeId);
+  it('puts a new merchant on the cheapest plan as a dated trial, not a free paid plan', async () => {
+    const sub = await saasBillingService.getCurrentSubscription(merchantId);
     const plans = await prisma.subscriptionPlan.findMany({
       where: { isActive: true },
       orderBy: { monthlyPrice: 'asc' },
@@ -273,11 +273,11 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
 
     // This is what the seller Settings -> Billing tab calls. It used to write
     // the new plan straight onto the subscription: no charge, no invoice.
-    await expect(saasBillingService.changePlan(storeId, dearest.code)).rejects.toThrow(
+    await expect(saasBillingService.changePlan(merchantId, dearest.code)).rejects.toThrow(
       PaymentRequiredError
     );
 
-    const sub = await prisma.subscription.findUnique({ where: { storeId } });
+    const sub = await prisma.subscription.findUnique({ where: { merchantId } });
     expect(sub?.planId).not.toBe(dearest.id);
   });
 
@@ -308,16 +308,16 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
     // directly here because the whole point of the test above is that the API
     // will not do this for free.
     await prisma.subscription.update({
-      where: { storeId },
+      where: { merchantId },
       data: { planId: plans[plans.length - 1].id, status: SubscriptionStatus.ACTIVE },
     });
 
-    const updated = await saasBillingService.changePlan(storeId, plans[0].code);
+    const updated = await saasBillingService.changePlan(merchantId, plans[0].code);
     expect(updated.planId).toBe(plans[0].id);
   });
 
   it('refuses a monthly -> annual switch without payment', async () => {
-    await expect(saasBillingService.changeInterval(storeId, 'ANNUAL')).rejects.toThrow(
+    await expect(saasBillingService.changeInterval(merchantId, 'ANNUAL')).rejects.toThrow(
       PaymentRequiredError
     );
   });
@@ -328,7 +328,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
       orderBy: { monthlyPrice: 'desc' },
     });
 
-    const sub = await prisma.subscription.findUnique({ where: { storeId } });
+    const sub = await prisma.subscription.findUnique({ where: { merchantId } });
     const planBefore = sub!.planId;
 
     // `subscribeToPlan` needs a configured gateway; without one it throws
@@ -337,7 +337,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
     let reference: string | null = null;
     try {
       const result = await saasBillingService.subscribeToPlan(
-        storeId,
+        merchantId,
         merchantEmail,
         'Blocker TwoThree Merchant',
         plan!.code,
@@ -353,7 +353,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
     // Before: the plan was written, an invoice was created with status PAID and
     // paidAt set, and a SUCCESS billing transaction was recorded — all from
     // merely minting an authorization URL.
-    const after = await prisma.subscription.findUnique({ where: { storeId } });
+    const after = await prisma.subscription.findUnique({ where: { merchantId } });
     expect(after!.planId).toBe(planBefore);
 
     const txn = await prisma.billingTransaction.findUnique({
@@ -370,14 +370,14 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
       where: { isActive: true },
       orderBy: { monthlyPrice: 'desc' },
     });
-    const sub = await prisma.subscription.findUnique({ where: { storeId } });
+    const sub = await prisma.subscription.findUnique({ where: { merchantId } });
     const planBefore = sub!.planId;
 
     const reference = `saas_sub_under_${Date.now()}`;
     const invoice = await prisma.invoice.create({
       data: {
         invoiceNumber: `NX-INV-UNDER-${Date.now()}`,
-        storeId,
+        merchantId,
         subscriptionId: sub!.id,
         planId: plan!.id,
         status: InvoiceStatus.OPEN,
@@ -391,7 +391,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
     });
     await prisma.billingTransaction.create({
       data: {
-        storeId,
+        merchantId,
         subscriptionId: sub!.id,
         invoiceId: invoice.id,
         amount: plan!.monthlyPrice,
@@ -407,7 +407,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
 
     expect(outcome.settled).toBe(false);
     expect(outcome.reason).toBe('amount_mismatch');
-    const after = await prisma.subscription.findUnique({ where: { storeId } });
+    const after = await prisma.subscription.findUnique({ where: { merchantId } });
     expect(after!.planId).toBe(planBefore);
   });
 
@@ -416,13 +416,13 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
       where: { isActive: true },
       orderBy: { monthlyPrice: 'desc' },
     });
-    const sub = await prisma.subscription.findUnique({ where: { storeId } });
+    const sub = await prisma.subscription.findUnique({ where: { merchantId } });
 
     const reference = `saas_sub_ok_${Date.now()}`;
     const invoice = await prisma.invoice.create({
       data: {
         invoiceNumber: `NX-INV-OK-${Date.now()}`,
-        storeId,
+        merchantId,
         subscriptionId: sub!.id,
         planId: plan!.id,
         status: InvoiceStatus.OPEN,
@@ -436,7 +436,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
     });
     await prisma.billingTransaction.create({
       data: {
-        storeId,
+        merchantId,
         subscriptionId: sub!.id,
         invoiceId: invoice.id,
         amount: plan!.monthlyPrice,
@@ -459,7 +459,7 @@ describe('Blocker 2+3: a plan is only granted by a confirmed payment', () => {
     expect(second.settled).toBe(false);
     expect(second.reason).toBe('already_settled');
 
-    const after = await prisma.subscription.findUnique({ where: { storeId } });
+    const after = await prisma.subscription.findUnique({ where: { merchantId } });
     expect(after!.planId).toBe(plan!.id);
     expect(after!.status).toBe(SubscriptionStatus.ACTIVE);
 
@@ -511,7 +511,8 @@ describe('Blocker 1: email has a real transport, and never leaks tokens in produ
     // Receipts read "$42000.00" for an order paid in naira through Paystack.
     expect(formatMoney(42000, 'NGN')).toBe('₦42000.00 NGN');
     expect(formatMoney(99.5, 'USD')).toBe('$99.50 USD');
-    expect(formatMoney(10, undefined)).toBe('$10.00 USD');
+    // No currency on the row falls back to the platform's, which is naira.
+    expect(formatMoney(10, undefined)).toBe('₦10.00 NGN');
     expect(formatMoney(10, 'XOF')).toBe('10.00 XOF');
   });
 });

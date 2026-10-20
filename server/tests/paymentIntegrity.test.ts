@@ -225,11 +225,11 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
         name: 'Pay Merchant',
         email: `pay_integrity_${stamp}@nexus.io`,
         password: 'Password123!',
-        storeName: `Pay Integrity Store ${stamp}`,
+        displayName: `Pay Integrity Merchant ${stamp}`,
       });
       expect(merchant.status).toBe(201);
       const cookie = merchant.headers['set-cookie'][0];
-      const storeId = merchant.body.data.store.id;
+      const merchantId = merchant.body.data.merchant.id;
 
       const product = await request
         .post('/api/products')
@@ -237,7 +237,7 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
         .send({ title: `Pay Widget ${stamp}`, price: 25, sku: `SKU-PAY-${stamp}`, inventory: 10 });
       expect(product.status).toBe(201);
 
-      const checkout = await request.post(`/api/storefront/${storeId}/checkout`).send({
+      const checkout = await request.post(`/api/shop/${merchantId}/checkout`).send({
         items: [{ variantId: product.body.data.id, quantity: 1 }],
         customer: { email: 'payer@example.com', name: 'Pay Er' },
         shippingAddress: {
@@ -284,7 +284,7 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
 
       const failing = await prisma.payment.create({
         data: {
-          storeId: payment!.storeId,
+          merchantId: payment!.merchantId,
           orderId: payment!.orderId,
           provider: 'PAYSTACK',
           providerReference: `ref_fail_${Date.now()}`,
@@ -308,17 +308,17 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
         name: 'Pend Merchant',
         email: `pay_pending_${stamp}@nexus.io`,
         password: 'Password123!',
-        storeName: `Pay Pending Store ${stamp}`,
+        displayName: `Pay Pending Merchant ${stamp}`,
       });
       const cookie = merchant.headers['set-cookie'][0];
-      const storeId = merchant.body.data.store.id;
+      const merchantId = merchant.body.data.merchant.id;
 
       const product = await request
         .post('/api/products')
         .set('Cookie', [cookie])
         .send({ title: `Pend Widget ${stamp}`, price: 15, sku: `SKU-PEND-${stamp}`, inventory: 7 });
 
-      const checkout = await request.post(`/api/storefront/${storeId}/checkout`).send({
+      const checkout = await request.post(`/api/shop/${merchantId}/checkout`).send({
         items: [{ variantId: product.body.data.id, quantity: 2 }],
         customer: { email: 'pending@example.com', name: 'Pend Ing' },
         shippingAddress: {
@@ -329,12 +329,12 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
       const pendingOrderId = checkout.body.order.id;
 
       const stockBefore = await prisma.inventoryItem.findFirst({
-        where: { storeId, productId: product.body.data.id },
+        where: { merchantId, productId: product.body.data.id },
       });
 
       const pendingPayment = await prisma.payment.create({
         data: {
-          storeId,
+          merchantId,
           orderId: pendingOrderId,
           provider: 'PAYSTACK',
           providerReference: `ref_pending_${stamp}`,
@@ -356,7 +356,7 @@ describe('Payment integrity: a payment is only ever as real as the gateway says'
       expect(order?.paymentStatus).toBe('PENDING');
 
       const stockAfter = await prisma.inventoryItem.findFirst({
-        where: { storeId, productId: product.body.data.id },
+        where: { merchantId, productId: product.body.data.id },
       });
       expect(stockAfter?.availableStock).toBe(stockBefore?.availableStock);
 

@@ -65,7 +65,7 @@ export function Analytics() {
       {/* Header with Date Range Filter */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-primary">Store Analytics & Financial Metrics</h2>
+          <h2 className="text-xl font-bold text-primary">Merchant Analytics & Financial Metrics</h2>
           <p className="text-xs text-muted">Real PostgreSQL database metrics calculated live</p>
         </div>
         <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-lg border border-[var(--ink)]/10 text-xs">

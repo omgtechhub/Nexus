@@ -6,19 +6,19 @@ export function requireRole(allowedRoles: Role[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id;
-      const storeId = req.store?.id;
+      const merchantId = req.merchant?.id;
 
-      if (!userId || !storeId) {
-        res.status(401).json({ success: false, error: 'Unauthorized session or store context missing' });
+      if (!userId || !merchantId) {
+        res.status(401).json({ success: false, error: 'Unauthorized session or merchant context missing' });
         return;
       }
 
-      const membership = await prisma.storeMember.findFirst({
-        where: { userId, storeId },
+      const membership = await prisma.merchantMember.findFirst({
+        where: { userId, merchantId },
       });
 
       if (!membership) {
-        res.status(403).json({ success: false, error: 'Forbidden: You are not a member of this store' });
+        res.status(403).json({ success: false, error: 'Forbidden: You are not a member of this merchant' });
         return;
       }
 

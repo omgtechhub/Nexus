@@ -1,11 +1,11 @@
 import { apiClient } from './client';
 
-export interface StorefrontInfo {
+export interface MerchantShopInfo {
   id: string;
   name: string;
   slug: string;
   settings: {
-    storeName: string;
+    displayName: string;
     activeTheme: string;
     primaryColor: string;
     announcementText: string;
@@ -14,7 +14,7 @@ export interface StorefrontInfo {
   };
 }
 
-export interface StorefrontProductVariant {
+export interface ShopProductVariant {
   id: string;
   title: string;
   sku: string;
@@ -26,7 +26,7 @@ export interface StorefrontProductVariant {
   inventoryQuantity: number;
 }
 
-export interface StorefrontProduct {
+export interface ShopProduct {
   id: string;
   title: string;
   slug: string;
@@ -47,7 +47,7 @@ export interface StorefrontProduct {
    * rather than as zero stars.
    */
   rating?: { average: number; count: number };
-  variants: StorefrontProductVariant[];
+  variants: ShopProductVariant[];
 }
 
 export interface CartItemValidation {
@@ -143,14 +143,14 @@ export interface CheckoutResult {
   };
 }
 
-export async function fetchStorefrontInfoApi(storeSlug: string): Promise<{ store: StorefrontInfo }> {
-  return apiClient<{ store: StorefrontInfo }>(`/storefront/${storeSlug}`);
+export async function fetchMerchantShopInfoApi(merchantRef: string): Promise<{ merchant: MerchantShopInfo }> {
+  return apiClient<{ merchant: MerchantShopInfo }>(`/shop/${merchantRef}`);
 }
 
-export async function fetchStorefrontProductsApi(
-  storeSlug: string,
+export async function fetchShopProductsApi(
+  merchantRef: string,
   params?: { category?: string; q?: string; sort?: string; page?: number; limit?: number }
-): Promise<{ products: StorefrontProduct[]; pagination: any }> {
+): Promise<{ products: ShopProduct[]; pagination: any }> {
   const query = new URLSearchParams();
   if (params?.category) query.append('category', params.category);
   if (params?.q) query.append('q', params.q);
@@ -159,47 +159,47 @@ export async function fetchStorefrontProductsApi(
   if (params?.limit) query.append('limit', params.limit.toString());
 
   const queryString = query.toString() ? `?${query.toString()}` : '';
-  return apiClient<{ products: StorefrontProduct[]; pagination: any }>(`/storefront/${storeSlug}/products${queryString}`);
+  return apiClient<{ products: ShopProduct[]; pagination: any }>(`/shop/${merchantRef}/products${queryString}`);
 }
 
-export async function fetchStorefrontProductBySlugApi(
-  storeSlug: string,
+export async function fetchShopProductBySlugApi(
+  merchantRef: string,
   productSlug: string
-): Promise<{ product: StorefrontProduct }> {
-  return apiClient<{ product: StorefrontProduct }>(`/storefront/${storeSlug}/products/${productSlug}`);
+): Promise<{ product: ShopProduct }> {
+  return apiClient<{ product: ShopProduct }>(`/shop/${merchantRef}/products/${productSlug}`);
 }
 
-export async function fetchStorefrontCategoriesApi(storeSlug: string): Promise<{ categories: string[] }> {
-  return apiClient<{ categories: string[] }>(`/storefront/${storeSlug}/categories`);
+export async function fetchShopCategoriesApi(merchantRef: string): Promise<{ categories: string[] }> {
+  return apiClient<{ categories: string[] }>(`/shop/${merchantRef}/categories`);
 }
 
 export async function validateCartApi(
-  storeSlug: string,
+  merchantRef: string,
   items: { variantId: string; quantity: number }[],
   // The destination decides which shipping zone applies, so a quote without it
   // falls back to the store's default rate.
   options?: { country?: string; shippingMethodId?: string }
 ): Promise<CartValidationResult> {
-  return apiClient<CartValidationResult>(`/storefront/${storeSlug}/cart/validate`, {
+  return apiClient<CartValidationResult>(`/shop/${merchantRef}/cart/validate`, {
     method: 'POST',
     body: JSON.stringify({ items, ...options }),
   });
 }
 
 export async function processCheckoutApi(
-  storeSlug: string,
+  merchantRef: string,
   payload: CheckoutPayload
 ): Promise<CheckoutResult> {
-  return apiClient<CheckoutResult>(`/storefront/${storeSlug}/checkout`, {
+  return apiClient<CheckoutResult>(`/shop/${merchantRef}/checkout`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export async function fetchStorefrontOrderApi(
-  storeSlug: string,
+export async function fetchShopOrderApi(
+  merchantRef: string,
   orderNumber: string
 ): Promise<{ order: CheckoutResult['order'] }> {
   const cleanNum = orderNumber.startsWith('#') ? orderNumber.substring(1) : orderNumber;
-  return apiClient<{ order: CheckoutResult['order'] }>(`/storefront/${storeSlug}/orders/${cleanNum}`);
+  return apiClient<{ order: CheckoutResult['order'] }>(`/shop/${merchantRef}/orders/${cleanNum}`);
 }

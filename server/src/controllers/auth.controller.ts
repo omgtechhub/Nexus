@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
-import { Role, StoreStatus, PlatformRole, AccountType } from '@prisma/client';
+import { Role, MerchantStatus, PlatformRole, AccountType } from '@prisma/client';
 import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
@@ -11,6 +11,7 @@ import { issueEmailVerificationToken, hashSessionToken } from '../services/auth/
 import { activeMembershipOf } from '../services/auth/membership.js';
 import { defaultCurrencyLabel } from '../config/currency.js';
 import { verifyOAuthToken, OAuthVerificationError } from '../services/auth/oauthVerifier.service.js';
+import { z } from 'zod';
 
 const SESSION_COOKIE_NAME = 'nexus_session';
 const SESSION_DURATION_DAYS = 30;
@@ -57,60 +58,56 @@ async function createSessionFor(userId: string, req: Request): Promise<string> {
  * raw constraint violation; a merchant who already has an account deserves to
  * be told that, not a 500.
  */
-async function provisionStoreForUser(
+async function provisionMerchantForUser(
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   user: { id: string; name: string },
-  storeName: string
+  displayName: string
 ) {
-  const existingOwnership = await tx.storeMember.findFirst({
+  const existingOwnership = await tx.merchantMember.findFirst({
     where: { userId: user.id, role: 'OWNER' },
-    include: { store: { select: { name: true } } },
+    include: { merchant: { select: { name: true } } },
   });
 
   if (existingOwnership) {
     const err: any = new Error(
-      `This account already sells on Nexus as "${existingOwnership.store.name}". `
+      `This account already sells on Nexus as "${existingOwnership.merchant.name}". `
       + 'One merchant account per seller — sign in to the one you have.'
     );
     err.statusCode = 409;
     throw err;
   }
 
-  const domainSlug =
-    storeName.toLowerCase().replace(/[^a-z0-9]/g, '') || `store${Date.now()}`;
-  const domain = `${domainSlug}-${crypto.randomBytes(2).toString('hex')}.nexuscommerce.io`;
-
-  const store = await tx.store.create({
+  /*
+   * No hostname is minted here any more.
+   *
+   * Signing up used to invent `<name>-ab12.nexuscommerce.io` and store it as
+   * the merchant's domain, plus a theme, a brand colour and an announcement
+   * bar -- the furniture of a shopfront the seller never gets. A seller on
+   * Nexus lists into the shared shopfront, so a merchant record is a name, a
+   * trading currency and an owner.
+   */
+  const merchant = await tx.merchant.create({
     data: {
-      name: storeName,
-      domain,
+      name: displayName,
       currency: defaultCurrencyLabel(),
-      timezone: 'America/New_York',
-      industry: 'General Commerce',
-      status: StoreStatus.ACTIVE,
+      status: MerchantStatus.ACTIVE,
       ownerId: user.id,
     },
   });
 
-  const membership = await tx.storeMember.create({
-    data: { userId: user.id, storeId: store.id, role: Role.OWNER },
+  const membership = await tx.merchantMember.create({
+    data: { userId: user.id, merchantId: merchant.id, role: Role.OWNER },
   });
 
-  await tx.storeSettings.create({
+  await tx.merchantSettings.create({
     data: {
-      storeId: store.id,
-      storeName: store.name,
-      storeUrl: domainSlug,
+      merchantId: merchant.id,
+      displayName: merchant.name,
       currency: defaultCurrencyLabel(),
-      industry: 'General Commerce',
-      announcementText: '🎉 Welcome to your new Nexus Commerce store!',
-      activeTheme: 'nexus-dark',
-      primaryColor: '#FFBD2E',
-      customDomain: domain,
     },
   });
 
-  return { store, membership };
+  return { merchant, membership };
 }
 
 /**
@@ -221,7 +218,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
           },
         });
 
-        return { user, store: null, membership: null, sessionToken };
+        return { user, merchant: null, membership: null, sessionToken };
       });
 
       setSessionCookie(res, result.sessionToken);
@@ -234,17 +231,17 @@ export async function register(req: Request, res: Response, next: NextFunction) 
         message: 'Customer account created successfully',
         data: {
           user: safeUser,
-          store: null,
+          merchant: null,
           membership: null,
         },
       });
       return;
     }
 
-    const domainSlug = (data.storeName || data.name).toLowerCase().replace(/[^a-z0-9]/g, '') || `store${Date.now()}`;
+    const domainSlug = (data.displayName || data.name).toLowerCase().replace(/[^a-z0-9]/g, '') || `merchant${Date.now()}`;
     const domain = `${domainSlug}-${Math.random().toString(36).substring(2, 6)}.nexuscommerce.io`;
 
-    // Atomic creation of User, Store, StoreMember(OWNER), StoreSettings, and Session
+    // Atomic creation of User, Store, MerchantMember(OWNER), MerchantSettings, and Session
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -257,37 +254,35 @@ export async function register(req: Request, res: Response, next: NextFunction) 
         },
       });
 
-      const store = await tx.store.create({
+      const merchant = await tx.merchant.create({
         data: {
-          name: data.storeName ? data.storeName.trim() : `${user.name}'s Store`,
-          domain,
+          /*
+           * The seller's own name is the fallback, not "<name>'s Store".
+           *
+           * The old template described a shopfront they do not have, and it is
+           * what buyers see next to a listing: a trading name, where one was
+           * given, or the person behind it where one was not.
+           */
+          name: data.displayName ? data.displayName.trim() : user.name,
           currency: defaultCurrencyLabel(),
-          timezone: 'America/New_York',
-          industry: 'General Commerce',
-          status: StoreStatus.ACTIVE,
+          status: MerchantStatus.ACTIVE,
           ownerId: user.id,
         },
       });
 
-      const membership = await tx.storeMember.create({
+      const membership = await tx.merchantMember.create({
         data: {
           userId: user.id,
-          storeId: store.id,
+          merchantId: merchant.id,
           role: Role.OWNER,
         },
       });
 
-      await tx.storeSettings.create({
+      await tx.merchantSettings.create({
         data: {
-          storeId: store.id,
-          storeName: store.name,
-          storeUrl: domainSlug,
+          merchantId: merchant.id,
+          displayName: merchant.name,
           currency: defaultCurrencyLabel(),
-          industry: 'General Commerce',
-          announcementText: '🎉 Welcome to your new Nexus Commerce store!',
-          activeTheme: 'nexus-dark',
-          primaryColor: '#FFBD2E',
-          customDomain: domain,
         },
       });
 
@@ -305,7 +300,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
         },
       });
 
-      return { user, store, membership, sessionToken };
+      return { user, merchant, membership, sessionToken };
     });
 
     setSessionCookie(res, result.sessionToken);
@@ -317,7 +312,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       message: 'Account created successfully',
       data: {
         user: safeUser,
-        store: result.store,
+        merchant: result.merchant,
         membership: result.membership,
       },
     });
@@ -336,7 +331,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       include: {
         memberships: {
           include: {
-            store: true,
+            merchant: true,
           },
         },
       },
@@ -394,11 +389,72 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       message: 'Logged in successfully',
       data: {
         user: safeUser,
-        store: activeMembership?.store || null,
+        merchant: activeMembership?.merchant || null,
         membership: activeMembership || null,
         accountType,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const profileUpdateSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(120).optional(),
+  /*
+   * An http(s) link, and nothing else.
+   *
+   * `z.string().url()` alone accepts `data:image/png;base64,...`, which is how
+   * the old dashboard held an avatar -- in memory, as a megabyte of base64. A
+   * data URL in this column would be stored, re-sent on every /me, and
+   * rendered as markup-adjacent content from a user-supplied string. Uploads
+   * go through /api/upload/image and come back as a link.
+   */
+  avatar: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine(v => /^https?:\/\//i.test(v) || v.startsWith('/uploads/'), {
+      message: 'Avatar must be an uploaded image URL',
+    })
+    .nullable()
+    .optional(),
+}).strict();
+
+/**
+ * The signed-in account's own profile.
+ *
+ * `/api/account/profile` already did this but is gated on `requireCustomer`,
+ * so the seller dashboard had nothing to call -- which is why its Settings
+ * page "saved" into React state and reported success. A name and an avatar
+ * belong to the USER, not to either portal, so this lives on /auth and any
+ * authenticated account may use it for itself and only itself.
+ *
+ * The avatar is a URL, never image bytes. The dashboard used to read the file
+ * with FileReader and keep the base64 in memory; uploading it through
+ * /api/upload/image instead means the picture survives a refresh and the row
+ * stores a link rather than a megabyte of data URL.
+ */
+export async function updateOwnProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = profileUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid profile' });
+      return;
+    }
+
+    if (Object.keys(parsed.data).length === 0) {
+      res.status(400).json({ success: false, error: 'Nothing to update' });
+      return;
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user!.id },
+      data: parsed.data,
+      select: { id: true, name: true, email: true, avatar: true, plan: true, isVerified: true },
+    });
+
+    res.json({ success: true, data: updated });
   } catch (err) {
     next(err);
   }
@@ -417,7 +473,7 @@ export async function me(req: Request, res: Response, next: NextFunction) {
       success: true,
       data: {
         user: req.user,
-        store: req.store || null,
+        merchant: req.merchant || null,
         membership: req.membership || null,
         accountType,
       },
@@ -478,7 +534,7 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
 
     const existingUser = await prisma.user.findUnique({
       where: { email: targetEmail },
-      include: { memberships: { include: { store: true } } },
+      include: { memberships: { include: { merchant: true } } },
     });
 
     // ---- Existing account: sign in. Never mutate what kind of account it is. ----
@@ -499,7 +555,7 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
         message: 'Signed in successfully',
         data: {
           user: safeUser,
-          store: activeMembership?.store || null,
+          merchant: activeMembership?.merchant || null,
           membership: activeMembership || null,
           accountType: resolveAccountType(safeUser),
         },
@@ -540,7 +596,7 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
       res.status(201).json({
         success: true,
         message: 'Customer account created successfully',
-        data: { user: safeUser, store: null, membership: null, accountType: 'CUSTOMER' },
+        data: { user: safeUser, merchant: null, membership: null, accountType: 'CUSTOMER' },
       });
       return;
     }
@@ -559,8 +615,8 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
         },
       });
 
-      const { store, membership } = await provisionStoreForUser(tx, user, `${displayName}'s Store`);
-      return { user, store, membership };
+      const { merchant, membership } = await provisionMerchantForUser(tx, user, displayName);
+      return { user, merchant, membership };
     });
 
     await linkOAuthAccount(result.user.id, profile.provider, profile.providerAccountId);
@@ -574,7 +630,7 @@ export async function oauthLogin(req: Request, res: Response, next: NextFunction
       message: 'Account created successfully',
       data: {
         user: safeUser,
-        store: result.store,
+        merchant: result.merchant,
         membership: result.membership,
         accountType: 'SELLER',
       },

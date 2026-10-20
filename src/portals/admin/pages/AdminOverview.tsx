@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Store, Users, Layers, ArrowRight } from 'lucide-react';
+import { Store as MerchantIcon, Users, Layers, ArrowRight } from 'lucide-react';
 import { usePlatformMetricsQuery, usePlatformMerchantsQuery } from '../../../hooks/useBillingQueries';
 import { LoadingState, ErrorState, PageHeading } from '../../customer/components/States';
 import { money } from '../format';
@@ -31,7 +31,7 @@ export function AdminOverview() {
       </div>
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Stores" value={String(metrics.totalStores)} small />
+        <Metric label="Merchants" value={String(metrics.totalMerchants)} small />
         <Metric label="Users" value={String(metrics.totalUsers)} small />
         <Metric label="Transactions" value={String(metrics.totalTransactionsCount)} small />
         <Metric label="Plans" value={String(metrics.plansCount)} small />
@@ -50,7 +50,7 @@ export function AdminOverview() {
 
         {recent.length === 0 ? (
           <p className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-10 text-center text-sm text-muted">
-            No merchant stores yet.
+            No merchant merchants yet.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -72,7 +72,7 @@ export function AdminOverview() {
                     {m.subscription?.planName ?? 'No plan'}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <Store size={12} aria-hidden="true" />
+                    <MerchantIcon size={12} aria-hidden="true" />
                     {m.metrics.productCount} products
                   </span>
                   <span className="inline-flex items-center gap-1.5">

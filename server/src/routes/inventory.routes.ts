@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getInventory, getProductInventory, updateProductInventory, adjustStock } from '../controllers/inventory.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 
 export const inventoryRouter = Router();
 
 inventoryRouter.use(authMiddleware);
-inventoryRouter.use(requireStoreMembership);
+inventoryRouter.use(requireMerchantMembership);
 
 inventoryRouter.get('/', getInventory);
 inventoryRouter.get('/:productId', getProductInventory);

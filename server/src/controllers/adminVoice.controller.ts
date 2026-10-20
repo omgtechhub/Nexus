@@ -183,7 +183,7 @@ export async function adminVoiceCommand(req: Request, res: Response, next: NextF
         reply =
           report.counts.total === 0
             ? `No critical findings. I ran ${fullReport.scanned.checks} checks across ` +
-              `${fullReport.scanned.stores} store(s) and ${fullReport.scanned.orders} order(s).`
+              `${fullReport.scanned.merchants} merchant(s) and ${fullReport.scanned.orders} order(s).`
             : `${report.counts.total} critical finding(s). ` +
               report.findings.slice(0, 5).map(f => f.summary).join(' ');
         break;
@@ -211,7 +211,7 @@ export async function adminVoiceCommand(req: Request, res: Response, next: NextF
         reply =
           `In the last ${activity.windowHours} hours: ${activity.orders} order(s), ` +
           `${activity.paidOrders} paid, worth ${activity.revenue}. ` +
-          `${activity.newCustomers} new customer(s), ${activity.newStores} new store(s), ` +
+          `${activity.newCustomers} new customer(s), ${activity.newMerchants} new merchant(s), ` +
           `${activity.newProducts} new product(s), ${activity.newReviews} new review(s), ` +
           `${activity.refunds} refund(s).`;
         break;

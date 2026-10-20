@@ -4,6 +4,7 @@ import { Customer } from '../../types';
 import { Button } from '../ui/Button';
 import { useApp } from '../../context/AppContext';
 import { useCustomersQuery } from '../../hooks/useQueries';
+import { emailCustomerApi } from '../../api/customers';
 import toast from 'react-hot-toast';
 
 import { useDismissOnEscape } from '../../hooks/useDismissOnEscape';
@@ -28,6 +29,7 @@ export function Customers() {
   // Email state
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const filtered = customersList.filter(c =>
     !search ||
@@ -88,17 +90,33 @@ export function Customers() {
     );
   };
 
-  const handleSendEmail = (e: React.FormEvent) => {
+  /**
+   * This used to close the window and toast "Email sent to <address>!" without
+   * making a request. Nothing was ever delivered, and the merchant had every
+   * reason to think their customer had been answered.
+   */
+  const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCustomer?.id) return;
     if (!emailSubject || !emailBody) {
       toast.error('Please enter an email subject and body');
       return;
     }
+    if (sendingEmail) return;
 
-    setShowComposeEmailModal(false);
-    setEmailSubject('');
-    setEmailBody('');
-    toast.success(`Email sent to ${selectedCustomer?.email}!`, { icon: '✉️' });
+    setSendingEmail(true);
+    try {
+      const to = await emailCustomerApi(selectedCustomer.id, emailSubject, emailBody);
+      setShowComposeEmailModal(false);
+      setEmailSubject('');
+      setEmailBody('');
+      toast.success(`Email sent to ${to}`, { icon: '✉️' });
+    } catch (err: any) {
+      // The window stays open with the text intact, so nothing typed is lost.
+      toast.error(err?.message || 'That did not send. Nothing was delivered.');
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const handleViewOrders = () => {
@@ -367,8 +385,8 @@ export function Customers() {
                 />
               </div>
               <div className="flex gap-2 pt-2">
-                <Button type="submit" variant="primary" size="md" fullWidth icon={<Send size={14} />}>
-                  Send Email
+                <Button type="submit" variant="primary" size="md" fullWidth disabled={sendingEmail} icon={<Send size={14} />}>
+                  {sendingEmail ? 'Sending…' : 'Send Email'}
                 </Button>
                 <Button type="button" variant="ghost" size="md" onClick={() => setShowComposeEmailModal(false)}>Cancel</Button>
               </div>

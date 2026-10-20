@@ -91,15 +91,15 @@ export function AppRouter() {
 
           {/* THE SHOP.
 
-              `/products` is the storefront: a shopper browses, searches and fills
+              `/products` is the shopfront: a shopper browses, searches and fills
               a bag here without an account, and only checkout asks who they are.
               Every page below shares the shop's own header and footer. */}
           <Route element={<MarketplaceLayout />}>
             <Route path="/products" element={<MarketplaceHome />} />
-            {/* A static segment, so it is never confused with a store id — which
+            {/* A static segment, so it is never confused with a merchant id — which
                 is why the detail route below needs two segments to match. */}
             <Route path="/products/browse" element={<ProductsPage />} />
-            <Route path="/products/:storeId/:productSlug" element={<ProductDetailPage />} />
+            <Route path="/products/:productSlug" element={<ProductDetailPage />} />
             <Route path="/cart" element={<CartPage />} />
 
             {/* Checkout is the first thing that needs an identity. The guard
@@ -130,7 +130,7 @@ export function AppRouter() {
           <Route path="/cookies" element={<CookiePolicyPage />} />
 
           {/*
-            No per-merchant storefront.
+            No per-merchant shop.
 
             Nexus is a single marketplace: merchants sell from a merchant
             account into one shared shopfront, they do not get an independent
@@ -139,9 +139,9 @@ export function AppRouter() {
             which is a product this platform does not offer. Both routes and
             the component are gone; `/products` is the shop.
 
-            The `/api/storefront/:merchant/*` endpoints stay: despite the name
-            they are the merchant-scoped cart-validation and checkout API that
-            the marketplace checkout runs on.
+            The merchant-scoped endpoints stay, as `/api/shop/:merchantId/*`:
+            they are the cart-validation and checkout API the marketplace
+            checkout runs on, because an order belongs to exactly one merchant.
           */}
 
           {/* PORTALS */}

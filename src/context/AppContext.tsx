@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, R
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, Notification, Product, Order, Customer,
-  StoreSettings, ActivityItem, Store
+  MerchantSettings, ActivityItem, Merchant
 } from '../types';
 import { AuthService } from '../services/authService';
 import { setUnauthorizedHandler } from '../api/client';
@@ -22,8 +22,8 @@ import {
   useNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
-  useStoreSettingsQuery,
-  useUpdateStoreSettingsMutation,
+  useMerchantSettingsQuery,
+  useUpdateMerchantSettingsMutation,
 } from '../hooks/useQueries';
 
 /**
@@ -36,7 +36,7 @@ type PortalView = 'marketing' | 'dashboard' | 'admin' | 'customer-portal';
 interface AppContextType {
   // Auth
   user: User | null;
-  store: Store | null;
+  merchant: Merchant | null;
   isAuthenticated: boolean;
   accountType: 'CUSTOMER' | 'SELLER' | 'ADMIN' | null;
   platformRole: 'PLATFORM_OWNER' | 'PLATFORM_ADMIN' | 'PLATFORM_SUPPORT' | null;
@@ -45,7 +45,7 @@ interface AppContextType {
   isAdmin: boolean;
   login: (email: string, password: string, targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
   loginWithOAuth: (provider: 'google' | 'github', tokens: { idToken?: string; accessToken?: string }, targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
-  signup: (name: string, email: string, password: string, storeName?: string, userType?: 'CUSTOMER' | 'SELLER', targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
+  signup: (name: string, email: string, password: string, displayName?: string, userType?: 'CUSTOMER' | 'SELLER', targetPortal?: 'seller' | 'customer' | 'admin', returnTo?: string | null) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateUser: (fields: Partial<User>) => void;
   
@@ -65,7 +65,7 @@ interface AppContextType {
   orders: Order[];
   customers: Customer[];
   activities: ActivityItem[];
-  storeSettings: StoreSettings;
+  merchantSettings: MerchantSettings;
 
   // Actions
   addProduct: (product: Partial<Product>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
@@ -79,7 +79,7 @@ interface AppContextType {
   updateCustomer: (id: string, updates: Partial<Customer>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
 
 
-  updateStoreSettings: (settings: Partial<StoreSettings>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
+  updateMerchantSettings: (settings: Partial<MerchantSettings>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => void;
   addActivity: (message: string, type?: 'order' | 'customer' | 'product' | 'payment', icon?: string) => void;
 
   // UI State
@@ -98,15 +98,24 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
-const defaultStoreSettings: StoreSettings = {
-  storeName: 'Aura Apparel Store',
-  storeUrl: 'auraapparel',
-  currency: 'USD — US Dollar',
-  industry: 'Fashion & Apparel',
-  announcementText: '🎉 Flash Sale: Get 20% off all summer collections with code SUMMER20',
-  activeTheme: 'nexus-dark',
-  primaryColor: '#FFBD2E',
-  customDomain: 'auraapparel.com',
+/*
+ * What the UI shows before `/api/settings` answers.
+ *
+ * Deliberately empty rather than a fictional shop: this used to seed a
+ * merchant called "Aura Apparel" with a flash-sale banner and a brand colour,
+ * which meant a brand-new seller's dashboard briefly showed someone else's
+ * business as if it were theirs.
+ */
+const defaultMerchantSettings: MerchantSettings = {
+  displayName: '',
+  description: null,
+  logoUrl: null,
+  currency: 'NGN — Nigerian Naira',
+  industry: 'General',
+  contactEmail: null,
+  contactPhone: null,
+  defaultShippingFee: 0,
+  freeShippingThreshold: null,
 };
 
 const PORTAL_PREFIXES = ['seller', 'account', 'admin'];
@@ -150,9 +159,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // No demo-store fallback: an unauthenticated visitor has no store, and
   // defaulting one here previously made `isSeller` true for every signed-in
   // user — including customers — which broke portal separation entirely.
-  const [store, setStore] = useState<Store | null>(() => {
+  const [merchant, setMerchant] = useState<Merchant | null>(() => {
     try {
-      const saved = localStorage.getItem('nexus_store');
+      /*
+       * This key was `nexus_store` until the tenant was renamed. A browser
+       * that visited before then still holds that entry, and nothing would
+       * ever read or clear it again -- a stale copy of a seller's record
+       * sitting in local storage, listed on the Cookie Policy under a name
+       * the app no longer writes. Removing it here costs one call on mount.
+       */
+      localStorage.removeItem('nexus_store');
+
+      const saved = localStorage.getItem('nexus_merchant');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -177,12 +195,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (store) {
-      localStorage.setItem('nexus_store', JSON.stringify(store));
+    if (merchant) {
+      localStorage.setItem('nexus_merchant', JSON.stringify(merchant));
     } else {
-      localStorage.removeItem('nexus_store');
+      localStorage.removeItem('nexus_merchant');
     }
-  }, [store]);
+  }, [merchant]);
 
   useEffect(() => {
     if (accountType) {
@@ -204,7 +222,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (meQuery.data?.user) {
       setUser(meQuery.data.user);
-      setStore(meQuery.data.store ?? null);
+      setMerchant(meQuery.data.merchant ?? null);
       setAccountType(meQuery.data.accountType ?? null);
     }
   }, [meQuery.data]);
@@ -214,7 +232,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (meQuery.isError) {
       setUser(null);
-      setStore(null);
+      setMerchant(null);
       setAccountType(null);
     }
   }, [meQuery.isError]);
@@ -236,7 +254,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const customersQuery = useCustomersQuery(isServerAuthenticated);
   const ordersQuery = useOrdersQuery(isServerAuthenticated);
   const notificationsQuery = useNotificationsQuery(isServerAuthenticated);
-  const settingsQuery = useStoreSettingsQuery(isServerAuthenticated);
+  const settingsQuery = useMerchantSettingsQuery(isServerAuthenticated);
 
   // Mutations
   const createProductMut = useCreateProductMutation();
@@ -252,13 +270,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const markReadMut = useMarkNotificationReadMutation();
   const markAllReadMut = useMarkAllNotificationsReadMutation();
 
-  const updateSettingsMut = useUpdateStoreSettingsMutation();
+  const updateSettingsMut = useUpdateMerchantSettingsMutation();
 
   // Datasets
   const products = productsQuery.data || [];
   const customers = customersQuery.data || [];
   const orders = ordersQuery.data || [];
-  const storeSettings = settingsQuery.data || defaultStoreSettings;
+  const merchantSettings = settingsQuery.data || defaultMerchantSettings;
   const activities: ActivityItem[] = [];
   const notificationsData = notificationsQuery.data;
   const notifications = Array.isArray(notificationsData) ? notificationsData : notificationsData?.data || [];
@@ -320,7 +338,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateOrderMut.mutate({ id, updates }, options);
   }, [updateOrderMut]);
 
-  const updateStoreSettings = useCallback((settings: Partial<StoreSettings>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
+  const updateMerchantSettings = useCallback((settings: Partial<MerchantSettings>, options?: { onSuccess?: (data?: any) => void; onError?: (err: any) => void }) => {
     updateSettingsMut.mutate(settings, options);
   }, [updateSettingsMut]);
 
@@ -356,17 +374,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applySession = useCallback((
-    result: { user?: User; store?: Store | null; accountType?: 'CUSTOMER' | 'SELLER' | 'ADMIN' },
+    result: { user?: User; merchant?: Merchant | null; accountType?: 'CUSTOMER' | 'SELLER' | 'ADMIN' },
     requestedPortal: 'seller' | 'customer' | 'admin',
     returnTo?: string | null
   ) => {
     if (!result.user) return;
 
     const resolved = result.accountType
-      ?? ((result.user as any).platformRole ? 'ADMIN' : (result.store ? 'SELLER' : 'CUSTOMER'));
+      ?? ((result.user as any).platformRole ? 'ADMIN' : (result.merchant ? 'SELLER' : 'CUSTOMER'));
 
     setUser(result.user);
-    setStore(result.store ?? null);
+    setMerchant(result.merchant ?? null);
     setAccountType(resolved);
     meQuery.refetch();
 
@@ -431,14 +449,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    storeName?: string,
+    displayName?: string,
     userType: 'CUSTOMER' | 'SELLER' = 'SELLER',
     targetPortal: 'seller' | 'customer' | 'admin' = 'seller',
     returnTo?: string | null
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
-      const result = await AuthService.register(name, email, password, storeName, userType);
+      const result = await AuthService.register(name, email, password, displayName, userType);
       if (result.success && result.user) {
         applySession(result, userType === 'CUSTOMER' ? 'customer' : targetPortal, returnTo);
       }
@@ -457,11 +475,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     AuthService.logoutSession();
     try {
       localStorage.removeItem('nexus_user');
-      localStorage.removeItem('nexus_store');
+      localStorage.removeItem('nexus_merchant');
       localStorage.removeItem('nexus_account_type');
     } catch {}
     setUser(null);
-    setStore(null);
+    setMerchant(null);
     setAccountType(null);
     routerNavigate(getUrlForView('marketing'));
   }, [routerNavigate]);
@@ -484,11 +502,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => {
       try {
         localStorage.removeItem('nexus_user');
-        localStorage.removeItem('nexus_store');
+        localStorage.removeItem('nexus_merchant');
         localStorage.removeItem('nexus_account_type');
       } catch {}
       setUser(null);
-      setStore(null);
+      setMerchant(null);
       setAccountType(null);
     });
 
@@ -521,7 +539,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       user,
-      store,
+      merchant,
       isAuthenticated,
       accountType,
       platformRole,
@@ -543,7 +561,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       orders,
       customers,
       activities,
-      storeSettings,
+      merchantSettings,
       addProduct,
       updateProduct,
       deleteProduct,
@@ -551,7 +569,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateOrder,
       addCustomer,
       updateCustomer,
-      updateStoreSettings,
+      updateMerchantSettings,
       addActivity,
       sidebarOpen,
       setSidebarOpen,

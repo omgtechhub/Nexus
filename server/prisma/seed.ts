@@ -1,4 +1,4 @@
-import { PrismaClient, Role, StoreStatus, ProductStatus, OrderStatus, PaymentStatus, FulfillmentStatus, DiscountType, DiscountStatus, NotificationType, InventoryMovementType, OrderAddressType } from '@prisma/client';
+import { PrismaClient, Role, MerchantStatus, ProductStatus, OrderStatus, PaymentStatus, FulfillmentStatus, DiscountType, DiscountStatus, NotificationType, InventoryMovementType, OrderAddressType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { applyCatalogue } from './catalogue.js';
 
@@ -17,11 +17,7 @@ async function main() {
   await prisma.billingCustomer.deleteMany();
   await prisma.subscriptionPlan.deleteMany();
   await prisma.auditLog.deleteMany();
-  await prisma.customDomain.deleteMany();
   await prisma.teamInvitation.deleteMany();
-  await prisma.navigationMenu.deleteMany();
-  await prisma.storePage.deleteMany();
-  await prisma.storefrontConfig.deleteMany();
   await prisma.trackingEvent.deleteMany();
   await prisma.shipment.deleteMany();
   await prisma.refund.deleteMany();
@@ -45,9 +41,9 @@ async function main() {
   await prisma.session.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.discount.deleteMany();
-  await prisma.storeSettings.deleteMany();
-  await prisma.storeMember.deleteMany();
-  await prisma.store.deleteMany();
+  await prisma.merchantSettings.deleteMany();
+  await prisma.merchantMember.deleteMany();
+  await prisma.merchant.deleteMany();
   await prisma.user.deleteMany();
 
   // Create default owner user
@@ -66,59 +62,62 @@ async function main() {
 
   console.log(`User created: ${owner.email}`);
 
-  // Create store
-  const store = await prisma.store.create({
+  /*
+   * The seeded merchant.
+   *
+   * Its id keeps the old `str_` prefix deliberately. It is an opaque key that
+   * live rows, `catalogue.ts` and `clean-test-data.ts`'s protected-id list all
+   * reference; renaming it would orphan the demo catalogue on any database
+   * that already has it, which is a real cost for a string nobody sees.
+   */
+  const merchant = await prisma.merchant.create({
     data: {
       id: 'str_aura_apparel',
-      name: 'Aura Apparel Store',
-      domain: 'auraapparel.com',
-      currency: 'USD — US Dollar',
-      timezone: 'America/New_York',
+      name: 'Aura Apparel',
+      currency: 'NGN — Nigerian Naira',
+      timezone: 'Africa/Lagos',
       industry: 'Fashion & Apparel',
-      status: StoreStatus.ACTIVE,
+      status: MerchantStatus.ACTIVE,
       ownerId: owner.id,
     },
   });
 
-  console.log(`Store created: ${store.name}`);
+  console.log(`Merchant created: ${merchant.name}`);
 
-  await prisma.storeMember.create({
+  await prisma.merchantMember.create({
     data: {
       userId: owner.id,
-      storeId: store.id,
+      merchantId: merchant.id,
       role: Role.OWNER,
     },
   });
 
-  await prisma.storeSettings.create({
+  await prisma.merchantSettings.create({
     data: {
-      storeId: store.id,
-      storeName: store.name,
-      storeUrl: 'auraapparel',
-      currency: 'USD — US Dollar',
+      merchantId: merchant.id,
+      displayName: merchant.name,
+      description: 'Sustainable luxury fashion, designed for modern living.',
+      currency: 'NGN — Nigerian Naira',
       industry: 'Fashion & Apparel',
-      announcementText: '🎉 Flash Sale: Get 20% off all summer collections with code SUMMER20',
-      activeTheme: 'nexus-dark',
-      primaryColor: '#FFBD2E',
-      customDomain: 'auraapparel.com',
+      contactEmail: 'hello@auraapparel.test',
     },
   });
 
   // Seed Product Categories
   const catApparel = await prisma.productCategory.create({
-    data: { storeId: store.id, name: 'Apparel', slug: 'apparel', description: 'Premium garments and streetwear' },
+    data: { merchantId: merchant.id, name: 'Apparel', slug: 'apparel', description: 'Premium garments and streetwear' },
   });
   const catBags = await prisma.productCategory.create({
-    data: { storeId: store.id, name: 'Bags & Accessories', slug: 'bags-accessories', description: 'Handcrafted leather goods' },
+    data: { merchantId: merchant.id, name: 'Bags & Accessories', slug: 'bags-accessories', description: 'Handcrafted leather goods' },
   });
   const catWatches = await prisma.productCategory.create({
-    data: { storeId: store.id, name: 'Watches', slug: 'watches', description: 'Timepieces & luxury watches' },
+    data: { merchantId: merchant.id, name: 'Watches', slug: 'watches', description: 'Timepieces & luxury watches' },
   });
 
   // Seed Products with Variants, Images & Inventory
   const p1 = await prisma.product.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       title: 'Minimalist Leather Tote',
       name: 'Minimalist Leather Tote',
       slug: 'minimalist-leather-tote',
@@ -149,7 +148,7 @@ async function main() {
 
   const p2 = await prisma.product.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       title: 'Organic Cotton Crewneck',
       name: 'Organic Cotton Crewneck',
       slug: 'organic-cotton-crewneck',
@@ -181,7 +180,7 @@ async function main() {
 
   const p3 = await prisma.product.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       title: 'Anodized Aluminum Chronograph Watch',
       name: 'Anodized Aluminum Chronograph Watch',
       slug: 'anodized-aluminum-chronograph-watch',
@@ -214,7 +213,7 @@ async function main() {
     for (const variant of prod.variants) {
       const invItem = await prisma.inventoryItem.create({
         data: {
-          storeId: store.id,
+          merchantId: merchant.id,
           productId: prod.id,
           variantId: variant.id,
           sku: variant.sku,
@@ -227,7 +226,7 @@ async function main() {
 
       await prisma.inventoryMovement.create({
         data: {
-          storeId: store.id,
+          merchantId: merchant.id,
           inventoryItemId: invItem.id,
           productId: prod.id,
           variantId: variant.id,
@@ -245,12 +244,12 @@ async function main() {
   // The marketplace homepage lists every live store, so a fresh database needs
   // breadth: several merchants across several categories, each product with a
   // real photograph. See prisma/catalogue.ts.
-  await applyCatalogue(prisma, { demoStoreId: store.id, log: msg => console.log(msg) });
+  await applyCatalogue(prisma, { demoMerchantId: merchant.id, log: msg => console.log(msg) });
 
   // Seed Customers with Addresses
   const c1 = await prisma.customer.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       name: 'Emma Watson',
       email: 'emma.w@example.com',
       phone: '+1 555-0192',
@@ -276,7 +275,7 @@ async function main() {
 
   const c2 = await prisma.customer.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       name: 'Marcus Vance',
       email: 'marcus.v@example.com',
       phone: '+1 555-0148',
@@ -305,7 +304,7 @@ async function main() {
   // Seed Orders with OrderItems, OrderAddresses & Status History
   const o1 = await prisma.order.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       orderNumber: '#NX-4921',
       customerId: c1.id,
       customerName: c1.name,
@@ -339,7 +338,7 @@ async function main() {
 
   const o2 = await prisma.order.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       orderNumber: '#NX-4922',
       customerId: c2.id,
       customerName: c2.name,
@@ -375,159 +374,31 @@ async function main() {
   // Seed Discounts & Notifications
   await prisma.discount.createMany({
     data: [
-      { storeId: store.id, code: 'SUMMER20', type: DiscountType.PERCENTAGE, value: '20', minOrderAmount: 50.0, redemptions: 142, maxRedemptions: 500, status: DiscountStatus.ACTIVE },
-      { storeId: store.id, code: 'WELCOME10', type: DiscountType.FIXED, value: '10', minOrderAmount: 0.0, redemptions: 380, maxRedemptions: 1000, status: DiscountStatus.ACTIVE },
-      { storeId: store.id, code: 'FREESHIP', type: DiscountType.SHIPPING, value: '100', minOrderAmount: 0.0, redemptions: 45, maxRedemptions: 200, status: DiscountStatus.ACTIVE },
+      { merchantId: merchant.id, code: 'SUMMER20', type: DiscountType.PERCENTAGE, value: '20', minOrderAmount: 50.0, redemptions: 142, maxRedemptions: 500, status: DiscountStatus.ACTIVE },
+      { merchantId: merchant.id, code: 'WELCOME10', type: DiscountType.FIXED, value: '10', minOrderAmount: 0.0, redemptions: 380, maxRedemptions: 1000, status: DiscountStatus.ACTIVE },
+      { merchantId: merchant.id, code: 'FREESHIP', type: DiscountType.SHIPPING, value: '100', minOrderAmount: 0.0, redemptions: 45, maxRedemptions: 200, status: DiscountStatus.ACTIVE },
     ],
   });
 
   await prisma.notification.createMany({
     data: [
-      { storeId: store.id, userId: owner.id, type: NotificationType.SUCCESS, title: 'Order #NX-4922 Confirmed', message: 'Order received for $340.00 from Marcus Vance', read: false },
-      { storeId: store.id, userId: owner.id, type: NotificationType.WARNING, title: 'Low Stock Warning', message: 'Anodized Aluminum Chronograph Watch has 18 units remaining.', read: false },
+      { merchantId: merchant.id, userId: owner.id, type: NotificationType.SUCCESS, title: 'Order #NX-4922 Confirmed', message: 'Order received for $340.00 from Marcus Vance', read: false },
+      { merchantId: merchant.id, userId: owner.id, type: NotificationType.WARNING, title: 'Low Stock Warning', message: 'Anodized Aluminum Chronograph Watch has 18 units remaining.', read: false },
     ],
   });
 
   // Seed Shipping Zones & Methods
   const zoneUS = await prisma.shippingZone.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       name: 'Domestic (United States)',
       countries: ['US', 'CA'],
       methods: {
         create: [
-          { storeId: store.id, name: 'Standard Delivery', price: 15.0, freeThreshold: 100.0, estimatedDays: '3-5 business days' },
-          { storeId: store.id, name: 'Express Air Courier', price: 35.0, estimatedDays: '1-2 business days' },
+          { merchantId: merchant.id, name: 'Standard Delivery', price: 15.0, freeThreshold: 100.0, estimatedDays: '3-5 business days' },
+          { merchantId: merchant.id, name: 'Express Air Courier', price: 35.0, estimatedDays: '1-2 business days' },
         ],
       },
-    },
-  });
-
-  // Seed Phase 7: StorefrontConfig, Navigation, Pages, Custom Domain, Audit Logs
-  const defaultConfig = {
-    theme: 'nexus-dark',
-    branding: {
-      storeName: 'Aura Apparel Store',
-      logoUrl: '',
-      faviconUrl: '',
-      primaryColor: '#FFBD2E',
-      secondaryColor: '#27C93F',
-      accentColor: '#FF5F56',
-      fontFamily: 'Inter',
-      announcementText: '🎉 Flash Sale: Get 20% off all summer collections with code SUMMER20',
-    },
-    sections: [
-      {
-        id: 'hero_1',
-        type: 'hero',
-        title: 'Elevate Your Daily Style',
-        subtitle: 'Crafted with sustainable fabrics and timeless minimalist cuts.',
-        badge: 'New Collection 2026',
-        buttonText: 'Shop Summer Drop',
-        buttonLink: '#products',
-      },
-      {
-        id: 'featured_1',
-        type: 'product_grid',
-        title: 'Featured Collection',
-        subtitle: 'Handpicked bestsellers and luxury apparel',
-        limit: 6,
-      },
-      {
-        id: 'banner_1',
-        type: 'banner',
-        title: 'Join the Aura Insider Club',
-        subtitle: 'Get 10% off your first order plus exclusive drop access.',
-        buttonText: 'Subscribe',
-      },
-      {
-        id: 'faq_1',
-        type: 'faq',
-        title: 'Frequently Asked Questions',
-        items: [
-          { q: 'What is your shipping policy?', a: 'We offer free express shipping on orders over $100 within the US.' },
-          { q: 'What is your return policy?', a: 'Returns are accepted within 30 days of purchase in original condition.' },
-        ],
-      },
-    ],
-  };
-
-  await prisma.storefrontConfig.create({
-    data: {
-      storeId: store.id,
-      activeTheme: 'nexus-dark',
-      draftConfig: defaultConfig as any,
-      publishedConfig: defaultConfig as any,
-      isPublished: true,
-      publishedAt: new Date(),
-    },
-  });
-
-  await prisma.navigationMenu.createMany({
-    data: [
-      {
-        storeId: store.id,
-        name: 'Main Menu',
-        handle: 'main-menu',
-        items: [
-          { id: 'nav_1', title: 'Shop', type: 'collection', url: '#products' },
-          { id: 'nav_2', title: 'About', type: 'page', url: '/pages/about' },
-          { id: 'nav_3', title: 'FAQ', type: 'page', url: '/pages/faq' },
-        ] as any,
-      },
-      {
-        storeId: store.id,
-        name: 'Footer Menu',
-        handle: 'footer-menu',
-        items: [
-          { id: 'fnav_1', title: 'Privacy Policy', type: 'page', url: '/pages/privacy' },
-          { id: 'fnav_2', title: 'Returns Policy', type: 'page', url: '/pages/returns' },
-          { id: 'fnav_3', title: 'Contact Us', type: 'page', url: '/pages/contact' },
-        ] as any,
-      },
-    ],
-  });
-
-  await prisma.storePage.createMany({
-    data: [
-      {
-        storeId: store.id,
-        title: 'About Us',
-        slug: 'about',
-        content: '<h1>About Aura Apparel</h1><p>We craft sustainable luxury fashion designed for modern living.</p>',
-        seoTitle: 'About Aura Apparel | Sustainable Luxury Fashion',
-        seoDescription: 'Learn about Aura Apparel, our story, mission, and commitment to sustainable fashion.',
-        isPublished: true,
-      },
-      {
-        storeId: store.id,
-        title: 'FAQ',
-        slug: 'faq',
-        content: '<h1>Frequently Asked Questions</h1><p>Find answers to common questions about orders, shipping, and returns.</p>',
-        seoTitle: 'FAQ | Aura Apparel Help Center',
-        seoDescription: 'Frequently asked questions regarding shipping, returns, and ordering.',
-        isPublished: true,
-      },
-      {
-        storeId: store.id,
-        title: 'Privacy Policy',
-        slug: 'privacy',
-        content: '<h1>Privacy Policy</h1><p>Your privacy is important to us. We protect your personal data.</p>',
-        seoTitle: 'Privacy Policy | Aura Apparel',
-        seoDescription: 'Read our official privacy policy.',
-        isPublished: true,
-      },
-    ],
-  });
-
-  await prisma.customDomain.create({
-    data: {
-      storeId: store.id,
-      domain: 'auraapparel.com',
-      status: 'VERIFIED',
-      verificationToken: 'nexus-verify-auraapparel-2026',
-      isPrimary: true,
-      verifiedAt: new Date(),
     },
   });
 
@@ -536,7 +407,7 @@ async function main() {
     data: {
       code: 'starter',
       name: 'Starter Plan',
-      description: 'Ideal for early stage stores and boutique merchants.',
+      description: 'For a seller finding their first customers.',
       monthlyPrice: 29.0,
       annualPrice: 290.0,
       currency: 'USD',
@@ -544,9 +415,7 @@ async function main() {
       displayOrder: 1,
       maxProducts: 50,
       maxTeamMembers: 2,
-      maxStores: 1,
       storageMb: 1000,
-      customDomainAllowed: true,
       advancedAnalyticsAllowed: false,
       aiTokensPerMonth: 1000,
       features: ['Up to 50 active products', '2 team members', 'Custom domain support', 'Standard analytics', 'Email support'],
@@ -565,9 +434,7 @@ async function main() {
       displayOrder: 2,
       maxProducts: 500,
       maxTeamMembers: 5,
-      maxStores: 1,
       storageMb: 5000,
-      customDomainAllowed: true,
       advancedAnalyticsAllowed: true,
       aiTokensPerMonth: 10000,
       features: ['Up to 500 active products', '5 team members', 'Custom domain support', 'Advanced analytics & export', 'Priority support'],
@@ -586,12 +453,10 @@ async function main() {
       displayOrder: 3,
       maxProducts: 2500,
       maxTeamMembers: 15,
-      maxStores: 3,
       storageMb: 25000,
-      customDomainAllowed: true,
       advancedAnalyticsAllowed: true,
       aiTokensPerMonth: 100000,
-      features: ['Up to 2,500 active products', '15 team members', 'Multi-store support', 'Advanced analytics', 'VIP 24/7 support'],
+      features: ['Up to 2,500 active products', '15 team members', 'Advanced analytics', 'VIP 24/7 support'],
     },
   });
 
@@ -599,7 +464,7 @@ async function main() {
     data: {
       code: 'enterprise',
       name: 'Enterprise Plan',
-      description: 'Custom infrastructure, unlimited scaling, and SLA guarantee.',
+      description: 'Custom limits and dedicated support, agreed case by case.',
       monthlyPrice: 499.0,
       annualPrice: 4990.0,
       currency: 'USD',
@@ -607,13 +472,11 @@ async function main() {
       displayOrder: 4,
       maxProducts: 10000,
       maxTeamMembers: 50,
-      maxStores: 10,
       storageMb: 100000,
-      customDomainAllowed: true,
       advancedAnalyticsAllowed: true,
       // Null is the unlimited allowance the pricing page promises this tier.
       aiTokensPerMonth: null,
-      features: ['Up to 10,000 active products', '50 team members', 'Dedicated account manager', 'Custom integrations', '99.99% SLA'],
+      features: ['Up to 10,000 active products', '50 team members', 'Dedicated account manager', 'Custom integrations'],
     },
   });
 
@@ -637,7 +500,7 @@ async function main() {
 
   const sub = await prisma.subscription.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       planId: planGrowth.id,
       billingInterval: 'MONTHLY',
       status: 'ACTIVE',
@@ -650,7 +513,7 @@ async function main() {
 
   await prisma.billingCustomer.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       email: owner.email,
       name: owner.name,
       provider: 'PAYSTACK',
@@ -662,7 +525,7 @@ async function main() {
   const inv = await prisma.invoice.create({
     data: {
       invoiceNumber: 'NX-INV-1001',
-      storeId: store.id,
+      merchantId: merchant.id,
       subscriptionId: sub.id,
       planId: planGrowth.id,
       status: 'PAID',
@@ -684,7 +547,7 @@ async function main() {
 
   await prisma.billingTransaction.create({
     data: {
-      storeId: store.id,
+      merchantId: merchant.id,
       subscriptionId: sub.id,
       invoiceId: inv.id,
       amount: 79.0,

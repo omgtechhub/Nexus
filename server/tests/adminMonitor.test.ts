@@ -26,7 +26,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
   let adminCookie: string;
   let adminId: string;
   let merchantCookie: string;
-  let storeId: string;
+  let merchantId: string;
 
   function fakeEmbedder(): SpeakerEmbedder {
     return {
@@ -105,17 +105,17 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
       name: 'Monitored Merchant',
       email: `mon_m_${stamp}@nexus.io`,
       password,
-      storeName: `Monitored Store ${stamp}`,
+      displayName: `Monitored Merchant ${stamp}`,
     });
     expect(merchant.status).toBe(201);
     merchantCookie = merchant.headers['set-cookie'][0];
-    storeId = merchant.body.data.store.id;
+    merchantId = merchant.body.data.merchant.id;
 
     const admin = await request.post('/api/auth/register').send({
       name: 'Platform Admin',
       email: `mon_a_${stamp}@nexus.io`,
       password,
-      storeName: `Admin Store ${stamp}`,
+      displayName: `Admin Merchant ${stamp}`,
     });
     adminId = admin.body.data.user.id;
     await prisma.user.update({
@@ -179,7 +179,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
       });
       await prisma.payment.create({
         data: {
-          storeId,
+          merchantId,
           orderId: order.id,
           provider: PaymentProvider.PAYSTACK,
           providerReference: `ref_ok_${stamp}`,
@@ -206,7 +206,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
 
       await prisma.payment.create({
         data: {
-          storeId,
+          merchantId,
           orderId: order.id,
           provider: PaymentProvider.PAYSTACK,
           providerReference: `ref_mm_${stamp}`,
@@ -236,7 +236,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
 
       const payment = await prisma.payment.create({
         data: {
-          storeId,
+          merchantId,
           orderId: order.id,
           provider: PaymentProvider.PAYSTACK,
           providerReference: `ref_or_${stamp}`,
@@ -248,7 +248,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
         data: {
           paymentId: payment.id,
           orderId: order.id,
-          storeId,
+          merchantId,
           amount: order.total + 30,
           status: 'SUCCESS',
           providerReference: `rfd_or_${stamp}`,
@@ -318,11 +318,11 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
       // The merchant's own user account, reviewing its own catalogue. The
       // purchase is real, which is why this needs a membership join to catch
       // rather than a heuristic about the text.
-      const merchantUser = await prisma.storeMember.findFirst({ where: { storeId } });
+      const merchantUser = await prisma.merchantMember.findFirst({ where: { merchantId } });
       await prisma.productReview.create({
         data: {
           productId: product,
-          storeId,
+          merchantId,
           userId: merchantUser!.userId,
           orderId: order.id,
           orderItemId: item!.id,
@@ -336,7 +336,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
 
       expect(finding).toBeTruthy();
       expect(finding!.evidence.rating).toBe(5);
-      expect(finding!.evidence.storeId).toBe(storeId);
+      expect(finding!.evidence.merchantId).toBe(merchantId);
     });
   });
 
@@ -345,7 +345,7 @@ describe('Admin monitoring: policy checks, activity and the voice briefing', () 
       const report = await runPolicyScan();
 
       expect(report.scanned.checks).toBeGreaterThanOrEqual(10);
-      expect(report.scanned.stores).toBeGreaterThan(0);
+      expect(report.scanned.merchants).toBeGreaterThan(0);
       expect(report.scanned.orders).toBeGreaterThan(0);
       expect(report.counts.total).toBe(report.findings.length);
     });

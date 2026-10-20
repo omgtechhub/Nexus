@@ -16,20 +16,20 @@ describe('Nexus Commerce Phase 1 & 2 Auth & API Integration Tests', () => {
     await prisma.user.deleteMany({ where: { email: testEmail } });
   });
 
-  it('1. Registration: creates User, Store, OWNER membership, Session & cookie', async () => {
+  it('1. Registration: creates User, Merchant, OWNER membership, Session & cookie', async () => {
     const res = await request
       .post('/api/auth/register')
       .send({
         name: testName,
         email: testEmail,
         password: testPassword,
-        storeName: 'Test Store',
+        displayName: 'Test Merchant',
       });
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.user.email).toBe(testEmail);
-    expect(res.body.data.store).toBeDefined();
+    expect(res.body.data.merchant).toBeDefined();
     expect(res.body.data.membership.role).toBe('OWNER');
 
     const cookies = res.headers['set-cookie'] as unknown as string[];
@@ -78,7 +78,7 @@ describe('Nexus Commerce Phase 1 & 2 Auth & API Integration Tests', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('5. /api/auth/me: returns current user, store, and membership', async () => {
+  it('5. /api/auth/me: returns current user, merchant, and membership', async () => {
     const res = await request
       .get('/api/auth/me')
       .set('Cookie', [authCookie]);
@@ -86,7 +86,7 @@ describe('Nexus Commerce Phase 1 & 2 Auth & API Integration Tests', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.user.email).toBe(testEmail);
-    expect(res.body.data.store).toBeDefined();
+    expect(res.body.data.merchant).toBeDefined();
     expect(res.body.data.membership.role).toBe('OWNER');
   });
 

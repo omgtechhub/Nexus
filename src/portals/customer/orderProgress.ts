@@ -1,3 +1,4 @@
+import { PLATFORM_CURRENCY } from '../../utils/money';
 import type { TrackedShipment } from '../../api/account';
 import type { OrderStatus, PaymentStatus, FulfillmentStatus } from '../../types';
 
@@ -141,7 +142,7 @@ export function statusVariant(status: OrderStatus): 'success' | 'warning' | 'err
   }
 }
 
-export function formatMoney(amount: number, currency = 'USD'): string {
+export function formatMoney(amount: number, currency = PLATFORM_CURRENCY): string {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount);
   } catch {

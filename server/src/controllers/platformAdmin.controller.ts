@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
+import { defaultCurrencyCode } from '../config/currency.js';
 
 export async function getPlatformMetrics(req: Request, res: Response, next: NextFunction) {
   try {
-    const [totalStores, totalUsers, activeSubs, totalTransactions, plans] = await Promise.all([
-      prisma.store.count(),
+    const [totalMerchants, totalUsers, activeSubs, totalTransactions, plans] = await Promise.all([
+      prisma.merchant.count(),
       prisma.user.count(),
       prisma.subscription.findMany({
         where: { status: 'ACTIVE' },
@@ -32,7 +33,7 @@ export async function getPlatformMetrics(req: Request, res: Response, next: Next
     res.json({
       success: true,
       data: {
-        totalStores,
+        totalMerchants,
         totalUsers,
         activeSubscriptionsCount: activeSubs.length,
         mrr: Number(mrr.toFixed(2)),
@@ -49,7 +50,7 @@ export async function getPlatformMetrics(req: Request, res: Response, next: Next
 
 export async function getMerchants(req: Request, res: Response, next: NextFunction) {
   try {
-    const stores = await prisma.store.findMany({
+    const merchants = await prisma.merchant.findMany({
       include: {
         owner: {
           select: { id: true, name: true, email: true, createdAt: true },
@@ -64,10 +65,9 @@ export async function getMerchants(req: Request, res: Response, next: NextFuncti
       orderBy: { createdAt: 'desc' },
     });
 
-    const data = stores.map((s) => ({
+    const data = merchants.map((s) => ({
       id: s.id,
       name: s.name,
-      domain: s.domain,
       status: s.status,
       owner: s.owner,
       subscription: s.subscription
@@ -119,9 +119,7 @@ export async function createPlatformPlan(req: Request, res: Response, next: Next
       displayOrder,
       maxProducts,
       maxTeamMembers,
-      maxStores,
       storageMb,
-      customDomainAllowed,
       advancedAnalyticsAllowed,
       features,
     } = req.body;
@@ -140,14 +138,12 @@ export async function createPlatformPlan(req: Request, res: Response, next: Next
         description: description || '',
         monthlyPrice: Number(monthlyPrice),
         annualPrice: Number(annualPrice || monthlyPrice * 10),
-        currency: currency || 'USD',
+        currency: currency || defaultCurrencyCode(),
         trialDays: trialDays !== undefined ? Number(trialDays) : 14,
         displayOrder: displayOrder !== undefined ? Number(displayOrder) : 1,
         maxProducts: maxProducts !== undefined ? Number(maxProducts) : 100,
         maxTeamMembers: maxTeamMembers !== undefined ? Number(maxTeamMembers) : 5,
-        maxStores: maxStores !== undefined ? Number(maxStores) : 1,
         storageMb: storageMb !== undefined ? Number(storageMb) : 5000,
-        customDomainAllowed: customDomainAllowed !== undefined ? Boolean(customDomainAllowed) : true,
         advancedAnalyticsAllowed: advancedAnalyticsAllowed !== undefined ? Boolean(advancedAnalyticsAllowed) : true,
         features: features || [],
       },
@@ -182,9 +178,7 @@ const PLAN_FIELD_COERCIONS: Record<string, (v: unknown) => unknown> = {
   displayOrder: (v) => Number(v),
   maxProducts: (v) => Number(v),
   maxTeamMembers: (v) => Number(v),
-  maxStores: (v) => Number(v),
   storageMb: (v) => Number(v),
-  customDomainAllowed: (v) => Boolean(v),
   advancedAnalyticsAllowed: (v) => Boolean(v),
   features: (v) => (Array.isArray(v) ? v.map(String) : []),
   isActive: (v) => Boolean(v),
@@ -197,7 +191,6 @@ const NUMERIC_PLAN_FIELDS = new Set([
   'displayOrder',
   'maxProducts',
   'maxTeamMembers',
-  'maxStores',
   'storageMb',
 ]);
 
@@ -245,7 +238,7 @@ export async function updatePlatformPlan(req: Request, res: Response, next: Next
 export async function getPlatformInvoices(req: Request, res: Response, next: NextFunction) {
   try {
     const invoices = await prisma.invoice.findMany({
-      include: { store: true, plan: true, items: true },
+      include: { merchant: true, plan: true, items: true },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
@@ -270,7 +263,7 @@ export async function getPlatformTransactions(req: Request, res: Response, next:
         provider: true,
         providerReference: true,
         createdAt: true,
-        store: { select: { id: true, name: true } },
+        merchant: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 100,

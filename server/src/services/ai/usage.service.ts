@@ -31,16 +31,16 @@ export function currentPeriod(now = new Date()): { start: Date; end: Date } {
   return { start, end };
 }
 
-export async function getUsage(storeId: string, now = new Date()): Promise<UsageWindow> {
+export async function getUsage(merchantId: string, now = new Date()): Promise<UsageWindow> {
   const { start, end } = currentPeriod(now);
 
   const [aggregate, subscription] = await Promise.all([
     prisma.aiUsageEvent.aggregate({
-      where: { storeId, createdAt: { gte: start, lt: end } },
+      where: { merchantId, createdAt: { gte: start, lt: end } },
       _sum: { tokensIn: true, tokensOut: true },
     }),
     prisma.subscription.findUnique({
-      where: { storeId },
+      where: { merchantId },
       include: { plan: true },
     }),
   ]);
@@ -54,7 +54,7 @@ export async function getUsage(storeId: string, now = new Date()): Promise<Usage
 }
 
 export async function recordUsage(params: {
-  storeId: string;
+  merchantId: string;
   kind: AiUsageKind;
   provider: string;
   model: string;

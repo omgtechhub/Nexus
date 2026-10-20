@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma.js';
 import { z } from 'zod';
-import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, OrderAddressType, ProductStatus, StoreStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus, FulfillmentStatus, InventoryMovementType, OrderAddressType, ProductStatus, MerchantStatus } from '@prisma/client';
 import { quoteOrder } from '../services/pricing/quote.service.js';
+import { defaultCurrencyCode } from '../config/currency.js';
+import { defaultCurrencyLabel } from '../config/currency.js';
 
 const cartItemInputSchema = z.object({
   variantId: z.string().min(1),
@@ -17,7 +19,7 @@ const validateCartSchema = z.object({
   shippingMethodId: z.string().optional(),
 });
 
-const storefrontCheckoutSchema = z.object({
+const checkoutSchema = z.object({
   items: z.array(cartItemInputSchema).min(1, 'Cart items are required'),
   customer: z.object({
     email: z.string().email('Valid customer email is required'),
@@ -42,106 +44,62 @@ const storefrontCheckoutSchema = z.object({
 });
 
 /**
- * Helper to resolve store by ID, domain, storeUrl, or name slug
+ * Resolve the merchant a public shop request is about.
+ *
+ * This used to be a five-step cascade: id, then `Store.domain`, then the
+ * CustomDomain table, then `settings.storeUrl`, and finally **every merchant
+ * row loaded into memory** and matched on a stripped-down prefix of its name
+ * or hostname. That last step was both a full table scan on an unauthenticated
+ * route and a correctness hazard -- "aura" matching whichever of several
+ * similarly-named merchants happened to come back first.
+ *
+ * None of those alternatives exist any more. A merchant has no hostname, no
+ * handle and no domain of its own, because it is a seller on one marketplace
+ * rather than a shopfront. The id is the only identifier, so the lookup is a
+ * primary-key read.
  */
-async function findStoreBySlug(storeSlug: string) {
-  const store = await resolveStoreBySlug(storeSlug);
-  // A suspended store must not serve a public storefront, quote a price or
-  // take an order. The lookup is the only place every public storefront route
-  // passes through, so the check belongs here rather than in eight handlers.
-  if (store && store.status === StoreStatus.SUSPENDED) return null;
-  return store;
-}
+async function findMerchantForShop(merchantId: string) {
+  if (!merchantId) return null;
 
-async function resolveStoreBySlug(storeSlug: string) {
-  if (!storeSlug) return null;
-
-  // 1. Match by ID
-  let store = await prisma.store.findUnique({
-    where: { id: storeSlug },
-    include: { settings: true, storefrontConfig: true },
-  });
-  if (store) return store;
-
-  // 2. Match by exact domain
-  store = await prisma.store.findUnique({
-    where: { domain: storeSlug },
-    include: { settings: true, storefrontConfig: true },
-  });
-  if (store) return store;
-
-  // 3. Match by CustomDomain table
-  const customDom = await prisma.customDomain.findFirst({
-    where: { domain: storeSlug.toLowerCase().trim() },
-    include: { store: { include: { settings: true, storefrontConfig: true } } },
-  });
-  if (customDom?.store) return customDom.store;
-
-  // 4. Match by settings.storeUrl
-  const settings = await prisma.storeSettings.findFirst({
-    where: { storeUrl: { equals: storeSlug, mode: 'insensitive' } },
-    include: { store: { include: { settings: true, storefrontConfig: true } } },
-  });
-  if (settings?.store) return settings.store;
-
-  // 5. Flexible match on domain prefix or name slug
-  const cleanSearch = storeSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const allStores = await prisma.store.findMany({ include: { settings: true, storefrontConfig: true } });
-
-  const matched = allStores.find(s => {
-    const sNameSlug = s.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const sDomainClean = s.domain.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return (
-      sDomainClean.startsWith(cleanSearch) ||
-      cleanSearch.startsWith(sNameSlug) ||
-      sNameSlug === cleanSearch
-    );
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { settings: true },
   });
 
-  return matched || null;
+  // A suspended merchant must not serve a listing, quote a price or take an
+  // order. Every public shop route passes through here, so the check belongs
+  // here rather than in eight handlers.
+  if (!merchant || merchant.status === MerchantStatus.SUSPENDED) return null;
+  return merchant;
 }
 
 /**
- * Public: Get Storefront Info & Published Settings by Store Slug
+ * Public: the merchant behind a listing -- who you are buying from.
+ *
+ * It used to return a shopfront: a theme, a primary colour, an announcement
+ * bar and a custom domain, all of which described a shopfront the seller
+ * controlled. On a marketplace the shopfront is Nexus's, so what is left is
+ * the merchant's identity and the currency the sale settles in.
  */
-export async function getStorefrontInfo(req: Request, res: Response, next: NextFunction) {
+export async function getMerchantShopInfo(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug } = req.params;
-    const store = await findStoreBySlug(storeSlug);
+    const { merchantRef } = req.params;
+    const merchant = await findMerchantForShop(merchantRef);
 
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
-    const cleanSlug = store.settings?.storeUrl || store.domain.split('.')[0] || store.id;
-    const storefrontConfig = store.storefrontConfig;
-
-    // Use publishedConfig if available, else draftConfig or settings
-    const activeConfig = (storefrontConfig?.publishedConfig as any) || (storefrontConfig?.draftConfig as any);
-
     return res.json({
-      store: {
-        id: store.id,
-        name: store.name,
-        slug: cleanSlug,
-        storefrontConfig: activeConfig || undefined,
-        settings: store.settings
-          ? {
-              storeName: activeConfig?.branding?.storeName || store.settings.storeName || store.name,
-              activeTheme: activeConfig?.theme || store.settings.activeTheme || 'nexus-dark',
-              primaryColor: activeConfig?.branding?.primaryColor || store.settings.primaryColor || '#FFBD2E',
-              announcementText: activeConfig?.branding?.announcementText || store.settings.announcementText || '',
-              currency: store.settings.currency || 'USD',
-              customDomain: store.settings.customDomain || '',
-            }
-          : {
-              storeName: store.name,
-              activeTheme: 'nexus-dark',
-              primaryColor: '#FFBD2E',
-              announcementText: '',
-              currency: 'USD',
-              customDomain: '',
-            },
+      merchant: {
+        id: merchant.id,
+        name: merchant.name,
+        settings: {
+          displayName: merchant.settings?.displayName || merchant.name,
+          description: merchant.settings?.description || '',
+          logoUrl: merchant.settings?.logoUrl || null,
+          currency: merchant.settings?.currency || defaultCurrencyLabel(),
+        },
       },
     });
   } catch (error) {
@@ -150,16 +108,16 @@ export async function getStorefrontInfo(req: Request, res: Response, next: NextF
 }
 
 /**
- * Public: Get Storefront Products Catalog (Active products only)
+ * Public: a merchant's listings on the marketplace (active products only).
  */
-export async function getStorefrontProducts(req: Request, res: Response, next: NextFunction) {
+export async function getShopProducts(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug } = req.params;
+    const { merchantRef } = req.params;
     const { category, q, sort = 'newest', page = '1', limit = '24' } = req.query;
 
-    const store = await findStoreBySlug(storeSlug);
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    const merchant = await findMerchantForShop(merchantRef);
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
@@ -167,7 +125,7 @@ export async function getStorefrontProducts(req: Request, res: Response, next: N
     const skip = (pageNum - 1) * limitNum;
 
     const where: any = {
-      storeId: store.id,
+      merchantId: merchant.id,
       status: ProductStatus.ACTIVE,
     };
 
@@ -252,20 +210,20 @@ export async function getStorefrontProducts(req: Request, res: Response, next: N
 }
 
 /**
- * Public: Get Single Storefront Product by Slug
+ * Public: one listing, by its slug.
  */
-export async function getStorefrontProductBySlug(req: Request, res: Response, next: NextFunction) {
+export async function getShopProductBySlug(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug, productSlug } = req.params;
+    const { merchantRef, productSlug } = req.params;
 
-    const store = await findStoreBySlug(storeSlug);
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    const merchant = await findMerchantForShop(merchantRef);
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
     const product = await prisma.product.findFirst({
       where: {
-        storeId: store.id,
+        merchantId: merchant.id,
         slug: productSlug,
         status: ProductStatus.ACTIVE,
       },
@@ -319,21 +277,21 @@ export async function getStorefrontProductBySlug(req: Request, res: Response, ne
 }
 
 /**
- * Public: Get Storefront Product Categories
+ * Public: the categories a merchant's listings fall into.
  */
-export async function getStorefrontCategories(req: Request, res: Response, next: NextFunction) {
+export async function getShopCategories(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug } = req.params;
+    const { merchantRef } = req.params;
 
-    const store = await findStoreBySlug(storeSlug);
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    const merchant = await findMerchantForShop(merchantRef);
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
     const [dbCategories, distinctProductCategories] = await Promise.all([
-      prisma.productCategory.findMany({ where: { storeId: store.id } }),
+      prisma.productCategory.findMany({ where: { merchantId: merchant.id } }),
       prisma.product.findMany({
-        where: { storeId: store.id, status: ProductStatus.ACTIVE },
+        where: { merchantId: merchant.id, status: ProductStatus.ACTIVE },
         select: { category: true },
         distinct: ['category'],
       }),
@@ -358,13 +316,13 @@ export async function getStorefrontCategories(req: Request, res: Response, next:
  */
 export async function validateCart(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug } = req.params;
+    const { merchantRef } = req.params;
     const payload = validateCartSchema.parse(req.body);
     const { items } = payload;
 
-    const store = await findStoreBySlug(storeSlug);
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    const merchant = await findMerchantForShop(merchantRef);
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
     let subtotal = 0;
@@ -392,7 +350,7 @@ export async function validateCart(req: Request, res: Response, next: NextFuncti
       let image = '';
       let availableStock = 0;
 
-      if (variant && variant.product.storeId === store.id && variant.product.status === ProductStatus.ACTIVE) {
+      if (variant && variant.product.merchantId === merchant.id && variant.product.status === ProductStatus.ACTIVE) {
         product = variant.product;
         title = product.title;
         variantTitle = variant.title;
@@ -402,7 +360,7 @@ export async function validateCart(req: Request, res: Response, next: NextFuncti
         availableStock = variant.inventoryQuantity;
       } else {
         const prod = await prisma.product.findFirst({
-          where: { id: item.variantId, storeId: store.id, status: ProductStatus.ACTIVE },
+          where: { id: item.variantId, merchantId: merchant.id, status: ProductStatus.ACTIVE },
           include: {
             images: { orderBy: { position: 'asc' } },
             inventoryItems: true,
@@ -462,7 +420,7 @@ export async function validateCart(req: Request, res: Response, next: NextFuncti
      * are charged at checkout come from one place and cannot drift.
      */
     const quote = await quoteOrder({
-      storeId: store.id,
+      merchantId: merchant.id,
       subtotal,
       country: payload.country,
       shippingMethodId: payload.shippingMethodId,
@@ -499,12 +457,12 @@ export async function validateCart(req: Request, res: Response, next: NextFuncti
  */
 export async function checkout(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug } = req.params;
-    const payload = storefrontCheckoutSchema.parse(req.body);
+    const { merchantRef } = req.params;
+    const payload = checkoutSchema.parse(req.body);
 
-    const store = await findStoreBySlug(storeSlug);
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    const merchant = await findMerchantForShop(merchantRef);
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -539,7 +497,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
         let sku = '';
         let targetVariantId: string | undefined = undefined;
 
-        if (variant && variant.product.storeId === store.id && variant.product.status === ProductStatus.ACTIVE) {
+        if (variant && variant.product.merchantId === merchant.id && variant.product.status === ProductStatus.ACTIVE) {
           product = variant.product;
           title = product.title;
           variantTitle = variant.title;
@@ -586,7 +544,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
 
           // Log movement if inventory item exists
           const invItem = await tx.inventoryItem.findFirst({
-            where: { storeId: store.id, variantId: variant.id },
+            where: { merchantId: merchant.id, variantId: variant.id },
           });
 
           if (invItem) {
@@ -599,20 +557,20 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
 
             await tx.inventoryMovement.create({
               data: {
-                storeId: store.id,
+                merchantId: merchant.id,
                 inventoryItemId: invItem.id,
                 productId: product.id,
                 variantId: variant.id,
                 changeQuantity: -item.quantity,
                 newQuantity: Math.max(0, invItem.availableStock - item.quantity),
                 type: InventoryMovementType.ORDER_PLACED,
-                reason: `Storefront order placed by ${payload.customer.email}`,
+                reason: `Order placed by ${payload.customer.email}`,
               },
             });
           }
         } else {
           const prod = await tx.product.findFirst({
-            where: { id: item.variantId, storeId: store.id, status: ProductStatus.ACTIVE },
+            where: { id: item.variantId, merchantId: merchant.id, status: ProductStatus.ACTIVE },
             include: { inventoryItems: true },
           });
 
@@ -658,13 +616,13 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
 
             await tx.inventoryMovement.create({
               data: {
-                storeId: store.id,
+                merchantId: merchant.id,
                 inventoryItemId: primaryInvItem.id,
                 productId: prod.id,
                 changeQuantity: -item.quantity,
                 newQuantity: Math.max(0, primaryInvItem.availableStock - item.quantity),
                 type: InventoryMovementType.ORDER_PLACED,
-                reason: `Storefront order placed by ${payload.customer.email}`,
+                reason: `Order placed by ${payload.customer.email}`,
               },
             });
           }
@@ -690,7 +648,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
       if (payload.discountCode) {
         const discountRecord = await tx.discount.findFirst({
           where: {
-            storeId: store.id,
+            merchantId: merchant.id,
             code: payload.discountCode.toUpperCase().trim(),
             status: 'ACTIVE',
           },
@@ -727,7 +685,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
        * what is actually owed.
        */
       const quote = await quoteOrder({
-        storeId: store.id,
+        merchantId: merchant.id,
         subtotal,
         discountAmount,
         country: payload.shippingAddress.country,
@@ -745,13 +703,13 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
       const buyerUserId = req.user?.id ?? null;
 
       let customer = await tx.customer.findFirst({
-        where: { storeId: store.id, email: payload.customer.email.toLowerCase() },
+        where: { merchantId: merchant.id, email: payload.customer.email.toLowerCase() },
       });
 
       if (!customer) {
         customer = await tx.customer.create({
           data: {
-            storeId: store.id,
+            merchantId: merchant.id,
             userId: buyerUserId,
             name: payload.customer.name,
             email: payload.customer.email.toLowerCase(),
@@ -776,13 +734,13 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
       }
 
       // Generate order number
-      const count = await tx.order.count({ where: { storeId: store.id } });
+      const count = await tx.order.count({ where: { merchantId: merchant.id } });
       const orderNumber = `#NX-${1000 + count + 1}`;
 
       // Create Order
       const newOrder = await tx.order.create({
         data: {
-          storeId: store.id,
+          merchantId: merchant.id,
           orderNumber,
           customerId: customer.id,
           customerName: payload.customer.name,
@@ -797,7 +755,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
           discount: Number(discountAmount.toFixed(2)),
           discountCode: payload.discountCode ? payload.discountCode.toUpperCase().trim() : undefined,
           total,
-          currency: 'USD',
+          currency: defaultCurrencyLabel(),
           items: {
             create: orderItemsToCreate,
           },
@@ -822,7 +780,7 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
               {
                 fromStatus: OrderStatus.PENDING,
                 toStatus: OrderStatus.PENDING,
-                note: 'Order placed via public storefront',
+                note: 'Order placed on the marketplace',
               },
             ],
           },
@@ -837,10 +795,10 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
       // Create notification for store owner
       await tx.notification.create({
         data: {
-          storeId: store.id,
-          userId: store.ownerId,
+          merchantId: merchant.id,
+          userId: merchant.ownerId,
           type: 'SUCCESS',
-          title: `New Storefront Order ${orderNumber}`,
+          title: `New order ${orderNumber}`,
           message: `Order received for $${total.toFixed(2)} from ${payload.customer.name}`,
           link: '/orders',
         },
@@ -882,20 +840,20 @@ export async function checkout(req: Request, res: Response, next: NextFunction) 
 }
 
 /**
- * Public: Get Storefront Order Confirmation by Order Number
+ * Public: an order confirmation, by order number.
  */
-export async function getStorefrontOrderByNumber(req: Request, res: Response, next: NextFunction) {
+export async function getShopOrderByNumber(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug, orderNumber } = req.params;
+    const { merchantRef, orderNumber } = req.params;
 
-    const store = await findStoreBySlug(storeSlug);
-    if (!store) {
-      return res.status(404).json({ error: 'Storefront not found' });
+    const merchant = await findMerchantForShop(merchantRef);
+    if (!merchant) {
+      return res.status(404).json({ error: 'Merchant not found' });
     }
 
     const order = await prisma.order.findFirst({
       where: {
-        storeId: store.id,
+        merchantId: merchant.id,
         orderNumber: orderNumber.startsWith('#') ? orderNumber : `#${orderNumber}`,
       },
       include: {
@@ -992,7 +950,7 @@ export async function trackPublicOrder(req: Request, res: Response, next: NextFu
             deliveredAt: true,
           },
         },
-        store: { select: { id: true, name: true, domain: true } },
+        merchant: { select: { id: true, name: true } },
       },
     });
 
@@ -1022,14 +980,14 @@ export async function trackPublicOrder(req: Request, res: Response, next: NextFu
         shipping: order.shipping,
         discount: order.discount,
         total: order.total,
-        currency: order.currency || 'USD',
+        currency: order.currency || defaultCurrencyCode(),
         items: order.items,
         shippingAddress:
           order.addresses.find((a) => a.type === OrderAddressType.SHIPPING) || order.addresses[0] || null,
         statusHistory: order.statusHistory,
         tracking: shipment,
         createdAt: order.createdAt,
-        storeName: order.store?.name || 'Nexus Store',
+        displayName: order.merchant?.name || 'Nexus Merchant',
       },
     });
   } catch (error) {

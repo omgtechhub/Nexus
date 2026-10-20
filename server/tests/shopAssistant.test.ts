@@ -83,7 +83,7 @@ describe('Shopping assistant: intent, catalogue and the confirmation gate', () =
       name: 'Shop Merchant',
       email: `shop_m_${stamp}@nexus.io`,
       password,
-      storeName: `Shop Store ${stamp}`,
+      displayName: `Shop Merchant ${stamp}`,
     });
     const merchantCookie = merchant.headers['set-cookie'][0];
 
@@ -253,8 +253,8 @@ describe('Shopping assistant: intent, catalogue and the confirmation gate', () =
       title: 'Test Line',
       quantity: 1,
       price: 40,
-      storeId: 'store-test',
-      storeName: 'Test Store',
+      merchantId: 'merchant-test',
+      displayName: 'Test Merchant',
     };
 
     it('adds the product after the assistant offered to add it', async () => {
@@ -520,8 +520,8 @@ describe('Shopping assistant: intent, catalogue and the confirmation gate', () =
 
   describe('spoken formatting', () => {
     it('reads whole amounts without trailing zeros', () => {
-      expect(spokenPrice(12)).toBe('$12');
-      expect(spokenPrice(12.5)).toBe('$12.50');
+      expect(spokenPrice(12)).toBe('₦12');
+      expect(spokenPrice(12.5)).toBe('₦12.50');
     });
 
     it('joins a list the way a person would say it', () => {
@@ -542,7 +542,7 @@ describe('Shopping assistant: intent, catalogue and the confirmation gate', () =
         name: 'Nosy Merchant',
         email: `shop_nosy_${stamp}@nexus.io`,
         password,
-        storeName: `Nosy Store ${stamp}`,
+        displayName: `Nosy Merchant ${stamp}`,
       });
       const res = await request
         .get('/api/shop/voice/status')
@@ -626,7 +626,7 @@ describe('Shopping assistant: intent, catalogue and the confirmation gate', () =
         name: 'Typing Merchant',
         email: `shop_typing_${stamp}@nexus.io`,
         password,
-        storeName: `Typing Store ${stamp}`,
+        displayName: `Typing Merchant ${stamp}`,
       });
       const res = await request
         .post('/api/shop/assistant/message')
@@ -684,8 +684,8 @@ describe('Shopping assistant: intent, catalogue and the confirmation gate', () =
           title: 'Typed Line',
           quantity: 1,
           price: 40,
-          storeId: 'store-typed',
-          storeName: 'Typed Store',
+          merchantId: 'merchant-typed',
+          displayName: 'Typed Merchant',
         },
       ];
 

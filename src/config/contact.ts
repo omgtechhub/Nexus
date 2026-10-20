@@ -8,31 +8,39 @@
  * bounces is worse than no address, because the page is a published
  * undertaking that someone can reach us there.
  *
- * The domain below is a PLACEHOLDER. It is not registered. Before launch:
+ * All three therefore resolve to ONE mailbox -- the account the API actually
+ * authenticates to SMTP with. Three addresses on a domain whose mail was never
+ * set up is exactly the undertaking that cannot be kept; one inbox that is
+ * genuinely read can be. They stay three named exports so the pages can keep
+ * saying which kind of request goes where, and so splitting them later is a
+ * change to this file alone.
  *
- *   1. register the domain;
- *   2. change `DOMAIN` here — every page follows;
- *   3. create the three mailboxes, or alias all three onto one inbox, and
- *      confirm each one actually delivers;
- *   4. set the server side to match — `EMAIL_FROM` in `server/src/config`,
- *      and `PLATFORM_CNAME_TARGET` / `RESERVED_DOMAINS` in
- *      `server/src/controllers/domains.controller.ts`, whose defaults name
- *      this same placeholder. `RESERVED_DOMAINS` left on the wrong domain
- *      means the reserved-hostname guard protects a domain nobody owns and
- *      not the real one.
- *
- * They do not have to be three people. One mailbox with three aliases is the
- * normal arrangement and is what these pages assume.
+ * When the domain is registered and its mail is live, give `MAILBOX` the
+ * address of a real `privacy@`/`legal@`/`support@` set (or one inbox with
+ * three aliases), and set the server to match: `SMTP_USER` and `EMAIL_FROM`
+ * in `server/.env`, which must agree -- Gmail rewrites a From header it has
+ * not verified.
  */
+
+/** The domain the brand is presented under. Not yet registered for mail. */
 export const DOMAIN = 'nexuscommerce.io';
+
+/**
+ * The one mailbox every published address resolves to.
+ *
+ * This is the same account `SMTP_USER` authenticates as, so replies land where
+ * the platform's own mail is sent from, and nothing is published that cannot
+ * receive.
+ */
+export const MAILBOX = 'omigiegraphics@gmail.com';
 
 export const CONTACT = {
   /** Data subject requests, and anything about the Privacy or Cookie policy. */
-  privacy: `privacy@${DOMAIN}`,
+  privacy: MAILBOX,
   /** Terms, IP and infringement notices. */
-  legal: `legal@${DOMAIN}`,
+  legal: MAILBOX,
   /** Everything else, including seller account help. */
-  support: `support@${DOMAIN}`,
+  support: MAILBOX,
 } as const;
 
 /** The registered trading name shown on the legal pages. */

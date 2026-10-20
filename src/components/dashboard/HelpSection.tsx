@@ -6,6 +6,7 @@ import {
   Settings as SettingsIcon, Keyboard, BookOpen,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { CONTACT } from '../../config/contact';
 
 /**
  * The seller help centre.
@@ -117,12 +118,12 @@ const ARTICLES: Article[] = [
     action: { label: 'Go to Products', to: '/seller/products' },
   },
   {
-    id: 'where-is-my-storefront',
+    id: 'where-are-my-listings',
     topic: 'getting-started',
-    question: 'Where is my storefront, and can I change its design?',
+    question: 'Where do my products appear, and can I change how they look?',
     answer: [
-      'Nexus is a marketplace rather than a store builder. Your products are listed in the shared shopfront alongside other merchants, and you also get a store page of your own at /storefront/your-store.',
-      'There is no theme editor, because the platform owns the shopfront, the checkout and the delivery rules. That is what keeps one checkout, one bag and one set of delivery promises across every merchant — a shopper can buy from four stores in a single order.',
+      'Nexus is a marketplace, not a shop builder. Your products are listed in the one shared shopfront alongside every other seller, and each listing gets its own page at /products/<its-link>. The page design is the marketplace\'s and is the same for everyone — what you control is your photos, titles, descriptions and prices.',
+      'There is no theme editor, because the platform owns the shopfront, the checkout and the delivery rules. That is what keeps one checkout, one bag and one set of delivery promises across every merchant — a shopper can buy from four merchants in a single order.',
     ],
   },
   {
@@ -150,7 +151,7 @@ const ARTICLES: Article[] = [
     question: 'How do variants and SKUs work?',
     answer: [
       'A product holds the shared detail — title, description, images — and each variant carries its own SKU, price and stock count. A shopper buys a variant, never a product.',
-      'SKUs must be unique within your store. That is what lets stock, shipments and payouts be traced back to one specific thing you sold.',
+      'SKUs must be unique within your merchant. That is what lets stock, shipments and payouts be traced back to one specific thing you sold.',
     ],
   },
   {
@@ -173,12 +174,12 @@ const ARTICLES: Article[] = [
     action: { label: 'Go to Orders', to: '/seller/orders' },
   },
   {
-    id: 'order-contains-other-stores',
+    id: 'order-contains-other-merchants',
     topic: 'orders',
     question: 'A buyer says they ordered more than I can see. Why?',
     answer: [
       'One marketplace checkout can span several merchants. The shopper sees a single purchase; each merchant sees only their own lines, their own totals and their own buyer details.',
-      'So the order in your dashboard is your part of that purchase. The rest belongs to other stores and is not yours to see.',
+      'So the order in your dashboard is your part of that purchase. The rest belongs to other merchants and is not yours to see.',
     ],
   },
   {
@@ -251,7 +252,7 @@ const ARTICLES: Article[] = [
     topic: 'nexus-iq',
     question: 'Where do Nexus IQ insights come from?',
     answer: [
-      'They are computed from your own store data — orders, margins, stock and prices — and every insight shows the figures behind it so you can check the reasoning before acting on it.',
+      'They are computed from your own merchant data — orders, margins, stock and prices — and every insight shows the figures behind it so you can check the reasoning before acting on it.',
       'If no language model is configured, Nexus IQ says so plainly at the top of the section and answers from those same figures rather than writing prose.',
     ],
     action: { label: 'Open Nexus IQ', to: '/seller/nexus-iq' },
@@ -271,7 +272,7 @@ const ARTICLES: Article[] = [
     question: 'Nexus IQ will not answer my voice. What now?',
     answer: [
       'Re-record your voice from where you normally sit. The matching threshold is measured from your own recordings, so a profile built leaning into the microphone will refuse the same question asked from across the room.',
-      'Voice matching decides whether Nexus IQ replies. It is not a security check — your sign-in is what protects your store\'s data.',
+      'Voice matching decides whether Nexus IQ replies. It is not a security check — your sign-in is what protects your merchant\'s data.',
     ],
   },
   {
@@ -280,14 +281,14 @@ const ARTICLES: Article[] = [
     question: 'Which orders are counted in my revenue?',
     answer: [
       'Confirmed ones. Revenue counts orders the gateway has confirmed as paid; pending and cancelled orders are excluded, so the figure does not move when an abandoned checkout expires.',
-      'Totals are for your store only, even on an order shared with other merchants.',
+      'Totals are for your merchant only, even on an order shared with other merchants.',
     ],
     action: { label: 'Go to Analytics', to: '/seller/analytics' },
   },
   {
     id: 'team-access',
     topic: 'account',
-    question: 'How do I give someone else access to my store?',
+    question: 'How do I give someone else access to my merchant?',
     answer: [
       'Invite them from Settings. Each member signs in with their own account, so what they did is attributable to them rather than to a shared password.',
     ],
@@ -305,9 +306,9 @@ const ARTICLES: Article[] = [
   {
     id: 'close-account',
     topic: 'account',
-    question: 'How do I close my store?',
+    question: 'How do I close my merchant?',
     answer: [
-      'Email support and we will walk through it with you. Closing a store has to settle outstanding payouts and open orders first, which is why it is not a button.',
+      'Email support and we will walk through it with you. Closing a merchant has to settle outstanding payouts and open orders first, which is why it is not a button.',
     ],
   },
 ];
@@ -473,11 +474,11 @@ export function HelpSection() {
             <MessageSquare size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
             <p className="text-sm font-semibold text-primary">Nothing here matches “{query}”.</p>
             <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-secondary">
-              Ask us directly and a person will answer — include your store name and the order
+              Ask us directly and a person will answer — include your merchant name and the order
               number if it is about a specific order.
             </p>
             <a
-              href="mailto:support@nexus.io"
+              href={`mailto:${CONTACT.support}`}
               className={cn(
                 'mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-[#FFBD2E] px-4 text-sm font-bold text-slate-950 hover:bg-[#ffc954]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-sunken)]'
@@ -594,12 +595,12 @@ export function HelpSection() {
             Still stuck?
           </h2>
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-secondary">
-            Tell us your store name and, if it is about one order, its order number. That is
+            Tell us your merchant name and, if it is about one order, its order number. That is
             usually everything we need to answer in the first reply.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a
-              href="mailto:support@nexus.io"
+              href={`mailto:${CONTACT.support}`}
               className={cn(
                 'inline-flex h-10 items-center gap-2 rounded-xl bg-[#FFBD2E] px-4 text-sm font-bold text-slate-950 hover:bg-[#ffc954]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-2)]'

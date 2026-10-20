@@ -1,5 +1,5 @@
 import type { MarketplaceProduct } from '../api/marketplace';
-import type { StorefrontProductVariant } from '../api/storefront';
+import type { ShopProductVariant } from '../api/shop';
 import type { CartItem } from '../context/CartContext';
 import { PLATFORM_CURRENCY } from '../utils/money';
 
@@ -31,12 +31,16 @@ export function formatPrice(amount: number, currency = PLATFORM_CURRENCY) {
   }
 }
 
-/** `(storeId, slug)` is the product's unique key, so it is also its URL. */
+/**
+ * A listing's address.
+ *
+ * The slug is unique across the marketplace, so the path carries the product
+ * and nothing else. It used to be `/products/<merchantId>/<slug>` because the
+ * slug was only unique inside one seller's catalogue -- which is the shape a
+ * per-seller shopfront needs, not a marketplace.
+ */
 export function productPath(product: MarketplaceProduct) {
-  const storeId = product.store?.id;
-  return storeId
-    ? `/products/${encodeURIComponent(storeId)}/${encodeURIComponent(product.slug)}`
-    : '/products';
+  return product.slug ? `/products/${encodeURIComponent(product.slug)}` : '/products/browse';
 }
 
 /**
@@ -52,7 +56,7 @@ export function discountPercent(product: Pick<MarketplaceProduct, 'price' | 'com
 }
 
 /** Stock for a specific choice: the variant's own count, or the product total. */
-export function stockFor(product: MarketplaceProduct, variant?: StorefrontProductVariant | null) {
+export function stockFor(product: MarketplaceProduct, variant?: ShopProductVariant | null) {
   return variant ? variant.inventoryQuantity : product.availableStock;
 }
 
@@ -68,10 +72,10 @@ export function stockFor(product: MarketplaceProduct, variant?: StorefrontProduc
  */
 export function buildCartItem(
   product: MarketplaceProduct,
-  variant?: StorefrontProductVariant | null,
+  variant?: ShopProductVariant | null,
   quantity = 1
 ): CartItem | null {
-  if (!product.store?.id) return null;
+  if (!product.merchant?.id) return null;
 
   return {
     variantId: variant ? variant.id : product.id,
@@ -83,8 +87,8 @@ export function buildCartItem(
     image: product.primaryImage || product.images?.[0] || '',
     quantity,
     maxStock: stockFor(product, variant),
-    storeId: product.store.id,
-    storeName: product.store.name,
+    merchantId: product.merchant.id,
+    displayName: product.merchant.name,
     productSlug: product.slug,
   };
 }

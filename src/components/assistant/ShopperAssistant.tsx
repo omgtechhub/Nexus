@@ -27,6 +27,7 @@ import { StarRating } from '../../marketplace/components/StarRating';
 import { formatPrice } from '../../marketplace/productHelpers';
 import { cn } from '../../utils/cn';
 import { ModeTabs, PanelHeader, panelShell } from './dockShell';
+import { PLATFORM_CURRENCY } from '../../utils/money';
 
 /**
  * The shopper's half of Nexus IQ.
@@ -102,8 +103,8 @@ export function ShopperAssistantPanel({ onClose }: { onClose: () => void }) {
     title: i.title,
     quantity: i.quantity,
     price: i.price,
-    storeId: i.storeId,
-    storeName: i.storeName,
+    merchantId: i.merchantId,
+    displayName: i.displayName,
   }));
 
   /**
@@ -131,8 +132,8 @@ export function ShopperAssistantPanel({ onClose }: { onClose: () => void }) {
           image: p.image || '',
           quantity: action.quantity,
           maxStock: p.availableStock,
-          storeId: p.store.id,
-          storeName: p.store.name,
+          merchantId: p.merchant.id,
+          displayName: p.merchant.name,
           productSlug: p.slug,
         });
         return;
@@ -157,7 +158,7 @@ export function ShopperAssistantPanel({ onClose }: { onClose: () => void }) {
         // also produce a read-back.
         if (action.stage === 'GO') {
           onClose();
-          navigate(`/checkout?store=${encodeURIComponent(action.storeId)}`);
+          navigate(`/checkout?merchant=${encodeURIComponent(action.merchantId)}`);
         } else {
           setCartOpen(false);
         }
@@ -197,7 +198,7 @@ export function ShopperAssistantPanel({ onClose }: { onClose: () => void }) {
       // the assistant has finished speaking or it will answer itself.
       let spoken: Promise<void> | null = null;
       try {
-        const result = await sendShopCommandApi(wav, spokenCart, 'USD');
+        const result = await sendShopCommandApi(wav, spokenCart, PLATFORM_CURRENCY);
         record(result);
         if (!muted) spoken = speak(result.reply);
       } catch (err: any) {
@@ -222,7 +223,7 @@ export function ShopperAssistantPanel({ onClose }: { onClose: () => void }) {
       setBusy(true);
       setFailure('');
       try {
-        const result = await sendShopMessageApi(message, spokenCart, 'USD');
+        const result = await sendShopMessageApi(message, spokenCart, PLATFORM_CURRENCY);
         record(result);
         // A typed question is usually asked somewhere speaking out loud was
         // not an option, so the answer is only read back if the shopper had
@@ -477,7 +478,7 @@ function ThreadEntry({ entry }: { entry: Entry }) {
                 <p className="truncate text-xs font-semibold text-strong">
                   {index + 1}. {p.title}
                 </p>
-                <p className="truncate text-[11px] text-muted">{p.store.name}</p>
+                <p className="truncate text-[11px] text-muted">{p.merchant.name}</p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <span className="text-xs font-bold text-primary">{formatPrice(p.price)}</span>
                   {p.rating.count > 0 && <StarRating value={p.rating.average} size="sm" />}

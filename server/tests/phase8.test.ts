@@ -6,16 +6,16 @@ import { prisma } from '../src/prisma.js';
 const request = supertest(app);
 
 describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions, Entitlements, Invoices, Webhooks & Platform Admin)', () => {
-  const storeAEmail = `merchant_p8_a_${Date.now()}@nexus.io`;
-  const storeBEmail = `merchant_p8_b_${Date.now()}@nexus.io`;
+  const merchantAEmail = `merchant_p8_a_${Date.now()}@nexus.io`;
+  const merchantBEmail = `merchant_p8_b_${Date.now()}@nexus.io`;
   const platformAdminEmail = `admin_p8_${Date.now()}@nexus.io`;
   const password = 'Password123!';
 
-  let storeACookie: string;
-  let storeBCookie: string;
+  let merchantACookie: string;
+  let merchantBCookie: string;
   let adminCookie: string;
-  let storeAId: string;
-  let storeBId: string;
+  let merchantAId: string;
+  let merchantBId: string;
 
   let createdPlanId: string;
   let testInvoiceId: string;
@@ -24,24 +24,24 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // 1. Register Store A Merchant
     const resA = await request.post('/api/auth/register').send({
       name: 'Phase 8 Merchant Alpha',
-      email: storeAEmail,
+      email: merchantAEmail,
       password,
-      storeName: 'SaaS Alpha Store',
+      displayName: 'SaaS Alpha Merchant',
     });
     expect(resA.status).toBe(201);
-    storeACookie = resA.headers['set-cookie'][0];
-    storeAId = resA.body.data.store.id;
+    merchantACookie = resA.headers['set-cookie'][0];
+    merchantAId = resA.body.data.merchant.id;
 
     // 2. Register Store B Merchant
     const resB = await request.post('/api/auth/register').send({
       name: 'Phase 8 Merchant Beta',
-      email: storeBEmail,
+      email: merchantBEmail,
       password,
-      storeName: 'SaaS Beta Store',
+      displayName: 'SaaS Beta Merchant',
     });
     expect(resB.status).toBe(201);
-    storeBCookie = resB.headers['set-cookie'][0];
-    storeBId = resB.body.data.store.id;
+    merchantBCookie = resB.headers['set-cookie'][0];
+    merchantBId = resB.body.data.merchant.id;
 
     // 3. Create Platform Admin User & Cookie
     const { hashPassword } = await import('../src/utils/password.js');
@@ -77,7 +77,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
 
   it('2. Merchant Subscriptions API: Manages plan selection, upgrades, downgrades, intervals & cancellation', async () => {
     // Get current subscription & entitlement limits
-    const currentRes = await request.get('/api/subscriptions/current').set('Cookie', [storeACookie]);
+    const currentRes = await request.get('/api/subscriptions/current').set('Cookie', [merchantACookie]);
     expect(currentRes.status).toBe(200);
     expect(currentRes.body.success).toBe(true);
     expect(currentRes.body.data.entitlements).toBeDefined();
@@ -85,7 +85,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Subscribe / Change to Starter plan
     const subRes = await request
       .post('/api/subscriptions/subscribe')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ planCode: 'starter', interval: 'MONTHLY' });
 
     expect(subRes.status).toBe(201);
@@ -107,7 +107,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Monthly -> annual multiplies what is owed, so it needs payment.
     const intervalRes = await request
       .post('/api/subscriptions/change-interval')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ interval: 'ANNUAL' });
 
     expect(intervalRes.status).toBe(402);
@@ -118,14 +118,14 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // the caller should take to checkout.
     const upgradeRes = await request
       .post('/api/subscriptions/change-plan')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ planCode: 'growth' });
 
     expect(upgradeRes.status).toBe(402);
     expect(upgradeRes.body.data.planCode).toBe('growth');
 
     const afterRefusal = await prisma.subscription.findUnique({
-      where: { storeId: storeAId },
+      where: { merchantId: merchantAId },
       include: { plan: true },
     });
     expect(afterRefusal!.plan.code).not.toBe('growth');
@@ -135,8 +135,8 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // that moves a subscription onto a plan.
     const { saasBillingService } = await import('../src/services/billing/saasBilling.service.js');
     const growthCheckout = await saasBillingService.subscribeToPlan(
-      storeAId,
-      storeAEmail,
+      merchantAId,
+      merchantAEmail,
       'Phase 8 Merchant Alpha',
       'growth',
       'MONTHLY'
@@ -148,7 +148,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     expect(settled.settled).toBe(true);
 
     const afterPayment = await prisma.subscription.findUnique({
-      where: { storeId: storeAId },
+      where: { merchantId: merchantAId },
       include: { plan: true },
     });
     expect(afterPayment!.plan.code).toBe('growth');
@@ -157,7 +157,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // A downgrade lowers what is owed, so it still applies immediately.
     const downgradeRes = await request
       .post('/api/subscriptions/change-plan')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ planCode: 'starter' });
 
     expect(downgradeRes.status).toBe(200);
@@ -166,7 +166,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Cancel subscription at period end
     const cancelRes = await request
       .post('/api/subscriptions/cancel')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(cancelRes.status).toBe(200);
     expect(cancelRes.body.data.cancelAtPeriodEnd).toBe(true);
@@ -174,7 +174,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Resume subscription
     const resumeRes = await request
       .post('/api/subscriptions/resume')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(resumeRes.status).toBe(200);
     expect(resumeRes.body.data.cancelAtPeriodEnd).toBe(false);
@@ -184,7 +184,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Switch Store A to starter plan (maxProducts: 50)
     await request
       .post('/api/subscriptions/change-plan')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({ planCode: 'starter' });
 
     // Artificially update plan maxProducts to 1 for immediate limit testing
@@ -197,7 +197,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Create 1st product (should succeed)
     const p1Res = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Entitlement Test Product 1',
         price: 49.0,
@@ -207,7 +207,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Attempt to create 2nd product (should be blocked by backend entitlement check with 403)
     const p2Res = await request
       .post('/api/products')
-      .set('Cookie', [storeACookie])
+      .set('Cookie', [merchantACookie])
       .send({
         title: 'Entitlement Test Product 2 (Exceeds Limit)',
         price: 49.0,
@@ -224,7 +224,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
   });
 
   it('4. Invoices API: Generates sequential invoice numbers and line item breakdowns', async () => {
-    const listRes = await request.get('/api/subscriptions/invoices').set('Cookie', [storeACookie]);
+    const listRes = await request.get('/api/subscriptions/invoices').set('Cookie', [merchantACookie]);
     expect(listRes.status).toBe(200);
     expect(listRes.body.success).toBe(true);
     expect(listRes.body.data.length).toBeGreaterThanOrEqual(1);
@@ -234,7 +234,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // View detail
     const detailRes = await request
       .get(`/api/subscriptions/invoices/${testInvoiceId}`)
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
 
     expect(detailRes.status).toBe(200);
     expect(detailRes.body.data.items).toBeDefined();
@@ -244,7 +244,7 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     // Normal merchant attempt on platform admin endpoint should return 403
     const forbiddenRes = await request
       .get('/api/admin/metrics')
-      .set('Cookie', [storeACookie]);
+      .set('Cookie', [merchantACookie]);
     expect(forbiddenRes.status).toBe(403);
 
     // Platform Owner attempt should succeed
@@ -291,11 +291,11 @@ describe('Nexus Commerce Phase 8 Integration Tests (SaaS Billing, Subscriptions,
     expect(updatePlanRes.body.data.maxProducts).toBe(10000);
   });
 
-  it('6. Multi-Tenant Billing Isolation: Prevents Store A from accessing Store B subscription or invoices', async () => {
+  it('6. Multi-Tenant Billing Isolation: Prevents Merchant A from accessing Merchant B subscription or invoices', async () => {
     // Store B tries to view Store A's specific invoice
     const invIsolationRes = await request
       .get(`/api/subscriptions/invoices/${testInvoiceId}`)
-      .set('Cookie', [storeBCookie]);
+      .set('Cookie', [merchantBCookie]);
     expect(invIsolationRes.status).toBe(404);
   });
 });

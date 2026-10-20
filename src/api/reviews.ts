@@ -31,7 +31,7 @@ export interface ProductReview {
 }
 
 /** A review as the merchant dashboard sees it, with the product attached. */
-export interface StoreReview extends ProductReview {
+export interface MerchantReview extends ProductReview {
   product: { id: string; title: string; slug: string };
 }
 
@@ -135,25 +135,25 @@ export async function deleteProductReviewApi(id: string): Promise<void> {
 
 /* ---- Merchant ---------------------------------------------------------- */
 
-export interface StoreReviewsParams {
+export interface MerchantReviewsParams {
   page?: number;
   limit?: number;
   rating?: number;
   unanswered?: boolean;
 }
 
-export interface StoreReviewsResult {
-  reviews: StoreReview[];
+export interface MerchantReviewsResult {
+  reviews: MerchantReview[];
   summary: RatingSummary & { awaitingReply: number };
   pagination: ReviewPagination;
 }
 
-export async function fetchStoreReviewsApi(
-  params: StoreReviewsParams = {}
-): Promise<StoreReviewsResult> {
+export async function fetchMerchantReviewsApi(
+  params: MerchantReviewsParams = {}
+): Promise<MerchantReviewsResult> {
   const res = await apiClient<{
     success: boolean;
-    data: StoreReview[];
+    data: MerchantReview[];
     summary: RatingSummary & { awaitingReply: number };
     pagination: ReviewPagination;
   }>(`/reviews/seller${queryString(params as Record<string, unknown>)}`);
@@ -161,16 +161,16 @@ export async function fetchStoreReviewsApi(
   return { reviews: res.data, summary: res.summary, pagination: res.pagination };
 }
 
-export async function replyToReviewApi(id: string, reply: string): Promise<StoreReview> {
-  const res = await apiClient<{ success: boolean; data: StoreReview }>(`/reviews/${id}/reply`, {
+export async function replyToReviewApi(id: string, reply: string): Promise<MerchantReview> {
+  const res = await apiClient<{ success: boolean; data: MerchantReview }>(`/reviews/${id}/reply`, {
     method: 'POST',
     body: JSON.stringify({ reply }),
   });
   return res.data;
 }
 
-export async function deleteReviewReplyApi(id: string): Promise<StoreReview> {
-  const res = await apiClient<{ success: boolean; data: StoreReview }>(`/reviews/${id}/reply`, {
+export async function deleteReviewReplyApi(id: string): Promise<MerchantReview> {
+  const res = await apiClient<{ success: boolean; data: MerchantReview }>(`/reviews/${id}/reply`, {
     method: 'DELETE',
   });
   return res.data;

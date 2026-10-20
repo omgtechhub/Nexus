@@ -1,6 +1,8 @@
+import { PLATFORM_CURRENCY } from '../../utils/money';
+
 /** Shared formatting for the platform console. */
 
-export function money(amount: number, currency = 'USD'): string {
+export function money(amount: number, currency = PLATFORM_CURRENCY): string {
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',

@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { BadgeCheck, Loader2, MessageSquare, Star, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  useStoreReviewsQuery,
+  useMerchantReviewsQuery,
   useReplyToReviewMutation,
   useDeleteReviewReplyMutation,
 } from '../../hooks/useReviews';
-import type { StoreReview } from '../../api/reviews';
+import type { MerchantReview } from '../../api/reviews';
 import { StarRating } from '../../marketplace/components/StarRating';
 import { cn } from '../../utils/cn';
 
@@ -38,7 +38,7 @@ export function ReviewsSection() {
   const [unanswered, setUnanswered] = useState(false);
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError, error, refetch } = useStoreReviewsQuery({
+  const { data, isLoading, isError, error, refetch } = useMerchantReviewsQuery({
     page,
     limit: 10,
     rating,
@@ -229,7 +229,7 @@ function FilterChip({
   );
 }
 
-function MerchantReviewCard({ review }: { review: StoreReview }) {
+function MerchantReviewCard({ review }: { review: MerchantReview }) {
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState(review.merchantReply ?? '');
   const replyMut = useReplyToReviewMutation();

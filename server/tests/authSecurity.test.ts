@@ -3,7 +3,7 @@ import supertest from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/prisma.js';
 import { hashPassword } from '../src/utils/password.js';
-import { PlatformRole, Role, StoreStatus } from '@prisma/client';
+import { PlatformRole, Role, MerchantStatus } from '@prisma/client';
 
 const request = supertest(app);
 
@@ -47,7 +47,7 @@ describe('Auth security regressions', () => {
       name: 'Security Test Seller',
       email: sellerEmail,
       password,
-      storeName: `Sec Store ${stamp}`,
+      displayName: `Sec Merchant ${stamp}`,
       userType: 'SELLER',
     });
     sellerCookie = (sellerRes.headers['set-cookie'] as unknown as string[])[0];
@@ -186,16 +186,16 @@ describe('Auth security regressions', () => {
 
   describe('Public order tracking does not leak other customers', () => {
     let orderNumber: string;
-    let storeId: string;
+    let merchantId: string;
     const buyerEmail = `sec_buyer_${stamp}@example.com`;
 
     beforeAll(async () => {
-      const store = await prisma.store.findFirst({ where: { name: `Sec Store ${stamp}` } });
-      storeId = store!.id;
+      const merchant = await prisma.merchant.findFirst({ where: { name: `Sec Merchant ${stamp}` } });
+      merchantId = merchant!.id;
 
       const order = await prisma.order.create({
         data: {
-          storeId,
+          merchantId,
           orderNumber: `SEC-${stamp}`,
           customerName: 'Private Buyer',
           customerEmail: buyerEmail,
@@ -207,19 +207,19 @@ describe('Auth security regressions', () => {
     });
 
     it('refuses a partial order number — the enumeration attack', async () => {
-      const res = await request.get('/api/storefront/track/search?query=SEC');
+      const res = await request.get('/api/shop/track/search?query=SEC');
       expect(res.status).toBe(400);
       expect(res.body.data).toBeUndefined();
     });
 
     it('refuses an order number without the matching email', async () => {
-      const res = await request.get(`/api/storefront/track/search?orderNumber=${orderNumber}`);
+      const res = await request.get(`/api/shop/track/search?orderNumber=${orderNumber}`);
       expect(res.status).toBe(400);
     });
 
     it('refuses a correct order number with the wrong email', async () => {
       const res = await request.get(
-        `/api/storefront/track/search?orderNumber=${orderNumber}&email=attacker@evil.com`
+        `/api/shop/track/search?orderNumber=${orderNumber}&email=attacker@evil.com`
       );
       expect(res.status).toBe(404);
       expect(res.body.data).toBeUndefined();
@@ -227,7 +227,7 @@ describe('Auth security regressions', () => {
 
     it('returns the order only when both order number and email match', async () => {
       const res = await request.get(
-        `/api/storefront/track/search?orderNumber=${orderNumber}&email=${buyerEmail}`
+        `/api/shop/track/search?orderNumber=${orderNumber}&email=${buyerEmail}`
       );
       expect(res.status).toBe(200);
       expect(res.body.data.orderNumber).toBe(orderNumber);

@@ -192,7 +192,7 @@ export function TermsOfServicePage() {
                     <strong className="text-primary text-sm block mb-1">You may not</strong>
                     <p className="text-xs text-secondary leading-relaxed">
                       Scrape or bulk-harvest other sellers&apos; listings; attempt to access an
-                      account, store or record that is not yours; probe or attack the platform;
+                      account, merchant or record that is not yours; probe or attack the platform;
                       test stolen card numbers; upload malware; or use the platform to send
                       unsolicited messages.
                     </p>
@@ -224,7 +224,7 @@ export function TermsOfServicePage() {
                 </p>
                 <ul className="space-y-2.5 list-disc list-outside pl-5 text-body text-sm">
                   <li>
-                    <strong className="text-primary">We do not store your card.</strong> Nexus
+                    <strong className="text-primary">We do not merchant your card.</strong> Nexus
                     keeps no payment method on file and takes nothing automatically. Each term is
                     paid by a payment you make.
                   </li>

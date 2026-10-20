@@ -5,7 +5,7 @@ import {
   createProductReview,
   updateProductReview,
   deleteProductReview,
-  listStoreReviews,
+  listMerchantReviews,
   replyToReview,
   deleteReviewReply,
 } from '../controllers/reviews.controller.js';
@@ -13,7 +13,7 @@ import {
   authMiddleware,
   optionalAuth,
   requireCustomer,
-  requireStoreMembership,
+  requireMerchantMembership,
 } from '../middleware/auth.middleware.js';
 
 /**
@@ -33,9 +33,9 @@ import {
 export const reviewsRouter = Router();
 
 /* ---- Merchant ---------------------------------------------------------- */
-reviewsRouter.get('/seller', authMiddleware, requireStoreMembership, listStoreReviews);
-reviewsRouter.post('/:id/reply', authMiddleware, requireStoreMembership, replyToReview);
-reviewsRouter.delete('/:id/reply', authMiddleware, requireStoreMembership, deleteReviewReply);
+reviewsRouter.get('/seller', authMiddleware, requireMerchantMembership, listMerchantReviews);
+reviewsRouter.post('/:id/reply', authMiddleware, requireMerchantMembership, replyToReview);
+reviewsRouter.delete('/:id/reply', authMiddleware, requireMerchantMembership, deleteReviewReply);
 
 /* ---- Public ------------------------------------------------------------ */
 // `optionalAuth` so a signed-in shopper's own review is flagged in the list

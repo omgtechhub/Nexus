@@ -12,9 +12,9 @@ const adjustSchema = z.object({
 
 export async function getInventory(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const items = await prisma.inventoryItem.findMany({
-      where: { storeId },
+      where: { merchantId },
       include: {
         product: { select: { id: true, title: true, name: true, sku: true, category: true, images: true } },
         variant: { select: { id: true, title: true, sku: true } },
@@ -29,11 +29,11 @@ export async function getInventory(req: Request, res: Response, next: NextFuncti
 
 export async function getProductInventory(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { productId } = req.params;
 
     const items = await prisma.inventoryItem.findMany({
-      where: { storeId, productId },
+      where: { merchantId, productId },
       include: {
         variant: true,
         movements: { orderBy: { createdAt: 'desc' }, take: 20 },
@@ -48,13 +48,13 @@ export async function getProductInventory(req: Request, res: Response, next: Nex
 
 export async function updateProductInventory(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { productId } = req.params;
     const { stock, lowStockThreshold, variantId } = req.body;
 
     const existing = await prisma.inventoryItem.findFirst({
       where: {
-        storeId,
+        merchantId,
         productId,
         ...(variantId ? { variantId } : {}),
       },
@@ -85,13 +85,13 @@ export async function updateProductInventory(req: Request, res: Response, next: 
 
 export async function adjustStock(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { productId } = req.params;
     const body = adjustSchema.parse(req.body);
 
     const item = await prisma.inventoryItem.findFirst({
       where: {
-        storeId,
+        merchantId,
         productId,
         ...(body.variantId ? { variantId: body.variantId } : {}),
       },
@@ -122,7 +122,7 @@ export async function adjustStock(req: Request, res: Response, next: NextFunctio
 
       const movement = await tx.inventoryMovement.create({
         data: {
-          storeId,
+          merchantId,
           inventoryItemId: item.id,
           productId: item.productId,
           variantId: item.variantId,

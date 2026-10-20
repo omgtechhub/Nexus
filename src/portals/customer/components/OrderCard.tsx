@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Store } from 'lucide-react';
+import { ChevronRight, Store as MerchantIcon } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import type { AccountOrder } from '../../../api/account';
 import { formatMoney, statusLabel, statusVariant } from '../orderProgress';
@@ -28,10 +28,10 @@ export function OrderCard({ order }: { order: AccountOrder }) {
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-          {order.store && (
+          {order.merchant && (
             <span className="inline-flex items-center gap-1.5">
-              <Store size={12} aria-hidden="true" />
-              {order.store.name}
+              <MerchantIcon size={12} aria-hidden="true" />
+              {order.merchant.name}
             </span>
           )}
           <span aria-hidden="true">·</span>

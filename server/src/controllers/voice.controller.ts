@@ -14,7 +14,7 @@ import {
 import { decodeToMono16k, durationOf, peakOf, AudioDecodeError } from '../services/voice/audio.js';
 import { transcribe, transcriberInfo, TranscriptionError } from '../services/voice/stt.service.js';
 import { getAiProvider } from '../services/ai/index.js';
-import { buildStoreContext } from '../services/ai/insights.service.js';
+import { buildMerchantContext } from '../services/ai/insights.service.js';
 import { recordUsage } from '../services/ai/usage.service.js';
 
 /**
@@ -179,7 +179,7 @@ export async function deleteVoiceProfile(req: Request, res: Response, next: Next
 /** POST /api/iq/voice/command */
 export async function voiceCommand(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const userId = req.user!.id;
     const portal = portalFor(req);
 
@@ -192,7 +192,7 @@ export async function voiceCommand(req: Request, res: Response, next: NextFuncti
     if (!decision.accepted) {
       res.status(403).json({
         success: false,
-        error: 'That did not sound like the voice registered for this store.',
+        error: 'That did not sound like the voice registered for this merchant.',
         data: {
           verification: decision,
           spoken: 'Sorry, I do not recognise that voice.',
@@ -216,20 +216,20 @@ export async function voiceCommand(req: Request, res: Response, next: NextFuncti
     const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId : null;
     let conversation = conversationId
       ? await prisma.aiConversation.findFirst({
-          where: { id: conversationId, storeId },
+          where: { id: conversationId, merchantId },
           include: { messages: { orderBy: { createdAt: 'asc' } } },
         })
       : null;
 
     if (!conversation) {
       const created = await prisma.aiConversation.create({
-        data: { storeId, userId, title: transcript.slice(0, 60) },
+        data: { merchantId, userId, title: transcript.slice(0, 60) },
       });
       conversation = { ...created, messages: [] };
     }
 
     const provider = getAiProvider();
-    const system = await buildStoreContext(storeId);
+    const system = await buildMerchantContext(merchantId);
     const turns = [
       ...conversation.messages.map(m => ({
         role: m.role === AiMessageRole.USER ? ('user' as const) : ('assistant' as const),
@@ -262,7 +262,7 @@ export async function voiceCommand(req: Request, res: Response, next: NextFuncti
     ]);
 
     await recordUsage({
-      storeId,
+      merchantId,
       kind: AiUsageKind.CHAT,
       provider: answer.provider,
       model: answer.model,

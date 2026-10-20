@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck, Loader2, MessageSquare, PencilLine, Store, Trash2 } from 'lucide-react';
+import { BadgeCheck, Loader2, MessageSquare, PencilLine, Store as MerchantIcon, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useApp } from '../../context/AppContext';
 import {
@@ -388,7 +388,7 @@ function ReviewCard({ review, productId }: { review: ProductReview; productId: s
       {review.merchantReply && (
         <div className="mt-3 rounded-xl border-l-2 border-[var(--brand-yellow-ink)] bg-[var(--ink)]/[0.04] p-3">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-            <Store size={12} aria-hidden="true" />
+            <MerchantIcon size={12} aria-hidden="true" />
             Response from the seller
             {review.merchantRepliedAt && (
               <time dateTime={review.merchantRepliedAt} className="font-normal text-muted">

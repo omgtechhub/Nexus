@@ -68,7 +68,7 @@ class JobQueue {
         await emailService.sendShippingUpdate(job.data);
         break;
       case 'CHECK_LOW_STOCK':
-        await this.checkLowStock(job.data.storeId, job.data.productId);
+        await this.checkLowStock(job.data.merchantId, job.data.productId);
         break;
       case 'PROCESS_SUBSCRIPTION_RENEWALS':
         await this.processSubscriptionRenewals();
@@ -111,7 +111,7 @@ class JobQueue {
         cancelAtPeriodEnd: false,
         currentPeriodEnd: { lte: now },
       },
-      include: { plan: true, store: true },
+      include: { plan: true, merchant: true },
     });
 
     for (const sub of due) {
@@ -136,7 +136,7 @@ class JobQueue {
 
       logger.info({
         msg: 'Subscription period ended unpaid; moved to PAST_DUE',
-        storeId: sub.storeId,
+        merchantId: sub.merchantId,
         planCode: sub.plan.code,
       });
     }
@@ -268,7 +268,7 @@ class JobQueue {
             }
 
             const invItem = await tx.inventoryItem.findFirst({
-              where: { storeId: order.storeId, productId: item.productId },
+              where: { merchantId: order.merchantId, productId: item.productId },
             });
 
             if (invItem) {
@@ -279,7 +279,7 @@ class JobQueue {
 
               await tx.inventoryMovement.create({
                 data: {
-                  storeId: order.storeId,
+                  merchantId: order.merchantId,
                   inventoryItemId: invItem.id,
                   productId: item.productId,
                   variantId: item.variantId || undefined,
@@ -317,15 +317,15 @@ class JobQueue {
     }
   }
 
-  private async checkLowStock(storeId: string, productId?: string) {
-    const store = await prisma.store.findUnique({
-      where: { id: storeId },
+  private async checkLowStock(merchantId: string, productId?: string) {
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: merchantId },
       include: { owner: true },
     });
 
-    if (!store) return;
+    if (!merchant) return;
 
-    const whereCondition: any = { storeId };
+    const whereCondition: any = { merchantId };
     if (productId) whereCondition.productId = productId;
 
     const inventoryItems = await prisma.inventoryItem.findMany({
@@ -341,8 +341,8 @@ class JobQueue {
 
         const existingNotif = await prisma.notification.findFirst({
           where: {
-            storeId,
-            userId: store.ownerId,
+            merchantId,
+            userId: merchant.ownerId,
             type: NotificationType.WARNING,
             title: `Low Stock: ${item.product.title}`,
             read: false,
@@ -352,8 +352,8 @@ class JobQueue {
         if (!existingNotif) {
           await prisma.notification.create({
             data: {
-              storeId,
-              userId: store.ownerId,
+              merchantId,
+              userId: merchant.ownerId,
               type: NotificationType.WARNING,
               title: `Low Stock: ${item.product.title}`,
               message: `SKU ${item.sku} has ${item.stock} remaining units (threshold: ${item.lowStockThreshold}).`,
@@ -362,7 +362,7 @@ class JobQueue {
           });
 
           await emailService.sendLowStockAlert(
-            store.owner.email,
+            merchant.owner.email,
             item.product.title,
             item.sku,
             item.stock,

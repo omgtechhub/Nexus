@@ -3,12 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertTriangle, Lock, ShieldCheck, Store } from 'lucide-react';
+import { AlertTriangle, Lock, ShieldCheck, Store as MerchantIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '../../context/CartContext';
 import { useApp } from '../../context/AppContext';
 import { useAccountAddressesQuery, useAccountProfileQuery } from '../../hooks/useAccount';
-import { useCheckoutMutation } from '../../hooks/useStorefront';
+import { useCheckoutMutation } from '../../hooks/useShop';
 import { initializePaymentApi } from '../../api/payments';
 import { useCartValidation, lineProblem } from '../useCartValidation';
 import { formatPrice } from '../productHelpers';
@@ -61,19 +61,19 @@ type CheckoutForm = z.infer<typeof checkoutSchema>;
 export function CheckoutPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const requestedStore = searchParams.get('store');
+  const requestedMerchant = searchParams.get('merchant');
 
   const { user } = useApp();
-  const { groups, clearStore } = useCart();
+  const { groups, clearMerchant } = useCart();
   const profileQuery = useAccountProfileQuery();
   const addressesQuery = useAccountAddressesQuery();
 
   // Default to the only group when the link carries no store, so a bag with a
   // single merchant checks out in one click.
   const group = useMemo(() => {
-    if (requestedStore) return groups.find(g => g.storeId === requestedStore);
+    if (requestedMerchant) return groups.find(g => g.merchantId === requestedMerchant);
     return groups.length === 1 ? groups[0] : undefined;
-  }, [groups, requestedStore]);
+  }, [groups, requestedMerchant]);
 
   const groupForValidation = useMemo(() => (group ? [group] : []), [group]);
   const { validations, isValidating } = useCartValidation(groupForValidation);
@@ -81,7 +81,7 @@ export function CheckoutPage() {
   const serverTotals = validation?.result;
   const blocked = serverTotals?.isValid === false;
 
-  const checkoutMut = useCheckoutMutation(group?.storeId || '');
+  const checkoutMut = useCheckoutMutation(group?.merchantId || '');
   const [isPaying, setIsPaying] = useState(false);
 
   const profile = profileQuery.data;
@@ -139,7 +139,7 @@ export function CheckoutPage() {
         <h1 className="text-xl font-bold text-primary">There is nothing to check out.</h1>
         <p className="mt-2 text-sm text-secondary">
           {groups.length > 1
-            ? 'Your bag holds items from several stores — pick one from the bag to check out.'
+            ? 'Your bag holds items from several merchants — pick one from the bag to check out.'
             : 'Your bag is empty.'}
         </p>
         <Link
@@ -182,7 +182,7 @@ export function CheckoutPage() {
 
       // The order now owns these lines and the stock has been decremented, so
       // they leave the bag. Other stores' lines stay.
-      clearStore(group.storeId);
+      clearMerchant(group.merchantId);
 
       // The order exists and is unpaid. The gateway decides otherwise, so the
       // customer is handed to it rather than shown a confirmation here.
@@ -255,8 +255,8 @@ export function CheckoutPage() {
 
       <h1 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl">Checkout</h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-secondary">
-        <Store size={13} className="text-[var(--brand-yellow-ink)]" aria-hidden="true" />
-        Ordering from {group.storeName}
+        <MerchantIcon size={13} className="text-[var(--brand-yellow-ink)]" aria-hidden="true" />
+        Ordering from {group.displayName}
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
@@ -375,7 +375,7 @@ export function CheckoutPage() {
               {...form.register('discountCode')}
             />
             <p className="text-xs text-muted">
-              The store&apos;s server applies the discount — the total below updates once the
+              The merchant&apos;s server applies the discount — the total below updates once the
               order is created.
             </p>
           </fieldset>
@@ -481,10 +481,10 @@ export function CheckoutPage() {
 
             <p className="text-[11px] leading-relaxed text-muted" aria-live="polite">
               {isValidating
-                ? 'Confirming prices and stock with the store…'
+                ? 'Confirming prices and stock with the merchant…'
                 : serverTotals
-                  ? 'Confirmed against the store’s own records. A discount code is applied when the order is created.'
-                  : 'The store confirms the final total when your order is created.'}
+                  ? 'Confirmed against the merchant’s own records. A discount code is applied when the order is created.'
+                  : 'The merchant confirms the final total when your order is created.'}
             </p>
           </div>
         </aside>

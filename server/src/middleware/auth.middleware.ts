@@ -22,7 +22,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
           include: {
             memberships: {
               include: {
-                store: true,
+                merchant: true,
               },
             },
           },
@@ -41,11 +41,11 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const activeMembership = activeMembershipOf(session.user.memberships);
 
     req.user = safeUser;
-    if (activeMembership && activeMembership.store) {
-      req.store = activeMembership.store;
+    if (activeMembership && activeMembership.merchant) {
+      req.merchant = activeMembership.merchant;
       req.membership = activeMembership;
     } else {
-      req.store = undefined;
+      req.merchant = undefined;
       req.membership = undefined;
     }
     req.sessionId = session.id;
@@ -72,7 +72,7 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     const session = await prisma.session.findUnique({
       // The raw token never touches the database; only its digest is stored.
       where: { sessionToken: hashSessionToken(token) },
-      include: { user: { include: { memberships: { include: { store: true } } } } },
+      include: { user: { include: { memberships: { include: { merchant: true } } } } },
     });
 
     if (!session || session.revokedAt || new Date(session.expiresAt) < new Date()) {
@@ -85,7 +85,7 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     const activeMembership = activeMembershipOf(session.user.memberships);
 
     req.user = safeUser;
-    req.store = activeMembership?.store ?? undefined;
+    req.merchant = activeMembership?.merchant ?? undefined;
     req.membership = activeMembership ?? undefined;
     req.sessionId = session.id;
   } catch (err) {
@@ -134,7 +134,7 @@ export function requireCustomer(req: Request, res: Response, next: NextFunction)
   next();
 }
 
-export function requireStoreMembership(req: Request, res: Response, next: NextFunction) {
+export function requireMerchantMembership(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
     res.status(401).json({ success: false, error: 'Authentication required.' });
     return;
@@ -147,17 +147,17 @@ export function requireStoreMembership(req: Request, res: Response, next: NextFu
     return;
   }
 
-  if (!req.store || !req.membership) {
+  if (!req.merchant || !req.membership) {
     res.status(403).json({
       success: false,
-      error: 'Access denied. Active merchant store membership required for seller endpoints.',
+      error: 'Access denied. Active merchant merchant membership required for seller endpoints.',
     });
     return;
   }
   next();
 }
 
-export const requireSeller = requireStoreMembership;
+export const requireSeller = requireMerchantMembership;
 
 export function requirePlatformAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {

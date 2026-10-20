@@ -22,16 +22,14 @@ type PlanForm = {
   trialDays: number;
   maxProducts: number;
   maxTeamMembers: number;
-  maxStores: number;
-  customDomainAllowed: boolean;
   advancedAnalyticsAllowed: boolean;
 };
 
 const BLANK: PlanForm = {
   code: '', name: '', description: '',
   monthlyPrice: 49, annualPrice: 490, trialDays: 14,
-  maxProducts: 200, maxTeamMembers: 5, maxStores: 1,
-  customDomainAllowed: true, advancedAnalyticsAllowed: true,
+  maxProducts: 200, maxTeamMembers: 5,
+  advancedAnalyticsAllowed: true,
 };
 
 export function AdminPlans() {
@@ -60,8 +58,6 @@ export function AdminPlans() {
       trialDays: plan.trialDays,
       maxProducts: plan.maxProducts,
       maxTeamMembers: plan.maxTeamMembers,
-      maxStores: plan.maxStores,
-      customDomainAllowed: plan.customDomainAllowed,
       advancedAnalyticsAllowed: plan.advancedAnalyticsAllowed,
     });
     setShowForm(true);
@@ -133,21 +129,11 @@ export function AdminPlans() {
             <Input label="Trial days" id="plan-trial" type="number" min="0" value={form.trialDays} onChange={num('trialDays')} />
             <Input label="Max products" id="plan-products" type="number" min="0" value={form.maxProducts} onChange={num('maxProducts')} />
             <Input label="Max team members" id="plan-team" type="number" min="0" value={form.maxTeamMembers} onChange={num('maxTeamMembers')} />
-            <Input label="Max stores" id="plan-stores" type="number" min="0" value={form.maxStores} onChange={num('maxStores')} />
           </div>
 
           <fieldset className="mt-5">
             <legend className="mb-2 text-sm font-medium text-body">Capabilities</legend>
             <div className="space-y-2.5">
-              <label className="flex items-center gap-2.5 text-sm text-body">
-                <input
-                  type="checkbox"
-                  checked={form.customDomainAllowed}
-                  onChange={e => setForm(prev => ({ ...prev, customDomainAllowed: e.target.checked }))}
-                  className="h-4 w-4 rounded border-[var(--ink)]/20 bg-[var(--ink)]/5 accent-[#FFBD2E]"
-                />
-                Custom domains
-              </label>
               <label className="flex items-center gap-2.5 text-sm text-body">
                 <input
                   type="checkbox"
@@ -207,14 +193,12 @@ export function AdminPlans() {
                 <span className="ml-auto text-xs text-muted">{money(plan.annualPrice)} annually</span>
               </div>
 
-              <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-[var(--ink)]/10 pt-4 text-xs">
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--ink)]/10 pt-4 text-xs">
                 <Limit label="Products" value={plan.maxProducts} />
                 <Limit label="Team" value={plan.maxTeamMembers} />
-                <Limit label="Stores" value={plan.maxStores} />
               </dl>
 
               <ul className="mt-3 flex flex-wrap gap-1.5">
-                {plan.customDomainAllowed && <Capability>Custom domains</Capability>}
                 {plan.advancedAnalyticsAllowed && <Capability>Advanced analytics</Capability>}
                 {plan.trialDays > 0 && <Capability>{plan.trialDays}-day trial</Capability>}
               </ul>

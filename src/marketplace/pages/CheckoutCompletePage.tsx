@@ -72,8 +72,8 @@ export function CheckoutCompletePage() {
         <AlertTriangle size={30} className="mx-auto text-[var(--brand-yellow-ink)]" aria-hidden="true" />
         <h1 className="mt-4 text-2xl font-extrabold text-primary">Your order is saved, but unpaid</h1>
         <p className="mt-2 text-sm text-secondary">
-          No payment was taken and nothing has been charged — the store could not start a
-          payment. Keep the order number below; the store can send you a payment link.
+          No payment was taken and nothing has been charged — the merchant could not start a
+          payment. Keep the order number below; the merchant can send you a payment link.
         </p>
         {orderHint && (
           <p className="mt-4 inline-block rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.04] px-4 py-2 text-sm">
@@ -134,7 +134,7 @@ export function CheckoutCompletePage() {
           Simulated payment recorded
         </h1>
         <p className="mt-2 text-sm text-secondary">
-          This store is running in sandbox mode, so <strong className="text-primary">no money
+          This merchant is running in sandbox mode, so <strong className="text-primary">no money
           moved and no card was charged</strong>. The order has been marked paid so the rest
           of the flow can be tested.
         </p>
@@ -160,7 +160,7 @@ export function CheckoutCompletePage() {
         <CheckCircle2 size={34} className="mx-auto text-[var(--brand-green-ink)]" aria-hidden="true" />
         <h1 className="mt-4 text-2xl font-extrabold text-primary sm:text-3xl">Payment confirmed</h1>
         <p className="mt-2 text-sm text-secondary">
-          The store has been notified and will begin preparing your order.
+          The merchant has been notified and will begin preparing your order.
         </p>
         {orderNumber && (
           <p className="mt-4 inline-block rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.04] px-4 py-2 text-sm">

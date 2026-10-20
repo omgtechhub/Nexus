@@ -26,7 +26,7 @@ function sign(body: unknown): string {
 }
 
 describe('Item 15: a webhook only settles an order for the right amount', () => {
-  let storeId: string;
+  let merchantId: string;
   let cookie: string;
   let productId: string;
 
@@ -35,10 +35,10 @@ describe('Item 15: a webhook only settles an order for the right amount', () => 
       name: 'Webhook Integrity Merchant',
       email: `webhook_integrity_${Date.now()}@nexus.io`,
       password: 'Password123!',
-      storeName: 'Webhook Integrity Store',
+      displayName: 'Webhook Integrity Merchant',
     });
     cookie = reg.headers['set-cookie'][0];
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
 
     const prod = await request
       .post('/api/products')
@@ -57,7 +57,7 @@ describe('Item 15: a webhook only settles an order for the right amount', () => 
   async function pendingOrder(total: number, currency = 'NGN') {
     const order = await prisma.order.create({
       data: {
-        storeId,
+        merchantId,
         orderNumber: `#WH-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         customerName: 'Webhook Buyer',
         customerEmail: 'webhook@example.com',
@@ -84,7 +84,7 @@ describe('Item 15: a webhook only settles an order for the right amount', () => 
     const reference = `ref_wh_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
     await prisma.payment.create({
       data: {
-        storeId,
+        merchantId,
         orderId: order.id,
         provider: PaymentProvider.PAYSTACK,
         providerReference: reference,
@@ -244,7 +244,7 @@ describe('Item 15: a webhook only settles an order for the right amount', () => 
 });
 
 describe('Item 14: tax and delivery are configured, not hardcoded', () => {
-  let storeId: string;
+  let merchantId: string;
   const originalTax = process.env.PLATFORM_TAX_PERCENT;
   const originalLabel = process.env.PLATFORM_TAX_LABEL;
   const originalInclusive = process.env.PLATFORM_TAX_INCLUSIVE;
@@ -255,7 +255,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
    * Nexus is a single marketplace — it takes the money and issues the
    * receipt — so one rate applies to every sale rather than each merchant
    * declaring their own. These tests therefore set the environment rather
-   * than a StoreSettings row.
+   * than a MerchantSettings row.
    */
   afterAll(() => {
     const restore = (key: string, value: string | undefined) => {
@@ -272,9 +272,9 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
       name: 'Pricing Merchant',
       email: `pricing_${Date.now()}@nexus.io`,
       password: 'Password123!',
-      storeName: 'Pricing Store',
+      displayName: 'Pricing Merchant',
     });
-    storeId = reg.body.data.store.id;
+    merchantId = reg.body.data.merchant.id;
   });
 
   it('charges no tax and no delivery when nothing is configured', async () => {
@@ -282,7 +282,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
 
     // The hardcoded 8% + $15 made this state impossible to express: every
     // order carried a US sales tax nobody had configured.
-    const quote = await quoteOrder({ storeId, subtotal: 300 });
+    const quote = await quoteOrder({ merchantId, subtotal: 300 });
 
     expect(quote.tax).toBe(0);
     expect(quote.taxRate).toBe(0);
@@ -294,7 +294,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
     process.env.PLATFORM_TAX_PERCENT = '7.5';
     process.env.PLATFORM_TAX_LABEL = 'VAT';
 
-    const quote = await quoteOrder({ storeId, subtotal: 200 });
+    const quote = await quoteOrder({ merchantId, subtotal: 200 });
     expect(quote.tax).toBe(15);
     expect(quote.taxLabel).toBe('VAT');
     expect(quote.total).toBe(215);
@@ -305,7 +305,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
 
     // Tax was applied to the pre-discount subtotal, so a discount code did not
     // reduce the tax it should have.
-    const quote = await quoteOrder({ storeId, subtotal: 200, discountAmount: 100 });
+    const quote = await quoteOrder({ merchantId, subtotal: 200, discountAmount: 100 });
 
     expect(quote.discountAmount).toBe(100);
     expect(quote.tax).toBe(7.5);
@@ -316,7 +316,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
     process.env.PLATFORM_TAX_PERCENT = '10';
     process.env.PLATFORM_TAX_INCLUSIVE = 'true';
 
-    const quote = await quoteOrder({ storeId, subtotal: 110 });
+    const quote = await quoteOrder({ merchantId, subtotal: 110 });
     // 110 gross at 10% inclusive => 10 of tax, total unchanged.
     expect(quote.tax).toBe(10);
     expect(quote.total).toBe(110);
@@ -327,12 +327,12 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
 
   it("reads the merchant's own shipping zones, which checkout used to ignore", async () => {
     const zone = await prisma.shippingZone.create({
-      data: { storeId, name: 'Nigeria', countries: ['NG'] },
+      data: { merchantId, name: 'Nigeria', countries: ['NG'] },
     });
     await prisma.shippingMethod.create({
       data: {
         zoneId: zone.id,
-        storeId,
+        merchantId,
         name: 'Lagos courier',
         rateType: ShippingRateType.FLAT_RATE,
         price: 2500,
@@ -343,7 +343,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
     await prisma.shippingMethod.create({
       data: {
         zoneId: zone.id,
-        storeId,
+        merchantId,
         name: 'Express',
         rateType: ShippingRateType.FLAT_RATE,
         price: 6000,
@@ -355,7 +355,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
     // matched what the form submitted.
     expect(countryCode('Nigeria')).toBe('NG');
 
-    const quote = await quoteOrder({ storeId, subtotal: 10000, country: 'Nigeria' });
+    const quote = await quoteOrder({ merchantId, subtotal: 10000, country: 'Nigeria' });
     // Cheapest by default, so nobody is silently upsold to express.
     expect(quote.shipping).toBe(2500);
     expect(quote.shippingMethodName).toBe('Lagos courier');
@@ -364,7 +364,7 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
     // A chosen option is honoured.
     const express = quote.shippingOptions.find(o => o.name === 'Express')!;
     const expressQuote = await quoteOrder({
-      storeId,
+      merchantId,
       subtotal: 10000,
       country: 'Nigeria',
       shippingMethodId: express.id,
@@ -372,14 +372,14 @@ describe('Item 14: tax and delivery are configured, not hardcoded', () => {
     expect(expressQuote.shipping).toBe(6000);
 
     // Over the free threshold it is free.
-    const bigQuote = await quoteOrder({ storeId, subtotal: 60000, country: 'Nigeria' });
+    const bigQuote = await quoteOrder({ merchantId, subtotal: 60000, country: 'Nigeria' });
     expect(bigQuote.shipping).toBe(0);
   });
 
   it('does not quote one zone\'s rates to a destination it does not cover', async () => {
     // The old endpoint fell back to the *first* zone when none matched, which
     // quoted Lagos rates to a shopper in Berlin.
-    const options = await shippingOptionsFor(storeId, 10000, 'Germany');
+    const options = await shippingOptionsFor(merchantId, 10000, 'Germany');
     expect(options.every(o => o.name !== 'Lagos courier')).toBe(true);
   });
 });

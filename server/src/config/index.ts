@@ -32,6 +32,14 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().optional().default('Nexus Commerce <no-reply@nexuscommerce.io>'),
+  /**
+   * Where messages from the public contact form are delivered.
+   *
+   * Falls back to SMTP_USER, which is an address that provably exists -- it is
+   * the one the server authenticates as. A contact form that posts into a
+   * mailbox nobody owns is the same defect as one that posts nowhere at all.
+   */
+  SUPPORT_EMAIL: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
@@ -62,6 +70,7 @@ export const config = {
     smtpUser: parsed.data.SMTP_USER,
     smtpPass: parsed.data.SMTP_PASS,
     from: parsed.data.EMAIL_FROM,
+    supportTo: parsed.data.SUPPORT_EMAIL || parsed.data.SMTP_USER || '',
   },
   google: {
     clientId: parsed.data.GOOGLE_CLIENT_ID,

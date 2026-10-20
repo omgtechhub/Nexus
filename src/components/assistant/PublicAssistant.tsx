@@ -378,7 +378,7 @@ function ThreadEntry({ entry, onClose }: { entry: Entry; onClose: () => void }) 
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-strong">{p.title}</p>
-                <p className="truncate text-[11px] text-muted">{p.store.name}</p>
+                <p className="truncate text-[11px] text-muted">{p.merchant.name}</p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <span className="text-xs font-bold text-primary">{formatPrice(p.price)}</span>
                   {!p.inStock && (

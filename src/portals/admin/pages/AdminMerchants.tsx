@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Store } from 'lucide-react';
+import { Search, Store as MerchantIcon } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { usePlatformMerchantsQuery } from '../../../hooks/useBillingQueries';
 import { LoadingState, ErrorState, PageHeading } from '../../customer/components/States';
@@ -27,7 +27,7 @@ export function AdminMerchants() {
     <>
       <PageHeading
         title="Merchants"
-        subtitle={`${merchants.length} store${merchants.length === 1 ? '' : 's'} on the platform.`}
+        subtitle={`${merchants.length} merchant${merchants.length === 1 ? '' : 's'} on the platform.`}
       />
 
       <div className="relative mb-4 max-w-sm">
@@ -36,7 +36,7 @@ export function AdminMerchants() {
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by store, domain or owner"
+          placeholder="Search by merchant, domain or owner"
           aria-label="Search merchants"
           className="w-full rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/5 py-2.5 pl-10 pr-3 text-sm text-primary placeholder:text-muted focus:border-[#FFBD2E]/50 focus:outline-none"
         />
@@ -44,9 +44,9 @@ export function AdminMerchants() {
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.02] px-6 py-14 text-center">
-          <Store size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
+          <MerchantIcon size={20} className="mx-auto mb-3 text-muted" aria-hidden="true" />
           <p className="text-sm text-secondary">
-            {merchants.length === 0 ? 'No merchant stores yet.' : 'No merchants match that search.'}
+            {merchants.length === 0 ? 'No merchant merchants yet.' : 'No merchants match that search.'}
           </p>
         </div>
       ) : (
@@ -55,10 +55,10 @@ export function AdminMerchants() {
               and would otherwise widen the document at phone sizes. */}
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[760px] text-left">
-              <caption className="sr-only">Merchant stores with owner, plan and activity</caption>
+              <caption className="sr-only">Merchant merchants with owner, plan and activity</caption>
               <thead className="bg-[var(--ink)]/5">
                 <tr>
-                  <Th>Store</Th>
+                  <Th>Merchant</Th>
                   <Th>Owner</Th>
                   <Th>Plan</Th>
                   <Th>Status</Th>

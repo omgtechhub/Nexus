@@ -46,11 +46,11 @@ const ROLE_LIST = ASSIGNABLE_ROLES.join(', ');
 
 export async function getTeam(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
 
     const [members, invitations] = await Promise.all([
-      prisma.storeMember.findMany({
-        where: { storeId },
+      prisma.merchantMember.findMany({
+        where: { merchantId },
         include: {
           user: {
             select: { id: true, name: true, email: true, avatar: true, plan: true, createdAt: true },
@@ -59,7 +59,7 @@ export async function getTeam(req: Request, res: Response, next: NextFunction) {
         orderBy: { createdAt: 'asc' },
       }),
       prisma.teamInvitation.findMany({
-        where: { storeId, status: InvitationStatus.PENDING },
+        where: { merchantId, status: InvitationStatus.PENDING },
         orderBy: { createdAt: 'desc' },
       }),
     ]);
@@ -100,7 +100,7 @@ import { entitlementService } from '../services/billing/entitlement.service.js';
 
 export async function createInvitation(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const user = req.user!;
     const { email, role } = req.body;
 
@@ -127,23 +127,23 @@ export async function createInvitation(req: Request, res: Response, next: NextFu
     if (assignedRole === Role.OWNER && req.memberRole !== Role.OWNER) {
       res.status(403).json({
         success: false,
-        error: 'Only the store owner can invite someone as OWNER.',
+        error: 'Only the merchant owner can invite someone as OWNER.',
       });
       return;
     }
 
-    await entitlementService.assertCanAddTeamMember(storeId);
+    await entitlementService.assertCanAddTeamMember(merchantId);
 
     // Check if user is already a member
-    const existingMember = await prisma.storeMember.findFirst({
+    const existingMember = await prisma.merchantMember.findFirst({
       where: {
-        storeId,
+        merchantId,
         user: { email: targetEmail },
       },
     });
 
     if (existingMember) {
-      res.status(400).json({ success: false, error: `${targetEmail} is already a member of this store` });
+      res.status(400).json({ success: false, error: `${targetEmail} is already a member of this merchant` });
       return;
     }
 
@@ -152,7 +152,7 @@ export async function createInvitation(req: Request, res: Response, next: NextFu
 
     const invitation = await prisma.teamInvitation.create({
       data: {
-        storeId,
+        merchantId,
         email: targetEmail,
         role: assignedRole,
         token,
@@ -167,19 +167,19 @@ export async function createInvitation(req: Request, res: Response, next: NextFu
       const { emailService } = await import('../services/email/email.service.js');
       await emailService.sendEmail({
         to: targetEmail,
-        subject: `Invitation to join ${req.store!.name} on Nexus Commerce`,
+        subject: `Invitation to join ${req.merchant!.name} on Nexus Commerce`,
         // Escaped: the inviter chooses `user.name` and the recipient is a
         // third party, so raw markup here is attacker-authored content inside
         // a genuine Nexus email.
-        html: `<p>Hi,</p><p>You have been invited by ${escapeHtml(user.name)} to join <strong>${escapeHtml(req.store!.name)}</strong> as a <strong>${assignedRole}</strong>.</p><p>Invitation Token: <code>${escapeHtml(token)}</code></p>`,
-        text: `You have been invited by ${user.name} to join ${req.store!.name} as a ${assignedRole}. Token: ${token}`,
+        html: `<p>Hi,</p><p>You have been invited by ${escapeHtml(user.name)} to join <strong>${escapeHtml(req.merchant!.name)}</strong> as a <strong>${assignedRole}</strong>.</p><p>Invitation Token: <code>${escapeHtml(token)}</code></p>`,
+        text: `You have been invited by ${user.name} to join ${req.merchant!.name} as a ${assignedRole}. Token: ${token}`,
       });
     } catch (e) {
       // non-blocking
     }
 
     await logAuditEvent({
-      storeId,
+      merchantId,
       userId: user.id,
       actorName: user.name,
       actorEmail: user.email,
@@ -205,11 +205,11 @@ export async function createInvitation(req: Request, res: Response, next: NextFu
 
 export async function resendInvitation(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const invitation = await prisma.teamInvitation.findFirst({
-      where: { id, storeId, status: InvitationStatus.PENDING },
+      where: { id, merchantId, status: InvitationStatus.PENDING },
     });
 
     if (!invitation) {
@@ -221,9 +221,9 @@ export async function resendInvitation(req: Request, res: Response, next: NextFu
       const { emailService } = await import('../services/email/email.service.js');
       await emailService.sendEmail({
         to: invitation.email,
-        subject: `Reminder: Invitation to join ${req.store!.name}`,
-        html: `<p>Reminder: Token for ${escapeHtml(req.store!.name)}: <code>${escapeHtml(invitation.token)}</code></p>`,
-        text: `Reminder: Invitation token for ${req.store!.name}: ${invitation.token}`,
+        subject: `Reminder: Invitation to join ${req.merchant!.name}`,
+        html: `<p>Reminder: Token for ${escapeHtml(req.merchant!.name)}: <code>${escapeHtml(invitation.token)}</code></p>`,
+        text: `Reminder: Invitation token for ${req.merchant!.name}: ${invitation.token}`,
       });
     } catch (e) {
       // non-blocking
@@ -237,12 +237,12 @@ export async function resendInvitation(req: Request, res: Response, next: NextFu
 
 export async function revokeInvitation(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
     const user = req.user!;
 
     const invitation = await prisma.teamInvitation.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!invitation) {
@@ -256,7 +256,7 @@ export async function revokeInvitation(req: Request, res: Response, next: NextFu
     });
 
     await logAuditEvent({
-      storeId,
+      merchantId,
       userId: user.id,
       actorName: user.name,
       actorEmail: user.email,
@@ -284,7 +284,7 @@ export async function acceptInvitation(req: Request, res: Response, next: NextFu
 
     const invitation = await prisma.teamInvitation.findUnique({
       where: { token },
-      include: { store: true },
+      include: { merchant: true },
     });
 
     if (!invitation || invitation.status !== InvitationStatus.PENDING) {
@@ -319,14 +319,14 @@ export async function acceptInvitation(req: Request, res: Response, next: NextFu
       return;
     }
 
-    // Add user as StoreMember
-    const membership = await prisma.storeMember.upsert({
+    // Add user as MerchantMember
+    const membership = await prisma.merchantMember.upsert({
       where: {
-        userId_storeId: { userId: user.id, storeId: invitation.storeId },
+        userId_merchantId: { userId: user.id, merchantId: invitation.merchantId },
       },
       create: {
         userId: user.id,
-        storeId: invitation.storeId,
+        merchantId: invitation.merchantId,
         role: invitation.role,
       },
       update: {
@@ -340,7 +340,7 @@ export async function acceptInvitation(req: Request, res: Response, next: NextFu
     });
 
     await logAuditEvent({
-      storeId: invitation.storeId,
+      merchantId: invitation.merchantId,
       userId: user.id,
       actorName: user.name,
       actorEmail: user.email,
@@ -352,7 +352,7 @@ export async function acceptInvitation(req: Request, res: Response, next: NextFu
 
     res.json({
       success: true,
-      message: `Successfully joined ${invitation.store.name} as ${invitation.role}`,
+      message: `Successfully joined ${invitation.merchant.name} as ${invitation.role}`,
       data: { member: membership },
     });
   } catch (err) {
@@ -362,13 +362,13 @@ export async function acceptInvitation(req: Request, res: Response, next: NextFu
 
 export async function updateMemberRole(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
     const { role } = req.body;
     const user = req.user!;
 
-    const member = await prisma.storeMember.findFirst({
-      where: { id, storeId },
+    const member = await prisma.merchantMember.findFirst({
+      where: { id, merchantId },
       include: { user: true },
     });
 
@@ -389,7 +389,7 @@ export async function updateMemberRole(req: Request, res: Response, next: NextFu
     if (newRole === Role.OWNER && !actorIsOwner) {
       res.status(403).json({
         success: false,
-        error: 'Only the store owner can grant the OWNER role.',
+        error: 'Only the merchant owner can grant the OWNER role.',
       });
       return;
     }
@@ -398,7 +398,7 @@ export async function updateMemberRole(req: Request, res: Response, next: NextFu
     if (member.role === Role.OWNER && !actorIsOwner) {
       res.status(403).json({
         success: false,
-        error: "Only the store owner can change the owner's role.",
+        error: "Only the merchant owner can change the owner's role.",
       });
       return;
     }
@@ -411,13 +411,13 @@ export async function updateMemberRole(req: Request, res: Response, next: NextFu
      * to stay possible.
      */
     if (member.role === Role.OWNER && newRole !== Role.OWNER) {
-      const owners = await prisma.storeMember.count({
-        where: { storeId, role: Role.OWNER },
+      const owners = await prisma.merchantMember.count({
+        where: { merchantId, role: Role.OWNER },
       });
       if (owners <= 1) {
         res.status(400).json({
           success: false,
-          error: 'This store has only one owner. Promote another member to OWNER first.',
+          error: 'This merchant has only one owner. Promote another member to OWNER first.',
         });
         return;
       }
@@ -428,13 +428,13 @@ export async function updateMemberRole(req: Request, res: Response, next: NextFu
       return;
     }
 
-    const updated = await prisma.storeMember.update({
+    const updated = await prisma.merchantMember.update({
       where: { id },
       data: { role: newRole },
     });
 
     await logAuditEvent({
-      storeId,
+      merchantId,
       userId: user.id,
       actorName: user.name,
       actorEmail: user.email,
@@ -452,12 +452,12 @@ export async function updateMemberRole(req: Request, res: Response, next: NextFu
 
 export async function removeMember(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
     const user = req.user!;
 
-    const member = await prisma.storeMember.findFirst({
-      where: { id, storeId },
+    const member = await prisma.merchantMember.findFirst({
+      where: { id, merchantId },
       include: { user: true },
     });
 
@@ -467,14 +467,14 @@ export async function removeMember(req: Request, res: Response, next: NextFuncti
     }
 
     if (member.role === Role.OWNER) {
-      res.status(400).json({ success: false, error: 'Store OWNER cannot be removed from team' });
+      res.status(400).json({ success: false, error: 'Merchant OWNER cannot be removed from team' });
       return;
     }
 
-    await prisma.storeMember.delete({ where: { id } });
+    await prisma.merchantMember.delete({ where: { id } });
 
     await logAuditEvent({
-      storeId,
+      merchantId,
       userId: user.id,
       actorName: user.name,
       actorEmail: user.email,

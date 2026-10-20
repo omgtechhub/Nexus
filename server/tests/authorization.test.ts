@@ -21,10 +21,10 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
   let seller2Cookie: string;
   let adminCookie: string;
 
-  let store1Id: string;
-  let store2Id: string;
-  let store1OrderId: string;
-  let store2OrderId: string;
+  let merchant1Id: string;
+  let merchant2Id: string;
+  let merchant1OrderId: string;
+  let merchant2OrderId: string;
 
   beforeAll(async () => {
     // 1. Create Customer account A
@@ -50,22 +50,22 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
       name: 'Seller One',
       email: seller1Email,
       password,
-      storeName: `Store One ${timestamp}`,
+      displayName: `Merchant One ${timestamp}`,
       userType: 'SELLER',
     });
     seller1Cookie = (resSeller1.headers['set-cookie'] as string[])[0];
-    store1Id = resSeller1.body.data.store.id;
+    merchant1Id = resSeller1.body.data.merchant.id;
 
     // 4. Create Seller 2 with Store 2
     const resSeller2 = await request.post('/api/auth/register').send({
       name: 'Seller Two',
       email: seller2Email,
       password,
-      storeName: `Store Two ${timestamp}`,
+      displayName: `Merchant Two ${timestamp}`,
       userType: 'SELLER',
     });
     seller2Cookie = (resSeller2.headers['set-cookie'] as string[])[0];
-    store2Id = resSeller2.body.data.store.id;
+    merchant2Id = resSeller2.body.data.merchant.id;
 
     // 5. Create Platform Admin user
     const adminUser = await prisma.user.create({
@@ -109,7 +109,7 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
     // Seed Order in Store 1 for Customer A
     const order1 = await prisma.order.create({
       data: {
-        storeId: store1Id,
+        merchantId: merchant1Id,
         orderNumber: `NEX-TEST-${timestamp}-1`,
         customerName: 'Customer A',
         customerEmail: customerEmail,
@@ -117,12 +117,12 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
         subtotal: 150.0,
       },
     });
-    store1OrderId = order1.id;
+    merchant1OrderId = order1.id;
 
     // Seed Order in Store 2 for Customer B
     const order2 = await prisma.order.create({
       data: {
-        storeId: store2Id,
+        merchantId: merchant2Id,
         orderNumber: `NEX-TEST-${timestamp}-2`,
         customerName: 'Customer B',
         customerEmail: otherCustomerEmail,
@@ -130,11 +130,11 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
         subtotal: 299.0,
       },
     });
-    store2OrderId = order2.id;
+    merchant2OrderId = order2.id;
   });
 
   afterAll(async () => {
-    await prisma.order.deleteMany({ where: { id: { in: [store1OrderId, store2OrderId] } } });
+    await prisma.order.deleteMany({ where: { id: { in: [merchant1OrderId, merchant2OrderId] } } });
     await prisma.user.deleteMany({
       where: { email: { in: [customerEmail, otherCustomerEmail, seller1Email, seller2Email, adminEmail] } },
     });
@@ -162,12 +162,12 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
     expect(resOrders.status).toBe(200);
     expect(resOrders.body.success).toBe(true);
     expect(resOrders.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(resOrders.body.data[0].id).toBe(store1OrderId);
+    expect(resOrders.body.data[0].id).toBe(merchant1OrderId);
   });
 
   it('3. Customer IDOR Defense: Customer A attempting to access Customer B order returns 404', async () => {
     const resOrder = await request
-      .get(`/api/account/orders/${store2OrderId}`)
+      .get(`/api/account/orders/${merchant2OrderId}`)
       .set('Cookie', customerCookie);
 
     expect(resOrder.status).toBe(404);
@@ -179,7 +179,7 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
     expect(resProducts.status).toBe(403);
     expect(resProducts.body.success).toBe(false);
     // Copy may change; what matters is that a customer account is refused.
-    expect(resProducts.body.error).toMatch(/customer account|merchant store membership required/i);
+    expect(resProducts.body.error).toMatch(/customer account|merchant merchant membership required/i);
 
     const resOrders = await request.get('/api/orders').set('Cookie', customerCookie);
     expect(resOrders.status).toBe(403);
@@ -194,23 +194,23 @@ describe('Nexus Commerce Phase 4 Authorization & Tenant Isolation Tests', () => 
     expect(resAdmin.body.success).toBe(false);
   });
 
-  it('6. Seller accessing own store resources: GET /api/orders & /api/products succeeds', async () => {
+  it('6. Seller accessing own merchant resources: GET /api/orders & /api/products succeeds', async () => {
     const resOrders = await request.get('/api/orders').set('Cookie', seller1Cookie);
     expect(resOrders.status).toBe(200);
     expect(resOrders.body.success).toBe(true);
 
-    const resOrderById = await request.get(`/api/orders/${store1OrderId}`).set('Cookie', seller1Cookie);
+    const resOrderById = await request.get(`/api/orders/${merchant1OrderId}`).set('Cookie', seller1Cookie);
     expect(resOrderById.status).toBe(200);
-    expect(resOrderById.body.data.id).toBe(store1OrderId);
+    expect(resOrderById.body.data.id).toBe(merchant1OrderId);
   });
 
-  it('7. Seller Tenant Isolation (IDOR Defense): Seller 1 accessing Store 2 order returns 404', async () => {
-    const resOrderOtherStore = await request
-      .get(`/api/orders/${store2OrderId}`)
+  it('7. Seller Tenant Isolation (IDOR Defense): Seller 1 accessing Merchant 2 order returns 404', async () => {
+    const resOrderOtherMerchant = await request
+      .get(`/api/orders/${merchant2OrderId}`)
       .set('Cookie', seller1Cookie);
 
-    expect(resOrderOtherStore.status).toBe(404);
-    expect(resOrderOtherStore.body.success).toBe(false);
+    expect(resOrderOtherMerchant.status).toBe(404);
+    expect(resOrderOtherMerchant.body.success).toBe(false);
   });
 
   it('8. Seller accessing Admin APIs: returns 403 Forbidden', async () => {

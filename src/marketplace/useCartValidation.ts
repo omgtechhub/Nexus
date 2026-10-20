@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { validateCartApi, CartValidationResult } from '../api/storefront';
-import { useCart, CartCorrection, CartStoreGroup } from '../context/CartContext';
+import { validateCartApi, CartValidationResult } from '../api/shop';
+import { useCart, CartCorrection, CartMerchantGroup } from '../context/CartContext';
 
 /**
  * Re-check the cart against each store's server before anyone is asked to pay.
@@ -18,29 +18,29 @@ import { useCart, CartCorrection, CartStoreGroup } from '../context/CartContext'
  */
 
 export interface GroupValidation {
-  storeId: string;
+  merchantId: string;
   isLoading: boolean;
   isError: boolean;
   result?: CartValidationResult;
 }
 
 /** A stable key for a group, so a re-render alone does not refetch. */
-function signatureOf(group: CartStoreGroup) {
+function signatureOf(group: CartMerchantGroup) {
   return group.items
     .map(i => `${i.variantId}:${i.quantity}`)
     .sort()
     .join('|');
 }
 
-export function useCartValidation(groups: CartStoreGroup[]) {
+export function useCartValidation(groups: CartMerchantGroup[]) {
   const { reconcile } = useCart();
 
   const queries = useQueries({
     queries: groups.map(group => ({
-      queryKey: ['cart-validation', group.storeId, signatureOf(group)] as const,
+      queryKey: ['cart-validation', group.merchantId, signatureOf(group)] as const,
       queryFn: () =>
         validateCartApi(
-          group.storeId,
+          group.merchantId,
           group.items.map(i => ({ variantId: i.variantId, quantity: i.quantity }))
         ),
       enabled: group.items.length > 0,
@@ -52,7 +52,7 @@ export function useCartValidation(groups: CartStoreGroup[]) {
   const validations = useMemo<GroupValidation[]>(
     () =>
       groups.map((group, index) => ({
-        storeId: group.storeId,
+        merchantId: group.merchantId,
         isLoading: queries[index]?.isLoading ?? false,
         isError: queries[index]?.isError ?? false,
         result: queries[index]?.data,
@@ -75,7 +75,7 @@ export function useCartValidation(groups: CartStoreGroup[]) {
       const items = validation.result?.items;
       if (!items) continue;
 
-      const group = groups.find(g => g.storeId === validation.storeId);
+      const group = groups.find(g => g.merchantId === validation.merchantId);
       if (!group) continue;
 
       for (const line of items) {
@@ -124,7 +124,7 @@ export function lineProblem(
   if (line.valid === false) {
     return line.availableStock > 0
       ? `Only ${line.availableStock} left — reduce the quantity to continue.`
-      : 'Out of stock at this store.';
+      : 'Out of stock at this merchant.';
   }
   return null;
 }
@@ -142,7 +142,7 @@ export function lineProblem(
  * lines, because all three change the price.
  */
 export function useCartQuote(
-  storeSlug: string,
+  merchantRef: string,
   items: { variantId: string; quantity: number }[],
   country?: string,
   shippingMethodId?: string
@@ -153,14 +153,14 @@ export function useCartQuote(
     .join('|');
 
   return useQuery({
-    queryKey: ['cart-quote', storeSlug, signature, country ?? '', shippingMethodId ?? ''] as const,
+    queryKey: ['cart-quote', merchantRef, signature, country ?? '', shippingMethodId ?? ''] as const,
     queryFn: () =>
       validateCartApi(
-        storeSlug,
+        merchantRef,
         items.map(i => ({ variantId: i.variantId, quantity: i.quantity })),
         { country, shippingMethodId }
       ),
-    enabled: items.length > 0 && Boolean(storeSlug),
+    enabled: items.length > 0 && Boolean(merchantRef),
     staleTime: 30 * 1000,
     retry: false,
   });

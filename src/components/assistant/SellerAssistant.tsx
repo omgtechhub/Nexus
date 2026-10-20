@@ -113,7 +113,7 @@ export function SellerAssistantPanel({ onClose }: { onClose: () => void }) {
     <div role="dialog" aria-modal="false" aria-label="Nexus IQ" className={panelShell}>
       <PanelHeader
         title="Nexus IQ"
-        subtitle="Ask about your store"
+        subtitle="Ask about your merchant"
         icon={<Sparkles size={16} className="text-[var(--brand-yellow-ink)]" />}
         onClose={() => {
           stopSpeaking();
@@ -198,7 +198,7 @@ export function SellerAssistantPanel({ onClose }: { onClose: () => void }) {
 
           <form onSubmit={handleSend} className="flex flex-shrink-0 gap-2 border-t border-[var(--ink)]/10 p-3">
             <label htmlFor="iq-dock-message" className="sr-only">
-              Ask Nexus IQ about your store
+              Ask Nexus IQ about your merchant
             </label>
             <input
               id="iq-dock-message"

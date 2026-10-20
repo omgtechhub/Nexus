@@ -73,9 +73,6 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
     : portal === 'admin' ? '/admin/dashboard'
     : '/seller/dashboard';
 
-  if (isAuthenticated && user?.email && !user.email.includes('@nexus.io')) {
-    return <Navigate to={returnTo || portalHome} replace />;
-  }
   const [showPassword, setShowPassword] = useState(false);
 
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -97,6 +94,24 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
     resolver: zodResolver(signupSchema),
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   });
+
+  /*
+   * Already signed in: go where they were heading.
+   *
+   * This used to sit above the twelve hooks below it, and it is the reason the
+   * seller login logged "error during concurrent rendering but React was able
+   * to recover" on every successful sign-in: the moment `login` set the
+   * session, the component returned early and React saw fewer hooks than the
+   * render before. It was recoverable, so it never became a visible fault --
+   * it just meant the tree was thrown away and rebuilt on every login.
+   *
+   * It also carried `&& !user.email.includes('@nexus.io')`, which exempted a
+   * whole domain from the redirect. Any account on it stayed staring at a
+   * login form it had already passed.
+   */
+  if (isAuthenticated && user?.email) {
+    return <Navigate to={returnTo || portalHome} replace />;
+  }
 
   const handleLogin = async (data: LoginForm) => {
     try {
@@ -262,7 +277,7 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
                     ? 'Sign in to finish checking out and see your orders'
                     : 'Sign in to your Nexus Commerce account'
                   : isShopper
-                    ? 'One account for every store on Nexus'
+                    ? 'One account for every merchant on Nexus'
                     : '14-day free trial · No credit card required'}
               </p>
             </div>
@@ -499,11 +514,11 @@ export function AuthPage({ mode, portal = 'seller' }: AuthPageProps) {
 
           {/* Feature bullets */}
           <div className="space-y-4">
-            {/* These used to promise store building and POS — a shop builder's
+            {/* These used to promise merchant building and POS — a shop builder's
                 feature list on a marketplace's sign-in page. What a seller
                 actually gets is a listing in a shopfront somebody else runs. */}
             {[
-              'List a product in minutes — no storefront to build',
+              'List a product in minutes — no shop to build',
               'Shoppers already browsing, from the day you publish',
               'Nexus IQ on your own stock, orders and margins',
               'Checkout, delivery and payouts run by the platform',

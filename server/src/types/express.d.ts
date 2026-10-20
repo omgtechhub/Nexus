@@ -1,12 +1,12 @@
 import { AuthenticatedUser } from './index.js';
-import { Store, StoreMember, Role, VoicePortal } from '@prisma/client';
+import { Merchant, MerchantMember, Role, VoicePortal } from '@prisma/client';
 
 declare global {
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
-      store?: Store;
-      membership?: StoreMember;
+      merchant?: Merchant;
+      membership?: MerchantMember;
       memberRole?: Role;
       sessionId?: string;
       /** Which portal's voice profile this request speaks to. Set where the

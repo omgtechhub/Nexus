@@ -11,7 +11,7 @@ import {
  * this is what a visitor sees before they have an account, so no route here
  * takes a session into account or accepts a write.
  *
- * Cart validation and checkout stay on `/api/storefront/:storeSlug/*`, because
+ * Cart validation and checkout stay on `/api/shop/:merchantRef/*`, because
  * an order belongs to exactly one merchant.
  */
 export const marketplaceRouter = Router();
@@ -19,4 +19,4 @@ export const marketplaceRouter = Router();
 marketplaceRouter.get('/home', getMarketplaceHome);
 marketplaceRouter.get('/categories', getMarketplaceCategories);
 marketplaceRouter.get('/products', getMarketplaceProducts);
-marketplaceRouter.get('/products/:storeId/:productSlug', getMarketplaceProduct);
+marketplaceRouter.get('/products/:productSlug', getMarketplaceProduct);

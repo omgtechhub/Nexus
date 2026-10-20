@@ -43,14 +43,14 @@ const createProductSchema = z.object({
 
 export async function getProducts(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { q, category, status, page = '1', limit = '50', sort = 'createdAt_desc' } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = { storeId };
+    const where: any = { merchantId };
 
     if (q) {
       where.OR = [
@@ -126,11 +126,11 @@ export async function getProducts(req: Request, res: Response, next: NextFunctio
 
 export async function getProductById(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const product = await prisma.product.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
       include: {
         variants: true,
         images: { orderBy: { position: 'asc' } },
@@ -153,28 +153,56 @@ import { entitlementService } from '../services/billing/entitlement.service.js';
 
 export async function createProduct(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
-    await entitlementService.assertCanAddProduct(storeId);
+    const merchantId = req.merchant!.id;
+    await entitlementService.assertCanAddProduct(merchantId);
     const body = createProductSchema.parse(req.body);
 
     const baseTitle = body.title.trim();
     const slugBase = body.slug || baseTitle.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
-    const slug = `${slugBase}-${Math.random().toString(36).substring(2, 6)}`;
     const sku = body.sku?.trim() || `SKU-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Verify SKU uniqueness within store
+    /*
+     * The slug identifies the listing across the whole marketplace, not just
+     * inside this merchant's own catalogue, because `/products/<slug>` is the
+     * public address of a product.
+     *
+     * A random four-character suffix makes a collision unlikely rather than
+     * impossible, and "unlikely" used to be fine: the uniqueness constraint
+     * was per merchant, so two sellers could both hold `black-hoodie-a1b2`.
+     * Now they cannot, and an unlucky draw would surface as a raw P2002 on an
+     * otherwise valid product. So it is checked, and redrawn -- bounded,
+     * because an unbounded retry on a persistent failure is a hang.
+     */
+    let slug = '';
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const candidate = `${slugBase}-${Math.random().toString(36).substring(2, 6)}`;
+      const clash = await prisma.product.findUnique({ where: { slug: candidate }, select: { id: true } });
+      if (!clash) {
+        slug = candidate;
+        break;
+      }
+    }
+    if (!slug) {
+      res.status(409).json({
+        success: false,
+        error: 'Could not generate a unique link for that product name. Try a slightly different title.',
+      });
+      return;
+    }
+
+    // Verify SKU uniqueness within this merchant's own catalogue
     const existingSku = await prisma.product.findFirst({
-      where: { storeId, sku },
+      where: { merchantId, sku },
     });
     if (existingSku) {
-      res.status(400).json({ success: false, error: `SKU "${sku}" already exists in your store.` });
+      res.status(400).json({ success: false, error: `SKU "${sku}" already exists in your catalogue.` });
       return;
     }
 
     const created = await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
-          storeId,
+          merchantId,
           title: baseTitle,
           name: body.name || baseTitle,
           slug,
@@ -222,7 +250,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
           const invItem = await tx.inventoryItem.create({
             data: {
-              storeId,
+              merchantId,
               productId: product.id,
               variantId: variant.id,
               sku: variant.sku,
@@ -234,7 +262,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
           await tx.inventoryMovement.create({
             data: {
-              storeId,
+              merchantId,
               inventoryItemId: invItem.id,
               productId: product.id,
               variantId: variant.id,
@@ -248,7 +276,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
       } else {
         const invItem = await tx.inventoryItem.create({
           data: {
-            storeId,
+            merchantId,
             productId: product.id,
             sku: product.sku,
             stock: body.inventory,
@@ -259,7 +287,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
         await tx.inventoryMovement.create({
           data: {
-            storeId,
+            merchantId,
             inventoryItemId: invItem.id,
             productId: product.id,
             changeQuantity: body.inventory,
@@ -284,11 +312,11 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
 export async function updateProduct(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.product.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {
@@ -322,11 +350,11 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
 
 export async function deleteProduct(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.product.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
     });
 
     if (!existing) {

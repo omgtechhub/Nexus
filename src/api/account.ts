@@ -67,7 +67,7 @@ export interface AccountOrder {
   items: AccountOrderItem[];
   addresses: AccountOrderAddress[];
   statusHistory: AccountOrderStatusEvent[];
-  store: { id: string; name: string; domain: string } | null;
+  merchant: { id: string; name: string; domain: string } | null;
 }
 
 export interface AccountAddress {
@@ -158,7 +158,7 @@ export interface TrackedOrder {
   statusHistory: AccountOrderStatusEvent[];
   tracking: TrackedShipment | null;
   createdAt: string;
-  storeName: string;
+  displayName: string;
 }
 
 /**
@@ -169,7 +169,7 @@ export interface TrackedOrder {
 export async function trackOrderApi(orderNumber: string, email: string): Promise<TrackedOrder> {
   const params = new URLSearchParams({ orderNumber: orderNumber.replace(/^#/, ''), email });
   const res = await apiClient<{ success: boolean; data: TrackedOrder }>(
-    `/storefront/track/search?${params.toString()}`
+    `/shop/track/search?${params.toString()}`
   );
   return res.data;
 }

@@ -29,7 +29,7 @@ export async function initializePayment(req: Request, res: Response, next: NextF
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { store: { include: { settings: true } } },
+      include: { merchant: { include: { settings: true } } },
     });
 
     if (!order) {
@@ -115,7 +115,7 @@ export async function initializePayment(req: Request, res: Response, next: NextF
     // Upsert Payment record in PENDING status
     const payment = await prisma.payment.create({
       data: {
-        storeId: order.storeId,
+        merchantId: order.merchantId,
         orderId: order.id,
         provider: providerEnum,
         providerReference: reference,
@@ -139,7 +139,7 @@ export async function initializePayment(req: Request, res: Response, next: NextF
         callbackUrl:
           callbackUrl || `${req.headers.origin || 'http://localhost:5173'}/checkout/complete`,
         customerName: order.customerName,
-        metadata: { orderId: order.id, storeId: order.storeId },
+        metadata: { orderId: order.id, merchantId: order.merchantId },
       });
     } catch (err) {
       // The payment row is marked FAILED rather than left PENDING forever, and
@@ -202,7 +202,7 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
 
     const payment = await prisma.payment.findUnique({
       where: { providerReference: reference },
-      include: { order: { include: { items: true } }, store: true },
+      include: { order: { include: { items: true } }, merchant: true },
     });
 
     if (!payment) {
@@ -310,7 +310,7 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
         await tx.transaction.create({
           data: {
             paymentId: payment.id,
-            storeId: payment.storeId,
+            merchantId: payment.merchantId,
             type: 'CHARGE',
             amount: payment.amount,
             currency: payment.currency,
@@ -419,7 +419,7 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
             });
           }
           const invItem = await tx.inventoryItem.findFirst({
-            where: { storeId: payment.storeId, productId: item.productId },
+            where: { merchantId: payment.merchantId, productId: item.productId },
           });
           if (invItem) {
             await tx.inventoryItem.update({
@@ -428,7 +428,7 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
             });
             await tx.inventoryMovement.create({
               data: {
-                storeId: payment.storeId,
+                merchantId: payment.merchantId,
                 inventoryItemId: invItem.id,
                 productId: item.productId,
                 variantId: item.variantId || undefined,
@@ -464,17 +464,17 @@ export async function verifyPayment(req: Request, res: Response, next: NextFunct
  */
 export async function refundOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { orderId } = req.params;
     const { amount, reason } = refundSchema.parse(req.body);
 
     const order = await prisma.order.findFirst({
-      where: { id: orderId, storeId },
+      where: { id: orderId, merchantId },
       include: { payments: { where: { status: PaymentStatus.SUCCESS } }, items: true },
     });
 
     if (!order) {
-      return res.status(404).json({ success: false, error: 'Order not found for store' });
+      return res.status(404).json({ success: false, error: 'Order not found for merchant' });
     }
 
     if (order.paymentStatus !== PrismaPaymentStatus.PAID) {
@@ -503,7 +503,7 @@ export async function refundOrder(req: Request, res: Response, next: NextFunctio
         data: {
           paymentId: successfulPayment.id,
           orderId: order.id,
-          storeId,
+          merchantId,
           amount: refundAmount,
           currency: order.currency,
           reason: reason || 'Merchant requested refund',
@@ -515,7 +515,7 @@ export async function refundOrder(req: Request, res: Response, next: NextFunctio
       await tx.transaction.create({
         data: {
           paymentId: successfulPayment.id,
-          storeId,
+          merchantId,
           type: 'REFUND',
           amount: refundAmount,
           currency: order.currency,
@@ -551,7 +551,7 @@ export async function refundOrder(req: Request, res: Response, next: NextFunctio
             });
           }
           const invItem = await tx.inventoryItem.findFirst({
-            where: { storeId, productId: item.productId },
+            where: { merchantId, productId: item.productId },
           });
           if (invItem) {
             await tx.inventoryItem.update({
@@ -560,7 +560,7 @@ export async function refundOrder(req: Request, res: Response, next: NextFunctio
             });
             await tx.inventoryMovement.create({
               data: {
-                storeId,
+                merchantId,
                 inventoryItemId: invItem.id,
                 productId: item.productId,
                 variantId: item.variantId || undefined,
@@ -608,9 +608,9 @@ export async function refundOrder(req: Request, res: Response, next: NextFunctio
  */
 export async function getPayments(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const payments = await prisma.payment.findMany({
-      where: { storeId },
+      where: { merchantId },
       include: {
         order: { select: { id: true, orderNumber: true, customerName: true, customerEmail: true } },
         transactions: { orderBy: { createdAt: 'desc' } },

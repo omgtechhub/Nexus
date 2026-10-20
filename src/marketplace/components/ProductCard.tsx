@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Store } from 'lucide-react';
+import { ShoppingBag, Store as MerchantIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { MarketplaceProduct } from '../../api/marketplace';
 import { useCart } from '../../context/CartContext';
@@ -108,13 +108,13 @@ export function ProductCard({ product }: { product: MarketplaceProduct }) {
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         {/* Every row below has a height that does not depend on its content, so
-            a card with a long title, no store name or no discount still lines
+            a card with a long title, no merchant name or no discount still lines
             its price and button up with every other card in the grid. */}
         <span className="flex h-4 items-center gap-1.5 text-[11px] font-medium text-muted">
-          {product.store ? (
+          {product.merchant ? (
             <>
-              <Store size={11} className="flex-shrink-0" aria-hidden="true" />
-              <span className="min-w-0 truncate">{product.store.name}</span>
+              <MerchantIcon size={11} className="flex-shrink-0" aria-hidden="true" />
+              <span className="min-w-0 truncate">{product.merchant.name}</span>
             </>
           ) : (
             // Keep the row, so the card is not a line shorter than its
@@ -192,7 +192,7 @@ export function ProductGrid({
     // with this the whole grid is one uniform size.
     <ul className="grid auto-rows-fr grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
       {products.map(product => (
-        <li key={`${product.store?.id ?? 'x'}-${product.id}`} className="flex">
+        <li key={`${product.merchant?.id ?? 'x'}-${product.id}`} className="flex">
           <ProductCard product={product} />
         </li>
       ))}

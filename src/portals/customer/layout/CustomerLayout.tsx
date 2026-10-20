@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Package, MapPin, LogOut, Store, Menu, X, Truck } from 'lucide-react';
+import { ShoppingBag, User, Package, MapPin, LogOut, Store as MerchantIcon, Menu, X, Truck } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { cn } from '../../../utils/cn';
 import { ThemeToggle } from '../../../components/ui/ThemeToggle';
@@ -106,14 +106,15 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
             <ThemeToggle className="rounded-lg" />
 
             {/*
-              `/products` — the marketplace — not `/storefront`.
+              `/products` — the marketplace.
 
-              This pointed at `/storefront`, which renders `StorefrontView`
-              with no slug: in the customer portal `useApp().store` is a
-              *seller's* store and is undefined for a customer account, and
-              there is no route param either. The page rendered "No storefront
-              specified. Open a store from its own link." So the one shopping
-              link in the signed-in customer's header was a dead end.
+              This used to point at `/storefront`, a route that rendered a
+              per-seller shop view with no slug: in the customer portal
+              `useApp().merchant` is a *seller's* record and is undefined for a
+              customer account, and there was no route param either. The page
+              rendered "No storefront specified." So the one shopping link in
+              the signed-in customer's header was a dead end. That route and
+              that view no longer exist at all.
             */}
             <Link
               to="/products"
@@ -122,7 +123,7 @@ export function CustomerLayout({ children }: { children?: React.ReactNode }) {
                 focusRing
               )}
             >
-              <Store size={14} aria-hidden="true" />
+              <MerchantIcon size={14} aria-hidden="true" />
               Browse the shop
             </Link>
 

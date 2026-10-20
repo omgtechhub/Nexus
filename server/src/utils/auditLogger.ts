@@ -1,7 +1,7 @@
 import { prisma } from '../prisma.js';
 
 export async function logAuditEvent(params: {
-  storeId: string;
+  merchantId: string;
   userId?: string;
   actorName: string;
   actorEmail: string;
@@ -13,7 +13,7 @@ export async function logAuditEvent(params: {
   try {
     return await prisma.auditLog.create({
       data: {
-        storeId: params.storeId,
+        merchantId: params.merchantId,
         userId: params.userId,
         actorName: params.actorName,
         actorEmail: params.actorEmail,

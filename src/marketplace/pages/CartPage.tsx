@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Loader2, Minus, Plus, ShoppingBag, Store, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Loader2, Minus, Plus, ShoppingBag, Store as MerchantIcon, Trash2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useCartValidation, lineProblem } from '../useCartValidation';
 import { formatPrice } from '../productHelpers';
@@ -44,7 +44,7 @@ export function CartPage() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl">Your bag</h1>
           <p className="mt-1 text-sm text-secondary">
-            {itemCount} item{itemCount === 1 ? '' : 's'} from {groups.length} store
+            {itemCount} item{itemCount === 1 ? '' : 's'} from {groups.length} merchant
             {groups.length === 1 ? '' : 's'}
             {isValidating && (
               <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-muted">
@@ -65,30 +65,30 @@ export function CartPage() {
 
       {groups.length > 1 && (
         <p className="rounded-xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.03] px-4 py-3 text-xs text-secondary">
-          Your bag holds items from more than one store. Each store prices its own delivery
-          and takes its own payment, so you check out once per store.
+          Your bag holds items from more than one merchant. Each merchant prices its own delivery
+          and takes its own payment, so you check out once per merchant.
         </p>
       )}
 
       <div className="space-y-6">
         {groups.map(group => {
-          const validation = validations.find(v => v.storeId === group.storeId);
+          const validation = validations.find(v => v.merchantId === group.merchantId);
           const serverTotals = validation?.result;
           const groupBlocked = serverTotals?.isValid === false;
 
           return (
             <section
-              key={group.storeId}
-              aria-labelledby={`store-${group.storeId}`}
+              key={group.merchantId}
+              aria-labelledby={`merchant-${group.merchantId}`}
               className="overflow-hidden rounded-2xl border border-[var(--ink)]/10 bg-[var(--ink)]/[0.03]"
             >
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--ink)]/10 px-4 py-3 sm:px-5">
                 <h2
-                  id={`store-${group.storeId}`}
+                  id={`merchant-${group.merchantId}`}
                   className="flex items-center gap-2 text-sm font-bold text-primary"
                 >
-                  <Store size={14} className="text-[var(--brand-yellow-ink)]" aria-hidden="true" />
-                  {group.storeName}
+                  <MerchantIcon size={14} className="text-[var(--brand-yellow-ink)]" aria-hidden="true" />
+                  {group.displayName}
                 </h2>
                 <span className="text-xs text-muted">
                   {group.itemCount} item{group.itemCount === 1 ? '' : 's'}
@@ -114,9 +114,9 @@ export function CartPage() {
 
                       <div className="min-w-0 flex-1 space-y-1">
                         <h3 className="text-sm font-semibold text-strong">
-                          {item.storeId && item.productSlug ? (
+                          {item.merchantId && item.productSlug ? (
                             <Link
-                              to={`/products/${encodeURIComponent(item.storeId)}/${encodeURIComponent(item.productSlug)}`}
+                              to={`/products/${encodeURIComponent(item.productSlug)}`}
                               className="rounded transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E]"
                             >
                               {item.title}
@@ -223,7 +223,7 @@ export function CartPage() {
 
                 {!serverTotals && !isValidating && (
                   <p className="text-xs text-muted">
-                    Tax and delivery are confirmed by {group.storeName} at checkout.
+                    Tax and delivery are confirmed by {group.displayName} at checkout.
                   </p>
                 )}
 
@@ -236,11 +236,11 @@ export function CartPage() {
 
                 <button
                   type="button"
-                  onClick={() => navigate(`/checkout?store=${encodeURIComponent(group.storeId)}`)}
+                  onClick={() => navigate(`/checkout?merchant=${encodeURIComponent(group.merchantId)}`)}
                   disabled={groupBlocked || isValidating}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF5F56] via-[#FFBD2E] to-[#27C93F] text-sm font-bold text-white shadow-lg shadow-red-900/30 transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD2E] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-base)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                 >
-                  Check out with {group.storeName}
+                  Check out with {group.displayName}
                   <ArrowRight size={16} aria-hidden="true" />
                 </button>
               </div>

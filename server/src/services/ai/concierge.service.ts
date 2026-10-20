@@ -1,4 +1,4 @@
-import { ProductStatus, StoreStatus } from '@prisma/client';
+import { ProductStatus, MerchantStatus } from '@prisma/client';
 import { prisma } from '../../prisma.js';
 import { searchCatalogue, spokenList, spokenPrice, type ShopProduct } from './shopping.service.js';
 
@@ -32,7 +32,7 @@ import { searchCatalogue, spokenList, spokenPrice, type ShopProduct } from './sh
 /** Only published products belonging to a live store are public. */
 const PUBLIC_WHERE = {
   status: ProductStatus.ACTIVE,
-  store: { status: StoreStatus.ACTIVE },
+  merchant: { status: MerchantStatus.ACTIVE },
 } as const;
 
 export type ConciergeTopic =
@@ -201,9 +201,9 @@ async function planFacts() {
 }
 
 async function catalogueFacts() {
-  const [products, stores, categories] = await Promise.all([
+  const [products, merchants, categories] = await Promise.all([
     prisma.product.count({ where: PUBLIC_WHERE as any }),
-    prisma.store.count({ where: { status: StoreStatus.ACTIVE } }),
+    prisma.merchant.count({ where: { status: MerchantStatus.ACTIVE } }),
     prisma.product.groupBy({
       by: ['category'],
       where: PUBLIC_WHERE as any,
@@ -215,7 +215,7 @@ async function catalogueFacts() {
 
   return {
     products,
-    stores,
+    merchants,
     categories: categories.map(c => c.category).filter(Boolean) as string[],
   };
 }
@@ -252,12 +252,12 @@ export async function answerPublicQuestion(message: string): Promise<ConciergeAn
       };
 
     case 'WHAT_IS_NEXUS': {
-      const { products, stores, categories } = await catalogueFacts();
+      const { products, merchants, categories } = await catalogueFacts();
       const scale =
         products > 0
           ? ` Right now there ${products === 1 ? 'is' : 'are'} ${products} product${
               products === 1 ? '' : 's'
-            } listed by ${stores} seller${stores === 1 ? '' : 's'}${
+            } listed by ${merchants} seller${merchants === 1 ? '' : 's'}${
               categories.length ? `, across ${spokenList(categories.slice(0, 4))}` : ''
             }.`
           : '';
@@ -279,7 +279,7 @@ export async function answerPublicQuestion(message: string): Promise<ConciergeAn
         reply:
           'You list products; we bring the shoppers. Create a seller account, add a ' +
           'product with its price, photos and stock, and the listing goes live in the ' +
-          'shared shopfront the moment you publish it — there is no storefront to ' +
+          'shared shopfront the moment you publish it — there is no shopfront to ' +
           'design and no traffic to buy. Orders, stock, shipments and payouts all live ' +
           'in your seller dashboard.',
         links: [SELL, PRICING, { label: 'Seller sign in', to: '/seller/login' }],
@@ -430,14 +430,14 @@ export async function answerPublicQuestion(message: string): Promise<ConciergeAn
     }
 
     case 'CATALOGUE': {
-      const { products, stores, categories } = await catalogueFacts();
+      const { products, merchants, categories } = await catalogueFacts();
       return {
         topic,
         reply:
           products > 0
             ? `There ${products === 1 ? 'is' : 'are'} ${products} product${
                 products === 1 ? '' : 's'
-              } live from ${stores} seller${stores === 1 ? '' : 's'}${
+              } live from ${merchants} seller${merchants === 1 ? '' : 's'}${
                 categories.length ? ` across ${spokenList(categories.slice(0, 4))}` : ''
               }. Those figures are the live catalogue, not a brochure number.`
             : 'The shop has no live listings at the moment. Sellers can start listing straight away.',
@@ -469,7 +469,7 @@ export async function answerPublicQuestion(message: string): Promise<ConciergeAn
 
       const named = found.results
         .slice(0, 3)
-        .map(p => `${p.title} from ${p.store.name} at ${spokenPrice(p.price)}`);
+        .map(p => `${p.title} from ${p.merchant.name} at ${spokenPrice(p.price)}`);
 
       return {
         topic,
@@ -490,7 +490,7 @@ export async function answerPublicQuestion(message: string): Promise<ConciergeAn
           'questions about Nexus and looks things up in the shop, and anyone can use it. ' +
           'Signed in, it does the work that belongs to your account: for a shopper it ' +
           'searches, fills the bag and walks you to checkout; for a seller it reads that ' +
-          "store's own stock, orders and revenue and says what needs attention.",
+          "merchant's own stock, orders and revenue and says what needs attention.",
         links: [SIGN_IN, { label: 'Seller sign in', to: '/seller/login' }],
       };
 

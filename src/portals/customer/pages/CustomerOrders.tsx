@@ -1,4 +1,4 @@
-import { Package, ArrowLeft, Store } from 'lucide-react';
+import { Package, ArrowLeft, Store as MerchantIcon } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -28,7 +28,7 @@ function OrderList() {
         <EmptyState
           icon={<Package size={20} aria-hidden="true" />}
           title="No orders yet"
-          description="Orders you place at any store on Nexus will appear here, wherever you bought them."
+          description="Orders you place at any merchant on Nexus will appear here, wherever you bought them."
           action={
             /* See CustomerDashboard: `/storefront` without a slug renders
                "No storefront specified", not a shop. */
@@ -42,15 +42,15 @@ function OrderList() {
   }
 
   // One identity across every store, so the history is grouped by nothing but time.
-  const storeCount = new Set(orders.map(o => o.store?.id).filter(Boolean)).size;
+  const merchantCount = new Set(orders.map(o => o.merchant?.id).filter(Boolean)).size;
 
   return (
     <>
       <PageHeading
         title="Your orders"
         subtitle={
-          storeCount > 1
-            ? `${orders.length} orders across ${storeCount} stores`
+          merchantCount > 1
+            ? `${orders.length} orders across ${merchantCount} merchants`
             : `${orders.length} order${orders.length === 1 ? '' : 's'}`
         }
       />
@@ -99,10 +99,10 @@ function OrderDetail({ id }: { id: string }) {
             {order.orderNumber}
           </h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-            {order.store && (
+            {order.merchant && (
               <span className="inline-flex items-center gap-1.5">
-                <Store size={13} aria-hidden="true" />
-                {order.store.name}
+                <MerchantIcon size={13} aria-hidden="true" />
+                {order.merchant.name}
               </span>
             )}
             <span aria-hidden="true">·</span>

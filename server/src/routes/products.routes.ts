@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/products.controller.js';
-import { authMiddleware, requireStoreMembership } from '../middleware/auth.middleware.js';
+import { authMiddleware, requireMerchantMembership } from '../middleware/auth.middleware.js';
 
 export const productsRouter = Router();
 
 productsRouter.use(authMiddleware);
-productsRouter.use(requireStoreMembership);
+productsRouter.use(requireMerchantMembership);
 
 productsRouter.get('/', getProducts);
 productsRouter.get('/:id', getProductById);

@@ -65,7 +65,7 @@ export function MarketplaceHome() {
   return (
     <div className="mx-auto max-w-7xl space-y-14 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       {/* Hero. The claims are limited to what the platform actually does:
-          products from many stores, one account, server-verified checkout. */}
+          products from many merchants, one account, server-verified checkout. */}
       <section className="relative overflow-hidden rounded-3xl border border-[var(--ink)]/10 bg-gradient-to-br from-[var(--ink)]/[0.06] via-[var(--ink)]/[0.02] to-transparent px-6 py-12 sm:px-12 sm:py-16">
         <div
           aria-hidden="true"
@@ -132,7 +132,7 @@ export function MarketplaceHome() {
           <PackageSearch size={28} className="mx-auto text-decorative" aria-hidden="true" />
           <p className="mt-3 text-sm font-semibold text-primary">No products are published yet.</p>
           <p className="mt-1 text-xs text-secondary">
-            As soon as a Nexus store publishes a product it appears here.
+            As soon as a Nexus merchant publishes a product it appears here.
           </p>
         </div>
       )}

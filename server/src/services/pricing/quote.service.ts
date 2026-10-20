@@ -7,8 +7,8 @@ import { platformTaxRate, platformTaxLabel, platformTaxInclusive } from '../../c
  * One authority for what an order costs.
  *
  * Tax and delivery were computed in four places from hardcoded constants:
- * `storefront.controller.ts` twice (`validateCart` at the quote stage and
- * `checkout` at the order stage) and `StorefrontView.tsx` once on the client,
+ * `merchantShop.controller.ts` twice (`validateCart` at the quote stage and
+ * `checkout` at the order stage) and the checkout page once on the client,
  * each applying `subtotal * 0.08` tax and `$15`, free over `$100`, delivery.
  *
  * That was wrong three ways at once:
@@ -28,7 +28,7 @@ import { platformTaxRate, platformTaxLabel, platformTaxInclusive } from '../../c
  */
 
 export interface QuoteInput {
-  storeId: string;
+  merchantId: string;
   subtotal: number;
   /** After any discount, so tax and percentage logic apply to what is owed. */
   discountAmount?: number;
@@ -125,14 +125,14 @@ export function countryCode(country?: string): string {
  * agreed to.
  */
 export async function shippingOptionsFor(
-  storeId: string,
+  merchantId: string,
   subtotal: number,
   country?: string
 ): Promise<ShippingOption[]> {
   const code = countryCode(country);
 
   const zones = await prisma.shippingZone.findMany({
-    where: { storeId },
+    where: { merchantId },
     include: { methods: { orderBy: { price: 'asc' } } },
   });
 
@@ -163,8 +163,8 @@ export async function shippingOptionsFor(
   }
 
   // No zone covers this destination. Fall back to the store's own default.
-  const settings = await prisma.storeSettings.findUnique({
-    where: { storeId },
+  const settings = await prisma.merchantSettings.findUnique({
+    where: { merchantId },
     select: { defaultShippingFee: true, freeShippingThreshold: true },
   });
 
@@ -175,9 +175,9 @@ export async function shippingOptionsFor(
   if (price === 0 && fee === 0) {
     return [
       {
-        id: 'store_default',
+        id: 'merchant_default',
         name: 'Delivery',
-        description: 'Arranged by the store',
+        description: 'Arranged by the merchant',
         price: 0,
         estimatedDays: null,
         isFree: true,
@@ -187,7 +187,7 @@ export async function shippingOptionsFor(
 
   return [
     {
-      id: 'store_default',
+      id: 'merchant_default',
       name: 'Standard delivery',
       description: null,
       price: money(price),
@@ -208,12 +208,12 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
   const discountAmount = money(Math.min(Math.max(0, input.discountAmount ?? 0), subtotal));
   const taxableBase = money(subtotal - discountAmount);
 
-  const settings = await prisma.storeSettings.findUnique({
-    where: { storeId: input.storeId },
+  const settings = await prisma.merchantSettings.findUnique({
+    where: { merchantId: input.merchantId },
     select: { currency: true },
   });
 
-  const shippingOptions = await shippingOptionsFor(input.storeId, taxableBase, input.country);
+  const shippingOptions = await shippingOptionsFor(input.merchantId, taxableBase, input.country);
 
   const chosen =
     (input.shippingMethodId
@@ -233,7 +233,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
    * These were per-store columns, which only made sense while each merchant
    * was modelled as running an independent shop. On a single marketplace
    * Nexus takes the money and issues the receipt, so one rate applies to
-   * every sale. The columns remain on StoreSettings, unread, rather than
+   * every sale. The columns remain on MerchantSettings, unread, rather than
    * being dropped in a migration that would destroy whatever a merchant had
    * already entered.
    */
@@ -269,7 +269,7 @@ export async function quoteOrder(input: QuoteInput): Promise<Quote> {
     shippingMethodId: chosen?.id ?? null,
     shippingMethodName: chosen?.name ?? null,
     total,
-    // StoreSettings.currency is a display string ("NGN — Nigerian Naira");
+    // MerchantSettings.currency is a display string ("NGN — Nigerian Naira");
     // one shared helper recovers the code so the parsing is not duplicated.
     currency: currencyCodeOf(settings?.currency),
     shippingOptions,

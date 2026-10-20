@@ -105,6 +105,29 @@
     /* The one non-neutral surface: the violet cast behind the closing CTA. */
     --surface-accent: #1E122C;
 
+    /*
+     * The marketing hero's own surface.
+     *
+     * Sampled from the reference image, point by point, rather than invented:
+     * a cyan core in the upper left, deep navy along the bottom, magenta
+     * through the middle rising to orchid, and a warm orange bloom on the
+     * right. The band used to be a flat neutral -- near-black in dark,
+     * #EEF1F6 in light -- which is a colour, not a picture.
+     *
+     * Theme-independent, like --brand-*: the hero pins data-theme="dark"
+     * because its copy sits on a video, so there is no light variant to keep
+     * in step. Nothing BELOW the hero uses these; the framed mockup follows
+     * the page's own theme.
+     */
+    --hero-deep: #0C114B;       /* bottom edge, the darkest point    */
+    --hero-navy: #0F1863;       /* lower band                        */
+    --hero-blue: #2A5BDB;       /* left edge, mid-height             */
+    --hero-cyan: #66C8EF;       /* upper-left core                   */
+    --hero-violet: #824AD3;     /* centre                            */
+    --hero-magenta: #CA45DC;    /* upper centre-right                */
+    --hero-orchid: #E39CE8;     /* the pale bloom right of centre    */
+    --hero-orange: #FD9A63;     /* the warm glow on the right edge   */
+
     /* Opaque borders. The translucent ones are `border-[var(--ink)]/N`. */
     --line: #222642;
     --line-subtle: #1E2238;
@@ -325,6 +348,68 @@
     background: rgba(39, 201, 63, 0.08);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(39, 201, 63, 0.2);
+  }
+
+  /*
+   * The hero band.
+   *
+   * Six layers in one declaration, painted back to front: the linear gradient
+   * is the body of the sky, and the radial stops are the colour centres the
+   * reference image actually has, at the positions it has them. Percentages
+   * are the sample points, so the band reproduces the picture rather than
+   * approximating it with two stops and a hope.
+   */
+  .hero-wash {
+    background-color: var(--hero-deep);
+    background-image:
+      radial-gradient(64% 58% at 18% 20%, color-mix(in oklab, var(--hero-cyan) 85%, transparent) 0%, transparent 70%),
+      radial-gradient(50% 46% at 97% 28%, color-mix(in oklab, var(--hero-orange) 80%, transparent) 0%, transparent 68%),
+      radial-gradient(52% 48% at 74% 26%, color-mix(in oklab, var(--hero-orchid) 72%, transparent) 0%, transparent 70%),
+      radial-gradient(60% 54% at 60% 26%, color-mix(in oklab, var(--hero-magenta) 78%, transparent) 0%, transparent 72%),
+      radial-gradient(70% 64% at 44% 42%, color-mix(in oklab, var(--hero-violet) 70%, transparent) 0%, transparent 76%),
+      linear-gradient(
+        168deg,
+        var(--hero-blue) 0%,
+        color-mix(in oklab, var(--hero-blue) 70%, var(--hero-navy)) 28%,
+        var(--hero-navy) 62%,
+        var(--hero-deep) 100%
+      );
+  }
+
+  /*
+   * The darkening that sits over the hero's media.
+   *
+   * It fades back to transparent over the last fifth on purpose. An opaque
+   * bottom edge put a hard horizontal line across the band where the carousel
+   * container ended and the mockup's half of it began -- two different
+   * darknesses of the same wash, meeting at a seam.
+   */
+  .hero-media-scrim {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--hero-deep) 4%, transparent) 0%,
+      color-mix(in oklab, var(--hero-deep) 16%, transparent) 42%,
+      color-mix(in oklab, var(--hero-deep) 18%, transparent) 80%,
+      transparent 100%
+    );
+  }
+
+  /*
+   * The hero's copy column.
+   *
+   * The wash is bright enough in its middle that the quietest text steps stop
+   * clearing 4.5:1 on it -- the band is a picture, not a surface the text
+   * scale was tuned for. This darkens the centre, where the words are, and
+   * leaves the edges at full strength, where there is nothing to read.
+   */
+  .hero-copy-scrim {
+    background: radial-gradient(
+      72% 78% at 50% 46%,
+      color-mix(in oklab, var(--hero-deep) 66%, transparent) 0%,
+      color-mix(in oklab, var(--hero-deep) 52%, transparent) 55%,
+      color-mix(in oklab, var(--hero-deep) 28%, transparent) 78%,
+      transparent 92%
+    );
   }
 
   .glow-green {

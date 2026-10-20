@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { Prisma, OrderStatus, PaymentStatus, ReviewStatus, ProductStatus, StoreStatus } from '@prisma/client';
+import { Prisma, OrderStatus, PaymentStatus, ReviewStatus, ProductStatus, MerchantStatus } from '@prisma/client';
 import { prisma } from '../prisma.js';
 
 /**
@@ -12,7 +12,7 @@ import { prisma } from '../prisma.js';
  * `OrderItem` back from it or returns 403, and the review row then stores that
  * item's id. A review therefore cannot exist without a delivered, paid order
  * line behind it, which is what makes the "Verified purchase" badge on the
- * storefront a fact rather than a decoration.
+ * listing a fact rather than a decoration.
  *
  * No review is ever generated, seeded or defaulted. A product nobody has
  * bought has `ratingCount: 0`, and the UI is expected to say so.
@@ -79,13 +79,13 @@ async function findEntitlingPurchase(
       },
     },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, orderId: true, order: { select: { storeId: true } } },
+    select: { id: true, orderId: true, order: { select: { merchantId: true } } },
   });
 
   if (delivered) return { item: delivered, reason: null as null };
 
   // Distinguish "you never bought this" from "it has not arrived yet", so the
-  // storefront can say which. A shopper waiting on a parcel should be told to
+  // listing can say which. A shopper waiting on a parcel should be told to
   // come back, not told they are not a customer.
   const undelivered = await prisma.orderItem.findFirst({
     where: { productId, order: ownedByViewer },
@@ -231,7 +231,7 @@ export async function listProductReviews(req: Request, res: Response, next: Next
     // the endpoint leaks the existence of archived products and products in
     // suspended stores.
     const product = await prisma.product.findFirst({
-      where: { id: productId, status: ProductStatus.ACTIVE, store: { status: StoreStatus.ACTIVE } },
+      where: { id: productId, status: ProductStatus.ACTIVE, merchant: { status: MerchantStatus.ACTIVE } },
       select: { id: true },
     });
     if (!product) {
@@ -329,7 +329,7 @@ export async function createProductReview(req: Request, res: Response, next: Nex
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, storeId: true },
+      select: { id: true, merchantId: true },
     });
     if (!product) {
       res.status(404).json({ success: false, error: 'Product not found.' });
@@ -353,7 +353,7 @@ export async function createProductReview(req: Request, res: Response, next: Nex
       const created = await tx.productReview.create({
         data: {
           productId,
-          storeId: product.storeId,
+          merchantId: product.merchantId,
           userId,
           orderId: item.orderId,
           orderItemId: item.id,
@@ -477,13 +477,13 @@ const sellerListQuerySchema = z.object({
  * Scoped by `req.store.id` rather than by anything in the query, so there is
  * no parameter a merchant could use to read another store's reviews.
  */
-export async function listStoreReviews(req: Request, res: Response, next: NextFunction) {
+export async function listMerchantReviews(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { page, limit, rating, unanswered } = sellerListQuerySchema.parse(req.query);
 
     const where: Prisma.ProductReviewWhereInput = {
-      storeId,
+      merchantId,
       status: ReviewStatus.PUBLISHED,
       ...(rating ? { rating } : {}),
       ...(unanswered ? { merchantReply: null } : {}),
@@ -502,14 +502,14 @@ export async function listStoreReviews(req: Request, res: Response, next: NextFu
       }),
       prisma.productReview.count({ where }),
       prisma.productReview.aggregate({
-        where: { storeId, status: ReviewStatus.PUBLISHED },
+        where: { merchantId, status: ReviewStatus.PUBLISHED },
         _avg: { rating: true },
         _count: { _all: true },
       }),
     ]);
 
     const awaitingReply = await prisma.productReview.count({
-      where: { storeId, status: ReviewStatus.PUBLISHED, merchantReply: null },
+      where: { merchantId, status: ReviewStatus.PUBLISHED, merchantReply: null },
     });
 
     res.json({
@@ -545,14 +545,14 @@ const replySchema = z.object({
  */
 export async function replyToReview(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
     const { reply } = replySchema.parse(req.body);
 
     // Store ownership in the filter, so a merchant cannot reply to a review
     // belonging to someone else's catalogue.
     const existing = await prisma.productReview.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
       select: { id: true },
     });
     if (!existing) {
@@ -578,11 +578,11 @@ export async function replyToReview(req: Request, res: Response, next: NextFunct
  */
 export async function deleteReviewReply(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
     const existing = await prisma.productReview.findFirst({
-      where: { id, storeId },
+      where: { id, merchantId },
       select: { id: true },
     });
     if (!existing) {

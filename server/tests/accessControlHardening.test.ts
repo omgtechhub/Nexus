@@ -29,8 +29,8 @@ describe('Access control hardening', () => {
   let outsiderCookie: string;
   let rivalCookie: string;
 
-  let storeId: string;
-  let rivalStoreId: string;
+  let merchantId: string;
+  let rivalMerchantId: string;
   let ownerMemberId: string;
   let adminMemberId: string;
   let customerId: string;
@@ -40,37 +40,37 @@ describe('Access control hardening', () => {
       name: 'Team Owner',
       email: ownerEmail,
       password,
-      storeName: `ACH Store ${ts}`,
+      displayName: `ACH Merchant ${ts}`,
       userType: 'SELLER',
     });
     ownerCookie = (owner.headers['set-cookie'] as string[])[0];
-    storeId = owner.body.data.store.id;
+    merchantId = owner.body.data.merchant.id;
 
     const rival = await request.post('/api/auth/register').send({
       name: 'Rival Seller',
       email: rivalEmail,
       password,
-      storeName: `ACH Rival ${ts}`,
+      displayName: `ACH Rival ${ts}`,
       userType: 'SELLER',
     });
     rivalCookie = (rival.headers['set-cookie'] as string[])[0];
-    rivalStoreId = rival.body.data.store.id;
+    rivalMerchantId = rival.body.data.merchant.id;
 
     const admin = await request.post('/api/auth/register').send({
       name: 'Team Admin',
       email: adminEmail,
       password,
-      storeName: `ACH Admin Own ${ts}`,
+      displayName: `ACH Admin Own ${ts}`,
       userType: 'SELLER',
     });
     adminCookie = (admin.headers['set-cookie'] as string[])[0];
-    const adminOwnStoreId = admin.body.data.store.id;
+    const adminOwnMerchantId = admin.body.data.merchant.id;
 
     const outsider = await request.post('/api/auth/register').send({
       name: 'Outsider',
       email: outsiderEmail,
       password,
-      storeName: `ACH Outsider ${ts}`,
+      displayName: `ACH Outsider ${ts}`,
       userType: 'SELLER',
     });
     outsiderCookie = (outsider.headers['set-cookie'] as string[])[0];
@@ -92,8 +92,8 @@ describe('Access control hardening', () => {
      * OWNER. The scenario under test is a staff-only account, which is what
      * removing its own store leaves behind.
      */
-    await prisma.storeMember.deleteMany({ where: { storeId: adminOwnStoreId } });
-    await prisma.store.delete({ where: { id: adminOwnStoreId } });
+    await prisma.merchantMember.deleteMany({ where: { merchantId: adminOwnMerchantId } });
+    await prisma.merchant.delete({ where: { id: adminOwnMerchantId } });
 
     const team = await request.get('/api/team').set('Cookie', [ownerCookie]);
     ownerMemberId = team.body.data.members.find((m: any) => m.role === 'OWNER').id;
@@ -107,16 +107,16 @@ describe('Access control hardening', () => {
   });
 
   describe('Customer update is not a mass assignment', () => {
-    it('refuses a storeId in the body instead of moving the record across tenants', async () => {
+    it('refuses a merchantId in the body instead of moving the record across tenants', async () => {
       const res = await request
         .put(`/api/customers/${customerId}`)
         .set('Cookie', [ownerCookie])
-        .send({ name: 'Buyer One', storeId: rivalStoreId });
+        .send({ name: 'Buyer One', merchantId: rivalMerchantId });
 
       expect(res.status).toBe(400);
 
       const row = await prisma.customer.findUnique({ where: { id: customerId } });
-      expect(row?.storeId).toBe(storeId);
+      expect(row?.merchantId).toBe(merchantId);
     });
 
     it('refuses a userId, which would link the record to an arbitrary account', async () => {
@@ -154,7 +154,7 @@ describe('Access control hardening', () => {
     });
   });
 
-  describe('A store ADMIN cannot take the store over', () => {
+  describe('A merchant ADMIN cannot take the merchant over', () => {
     it('cannot promote itself to OWNER', async () => {
       const res = await request
         .patch(`/api/team/members/${adminMemberId}/role`)
@@ -162,7 +162,7 @@ describe('Access control hardening', () => {
         .send({ role: 'OWNER' });
 
       expect(res.status).toBe(403);
-      const member = await prisma.storeMember.findUnique({ where: { id: adminMemberId } });
+      const member = await prisma.merchantMember.findUnique({ where: { id: adminMemberId } });
       expect(member?.role).toBe('ADMIN');
     });
 
@@ -173,7 +173,7 @@ describe('Access control hardening', () => {
         .send({ role: 'VIEWER' });
 
       expect(res.status).toBe(403);
-      const member = await prisma.storeMember.findUnique({ where: { id: ownerMemberId } });
+      const member = await prisma.merchantMember.findUnique({ where: { id: ownerMemberId } });
       expect(member?.role).toBe('OWNER');
     });
 
@@ -187,7 +187,7 @@ describe('Access control hardening', () => {
       // Specifically refused for the role, not incidentally refused by the
       // plan's seat limit — which is what this asserted before the
       // authorization check was moved ahead of the entitlement check.
-      expect(res.body.error).toMatch(/only the store owner/i);
+      expect(res.body.error).toMatch(/only the merchant owner/i);
     });
 
     it('may still make the role changes the owner is entitled to', async () => {
@@ -224,7 +224,7 @@ describe('Access control hardening', () => {
     });
   });
 
-  describe('A store keeps an owner', () => {
+  describe('A merchant keeps an owner', () => {
     it('refuses to demote the only owner', async () => {
       const res = await request
         .patch(`/api/team/members/${ownerMemberId}/role`)
@@ -232,7 +232,7 @@ describe('Access control hardening', () => {
         .send({ role: 'ADMIN' });
 
       expect(res.status).toBe(400);
-      const member = await prisma.storeMember.findUnique({ where: { id: ownerMemberId } });
+      const member = await prisma.merchantMember.findUnique({ where: { id: ownerMemberId } });
       expect(member?.role).toBe('OWNER');
     });
   });
@@ -246,11 +246,11 @@ describe('Access control hardening', () => {
         name: 'Invite Host',
         email: `ach_host_${ts}@example.com`,
         password,
-        storeName: `ACH Host ${ts}`,
+        displayName: `ACH Host ${ts}`,
         userType: 'SELLER',
       });
       const hostCookie = (host.headers['set-cookie'] as string[])[0];
-      const hostStoreId = host.body.data.store.id;
+      const hostMerchantId = host.body.data.merchant.id;
 
       const invite = await request
         .post('/api/team/invite')
@@ -267,48 +267,30 @@ describe('Access control hardening', () => {
       expect(res.status).toBe(403);
 
       const user = await prisma.user.findUnique({ where: { email: outsiderEmail } });
-      const seat = await prisma.storeMember.findFirst({
-        where: { userId: user!.id, storeId: hostStoreId },
+      const seat = await prisma.merchantMember.findFirst({
+        where: { userId: user!.id, merchantId: hostMerchantId },
       });
       expect(seat).toBeNull();
     });
   });
 
-  describe('Custom domains', () => {
-    it('refuses a hostname that is not a hostname', async () => {
-      const res = await request
-        .post('/api/domains')
-        .set('Cookie', [rivalCookie])
-        .send({ domain: 'not a domain at all' });
-      expect(res.status).toBe(400);
-    });
-
-    it('refuses a platform-reserved domain', async () => {
-      const res = await request
-        .post('/api/domains')
-        .set('Cookie', [rivalCookie])
-        .send({ domain: 'nexuscommerce.io' });
-      expect(res.status).toBe(400);
-
-      const sub = await request
-        .post('/api/domains')
-        .set('Cookie', [rivalCookie])
-        .send({ domain: 'shops.nexuscommerce.io' });
-      expect(sub.status).toBe(400);
-    });
-
-    it('has no unconditional auto-verify branch left in the source', async () => {
-      const fs = await import('fs/promises');
-      const src = await fs.readFile(
-        new URL('../src/controllers/domains.controller.ts', import.meta.url),
-        'utf-8'
-      );
-      // The old fallback verified any domain whose name merely *contained*
-      // one of these, with no environment check at all, on the DNS-failure
-      // branch — which is the branch you land on for a domain you do not own.
-      expect(src).not.toMatch(/customDomain\.domain\.includes\('auraapparel'\)/);
-      expect(src).not.toMatch(/customDomain\.domain\.includes\('nexus'\)/);
-      expect(src).not.toMatch(/customDomain\.domain\.includes\('example\.com'\)/);
+  /*
+   * The custom-domain tests are gone with the feature.
+   *
+   * They asserted that domain verification had no unconditional auto-verify
+   * branch -- the hole that let any seller claim a hostname containing
+   * "nexus", including nexuscommerce.io itself. There is now no CustomDomain
+   * table, no /api/domains route and no verification code at all, because a
+   * merchant on a marketplace has no hostname of its own. The guard that
+   * replaces those tests is `noDomainFeature` below: it fails if the route
+   * ever comes back.
+   */
+  describe('The custom-domain feature is gone', () => {
+    it('serves no domain route', async () => {
+      const res = await request.post('/api/domains').set('Cookie', [rivalCookie]).send({
+        domain: 'rival.example.com',
+      });
+      expect(res.status).toBe(404);
     });
   });
 

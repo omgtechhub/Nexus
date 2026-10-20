@@ -1,4 +1,4 @@
-import { PrismaClient, Role, StoreStatus, ProductStatus, InventoryMovementType } from '@prisma/client';
+import { PrismaClient, Role, MerchantStatus, ProductStatus, InventoryMovementType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -56,17 +56,16 @@ export interface CatalogueCategory {
   description: string;
 }
 
-export interface CatalogueStore {
+export interface CatalogueMerchant {
   /** Stable id so re-running is idempotent and the URLs stay put. */
   id: string;
   name: string;
-  domain: string;
-  handle: string;
+  /** One line for the merchant's profile on the marketplace. */
+  description?: string;
   industry: string;
   ownerId: string;
   ownerEmail: string;
   ownerName: string;
-  announcementText?: string;
   categories: CatalogueCategory[];
   products: CatalogueProduct[];
 }
@@ -119,7 +118,7 @@ function shoeVariants(sku: string, price: number, stock: number[], costPrice?: n
  * itself; these extend it so Apparel, Bags and Watches each hold a real range
  * rather than one item apiece.
  */
-export const DEMO_STORE_EXTRA_PRODUCTS: CatalogueProduct[] = [
+export const DEMO_MERCHANT_EXTRA_PRODUCTS: CatalogueProduct[] = [
   {
     title: 'Heavyweight Flannel Overshirt',
     slug: 'heavyweight-flannel-overshirt',
@@ -256,17 +255,15 @@ export const DEMO_STORE_EXTRA_PRODUCTS: CatalogueProduct[] = [
   },
 ];
 
-export const CATALOGUE_STORES: CatalogueStore[] = [
+export const CATALOGUE_MERCHANTS: CatalogueMerchant[] = [
   {
     id: 'str_northwind_audio',
     name: 'Northwind Audio',
-    domain: 'northwindaudio.com',
-    handle: 'northwindaudio',
     industry: 'Electronics',
     ownerId: 'usr_northwind_owner',
     ownerEmail: 'owner@northwindaudio.com',
     ownerName: 'Priya Raman',
-    announcementText: 'Free carry case with every pair of over-ear headphones.',
+    description: 'Free carry case with every pair of over-ear headphones.',
     categories: [AUDIO],
     products: [
       {
@@ -357,8 +354,6 @@ export const CATALOGUE_STORES: CatalogueStore[] = [
   {
     id: 'str_cobble_and_last',
     name: 'Cobble & Last',
-    domain: 'cobbleandlast.com',
-    handle: 'cobbleandlast',
     industry: 'Footwear',
     ownerId: 'usr_cobble_owner',
     ownerEmail: 'owner@cobbleandlast.com',
@@ -423,13 +418,11 @@ export const CATALOGUE_STORES: CatalogueStore[] = [
   {
     id: 'str_verdant_home',
     name: 'Verdant Home',
-    domain: 'verdanthome.com',
-    handle: 'verdanthome',
     industry: 'Home & Garden',
     ownerId: 'usr_verdant_owner',
     ownerEmail: 'owner@verdanthome.com',
     ownerName: 'Ines Carvalho',
-    announcementText: 'Ceramics are hand-thrown, so each piece varies slightly.',
+    description: 'Ceramics are hand-thrown, so each piece varies slightly.',
     categories: [HOME],
     products: [
       {
@@ -507,8 +500,6 @@ export const CATALOGUE_STORES: CatalogueStore[] = [
   {
     id: 'str_rooted_skincare',
     name: 'Rooted Skincare',
-    domain: 'rootedskincare.com',
-    handle: 'rootedskincare',
     industry: 'Health & Beauty',
     ownerId: 'usr_rooted_owner',
     ownerEmail: 'owner@rootedskincare.com',
@@ -573,13 +564,11 @@ export const CATALOGUE_STORES: CatalogueStore[] = [
   {
     id: 'str_tandem_coffee',
     name: 'Tandem Coffee Roasters',
-    domain: 'tandemcoffee.com',
-    handle: 'tandemcoffee',
     industry: 'Food & Beverage',
     ownerId: 'usr_tandem_owner',
     ownerEmail: 'owner@tandemcoffee.com',
     ownerName: 'Marcus Bell',
-    announcementText: 'Roasted to order every Tuesday and Friday.',
+    description: 'Roasted to order every Tuesday and Friday.',
     categories: [COFFEE],
     products: [
       {
@@ -620,8 +609,6 @@ export const CATALOGUE_STORES: CatalogueStore[] = [
   {
     id: 'str_meridian_desk',
     name: 'Meridian Desk Supply',
-    domain: 'meridiandesk.com',
-    handle: 'meridiandesk',
     industry: 'Electronics',
     ownerId: 'usr_meridian_owner',
     ownerEmail: 'owner@meridiandesk.com',
@@ -691,17 +678,17 @@ export const CATALOGUE_STORES: CatalogueStore[] = [
 /**
  * Create one product with its images, variants and inventory.
  *
- * Idempotent on `(storeId, slug)`, which is the product's unique key, so
+ * Idempotent on `(merchantId, slug)`, which is the product's unique key, so
  * applying the catalogue twice does not duplicate anything.
  */
 async function createProduct(
   prisma: PrismaClient,
-  storeId: string,
+  merchantId: string,
   categoryIdByName: Map<string, string>,
   spec: CatalogueProduct
 ): Promise<boolean> {
   const existing = await prisma.product.findFirst({
-    where: { storeId, slug: spec.slug },
+    where: { merchantId, slug: spec.slug },
     select: { id: true },
   });
   if (existing) return false;
@@ -710,7 +697,7 @@ async function createProduct(
 
   const product = await prisma.product.create({
     data: {
-      storeId,
+      merchantId,
       title: spec.title,
       name: spec.title,
       slug: spec.slug,
@@ -759,7 +746,7 @@ async function createProduct(
   for (const row of rows) {
     const item = await prisma.inventoryItem.create({
       data: {
-        storeId,
+        merchantId,
         productId: product.id,
         variantId: row.variantId,
         sku: row.sku,
@@ -772,7 +759,7 @@ async function createProduct(
 
     await prisma.inventoryMovement.create({
       data: {
-        storeId,
+        merchantId,
         inventoryItemId: item.id,
         productId: product.id,
         variantId: row.variantId,
@@ -790,13 +777,13 @@ async function createProduct(
 /** Ensure the store's categories exist and return a name -> id map. */
 async function ensureCategories(
   prisma: PrismaClient,
-  storeId: string,
+  merchantId: string,
   categories: CatalogueCategory[]
 ) {
   const map = new Map<string, string>();
   for (const category of categories) {
     const existing = await prisma.productCategory.findFirst({
-      where: { storeId, name: category.name },
+      where: { merchantId, name: category.name },
       select: { id: true },
     });
     if (existing) {
@@ -804,7 +791,7 @@ async function ensureCategories(
       continue;
     }
     const created = await prisma.productCategory.create({
-      data: { storeId, name: category.name, slug: category.slug, description: category.description },
+      data: { merchantId, name: category.name, slug: category.slug, description: category.description },
     });
     map.set(category.name, created.id);
   }
@@ -820,17 +807,17 @@ async function ensureCategories(
  */
 export async function applyCatalogue(
   prisma: PrismaClient,
-  options: { demoStoreId?: string; log?: (message: string) => void } = {}
+  options: { demoMerchantId?: string; log?: (message: string) => void } = {}
 ) {
   const log = options.log ?? (() => {});
   const passwordHash = await bcrypt.hash('Password123!', 10);
-  let storesCreated = 0;
+  let merchantsCreated = 0;
   let productsCreated = 0;
 
-  for (const spec of CATALOGUE_STORES) {
-    let store = await prisma.store.findUnique({ where: { id: spec.id }, select: { id: true } });
+  for (const spec of CATALOGUE_MERCHANTS) {
+    let merchant = await prisma.merchant.findUnique({ where: { id: spec.id }, select: { id: true } });
 
-    if (!store) {
+    if (!merchant) {
       await prisma.user.upsert({
         where: { email: spec.ownerEmail },
         update: {},
@@ -845,40 +832,35 @@ export async function applyCatalogue(
         },
       });
 
-      store = await prisma.store.create({
+      merchant = await prisma.merchant.create({
         data: {
           id: spec.id,
           name: spec.name,
-          domain: spec.domain,
-          currency: 'USD — US Dollar',
-          timezone: 'America/New_York',
+          currency: 'NGN — Nigerian Naira',
+          timezone: 'Africa/Lagos',
           industry: spec.industry,
-          status: StoreStatus.ACTIVE,
+          status: MerchantStatus.ACTIVE,
           ownerId: spec.ownerId,
         },
         select: { id: true },
       });
 
-      await prisma.storeMember.create({
-        data: { userId: spec.ownerId, storeId: spec.id, role: Role.OWNER },
+      await prisma.merchantMember.create({
+        data: { userId: spec.ownerId, merchantId: spec.id, role: Role.OWNER },
       });
 
-      await prisma.storeSettings.create({
+      await prisma.merchantSettings.create({
         data: {
-          storeId: spec.id,
-          storeName: spec.name,
-          storeUrl: spec.handle,
-          currency: 'USD — US Dollar',
+          merchantId: spec.id,
+          displayName: spec.name,
+          description: spec.description ?? '',
+          currency: 'NGN — Nigerian Naira',
           industry: spec.industry,
-          announcementText: spec.announcementText ?? '',
-          activeTheme: 'nexus-dark',
-          primaryColor: '#FFBD2E',
-          customDomain: spec.domain,
         },
       });
 
-      storesCreated += 1;
-      log(`  store created: ${spec.name}`);
+      merchantsCreated += 1;
+      log(`  merchant created: ${spec.name}`);
     }
 
     const categoryIds = await ensureCategories(prisma, spec.id, spec.categories);
@@ -888,19 +870,19 @@ export async function applyCatalogue(
   }
 
   // Extend the demo store, so its three original products sit in a real range.
-  if (options.demoStoreId) {
-    const demo = await prisma.store.findUnique({
-      where: { id: options.demoStoreId },
+  if (options.demoMerchantId) {
+    const demo = await prisma.merchant.findUnique({
+      where: { id: options.demoMerchantId },
       select: { id: true },
     });
     if (demo) {
       const categoryIds = await ensureCategories(prisma, demo.id, [APPAREL, BAGS, WATCHES]);
-      for (const product of DEMO_STORE_EXTRA_PRODUCTS) {
+      for (const product of DEMO_MERCHANT_EXTRA_PRODUCTS) {
         if (await createProduct(prisma, demo.id, categoryIds, product)) productsCreated += 1;
       }
     }
   }
 
-  log(`Catalogue applied: ${storesCreated} stores, ${productsCreated} products created`);
-  return { storesCreated, productsCreated };
+  log(`Catalogue applied: ${merchantsCreated} merchants, ${productsCreated} products created`);
+  return { merchantsCreated, productsCreated };
 }

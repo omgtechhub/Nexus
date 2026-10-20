@@ -24,9 +24,9 @@ const createZoneSchema = z.object({
  */
 export async function getShippingZones(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const zones = await prisma.shippingZone.findMany({
-      where: { storeId },
+      where: { merchantId },
       include: { methods: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -41,17 +41,17 @@ export async function getShippingZones(req: Request, res: Response, next: NextFu
  */
 export async function createShippingZone(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { name, countries, methods } = createZoneSchema.parse(req.body);
 
     const zone = await prisma.shippingZone.create({
       data: {
-        storeId,
+        merchantId,
         name,
         countries: countries as any,
         methods: {
           create: methods.map((m) => ({
-            storeId,
+            merchantId,
             name: m.name,
             description: m.description,
             rateType: m.rateType,
@@ -78,10 +78,10 @@ export async function createShippingZone(req: Request, res: Response, next: Next
  */
 export async function deleteShippingZone(req: Request, res: Response, next: NextFunction) {
   try {
-    const storeId = req.store!.id;
+    const merchantId = req.merchant!.id;
     const { id } = req.params;
 
-    const existing = await prisma.shippingZone.findFirst({ where: { id, storeId } });
+    const existing = await prisma.shippingZone.findFirst({ where: { id, merchantId } });
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Shipping zone not found' });
     }
@@ -94,21 +94,19 @@ export async function deleteShippingZone(req: Request, res: Response, next: Next
 }
 
 /**
- * Public/Storefront: Calculate Server Shipping Rates for Destination Country
+ * Public: calculate shipping rates to a destination country
  */
 export async function calculateShippingRates(req: Request, res: Response, next: NextFunction) {
   try {
-    const { storeSlug } = req.params;
+    const { merchantRef } = req.params;
     const { country = '', subtotal = 0 } = req.body;
 
-    const store = await prisma.store.findFirst({
-      where: {
-        OR: [{ id: storeSlug }, { domain: storeSlug }],
-      },
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: merchantRef },
     });
 
-    if (!store) {
-      return res.status(404).json({ success: false, error: 'Store not found' });
+    if (!merchant) {
+      return res.status(404).json({ success: false, error: 'Merchant not found' });
     }
 
     /**
@@ -125,7 +123,7 @@ export async function calculateShippingRates(req: Request, res: Response, next: 
      * And when no zone covered the destination it fell back to the *first*
      * zone — quoting Lagos rates to a shopper in Berlin.
      */
-    const rates = await shippingOptionsFor(store.id, Number(subtotal) || 0, country);
+    const rates = await shippingOptionsFor(merchant.id, Number(subtotal) || 0, country);
 
     return res.json({
       success: true,

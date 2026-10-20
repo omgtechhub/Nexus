@@ -20,19 +20,19 @@ describe('Nexus IQ: insights, chat and metering', () => {
 
   let cookieA: string;
   let cookieB: string;
-  let storeAId: string;
+  let merchantAId: string;
   let productA: any;
 
   beforeAll(async () => {
     const resA = await request.post('/api/auth/register').send({
-      name: 'IQ Merchant A', email: merchantAEmail, password, storeName: `IQ Store A ${stamp}`,
+      name: 'IQ Merchant A', email: merchantAEmail, password, displayName: `IQ Merchant A ${stamp}`,
     });
     expect(resA.status).toBe(201);
     cookieA = resA.headers['set-cookie'][0];
-    storeAId = resA.body.data.store.id;
+    merchantAId = resA.body.data.merchant.id;
 
     const resB = await request.post('/api/auth/register').send({
-      name: 'IQ Merchant B', email: merchantBEmail, password, storeName: `IQ Store B ${stamp}`,
+      name: 'IQ Merchant B', email: merchantBEmail, password, displayName: `IQ Merchant B ${stamp}`,
     });
     expect(resB.status).toBe(201);
     cookieB = resB.headers['set-cookie'][0];
@@ -78,7 +78,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
     });
     await prisma.subscription.create({
       data: {
-        storeId: storeAId,
+        merchantId: merchantAId,
         planId: plan.id,
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
@@ -101,8 +101,8 @@ describe('Nexus IQ: insights, chat and metering', () => {
     });
   });
 
-  describe('insights are computed from store data', () => {
-    it('reports the store its own figures, and records the evidence behind each one', async () => {
+  describe('insights are computed from merchant data', () => {
+    it('reports the merchant its own figures, and records the evidence behind each one', async () => {
       const res = await request.post('/api/iq/insights/refresh').set('Cookie', [cookieA]);
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBeGreaterThan(0);
@@ -139,7 +139,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       expect(after.body.data.find((i: any) => i.kind === 'LOW_STOCK')).toBeUndefined();
     });
 
-    it('tells an empty store its catalogue is empty, and says nothing else', async () => {
+    it('tells an empty merchant its catalogue is empty, and says nothing else', async () => {
       const res = await request.post('/api/iq/insights/refresh').set('Cookie', [cookieB]);
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(1);
@@ -152,7 +152,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       expect(second.body.data.length).toBe(first.body.data.length);
     });
 
-    it('never shows one store another store insights', async () => {
+    it('never shows one merchant another merchant insights', async () => {
       const a = await request.get('/api/iq/insights').set('Cookie', [cookieA]);
       const b = await request.get('/api/iq/insights').set('Cookie', [cookieB]);
       const aIds = a.body.data.map((i: any) => i.id);
@@ -161,7 +161,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       }
     });
 
-    it('will not let one store dismiss another store insight', async () => {
+    it('will not let one merchant dismiss another merchant insight', async () => {
       const a = await request.get('/api/iq/insights').set('Cookie', [cookieA]);
       const target = a.body.data[0];
 
@@ -197,7 +197,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       conversationId = res.body.data.id;
     });
 
-    it('answers from the store data and names the thread after the first question', async () => {
+    it('answers from the merchant data and names the thread after the first question', async () => {
       const res = await request
         .post(`/api/iq/conversations/${conversationId}/messages`)
         .set('Cookie', [cookieA])
@@ -214,7 +214,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       expect(convo.body.data.messages).toHaveLength(2);
     });
 
-    it('declines a question the store data cannot answer instead of inventing one', async () => {
+    it('declines a question the merchant data cannot answer instead of inventing one', async () => {
       const res = await request
         .post(`/api/iq/conversations/${conversationId}/messages`)
         .set('Cookie', [cookieA])
@@ -235,7 +235,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       expect(res.status).toBe(400);
     });
 
-    it('will not let one store read or post into another store conversation', async () => {
+    it('will not let one merchant read or post into another merchant conversation', async () => {
       const read = await request
         .get(`/api/iq/conversations/${conversationId}`)
         .set('Cookie', [cookieB]);
@@ -268,19 +268,19 @@ describe('Nexus IQ: insights, chat and metering', () => {
     // Its own store, so these assertions are about metering rather than about
     // how much the tests above happened to spend.
     let cookieM: string;
-    let storeMId: string;
+    let merchantMId: string;
 
     beforeAll(async () => {
       const res = await request.post('/api/auth/register').send({
         name: 'IQ Meter', email: `iq_m_${stamp}@nexus.io`, password,
-        storeName: `IQ Meter Store ${stamp}`,
+        displayName: `IQ Meter Merchant ${stamp}`,
       });
       expect(res.status).toBe(201);
       cookieM = res.headers['set-cookie'][0];
-      storeMId = res.body.data.store.id;
+      merchantMId = res.body.data.merchant.id;
     });
 
-    it('starts a store at zero and reports the period window', async () => {
+    it('starts a merchant at zero and reports the period window', async () => {
       const res = await request.get('/api/iq/usage').set('Cookie', [cookieM]);
       expect(res.status).toBe(200);
       expect(res.body.data.tokensUsed).toBe(0);
@@ -288,7 +288,7 @@ describe('Nexus IQ: insights, chat and metering', () => {
       expect(res.body.data.periodEnd).toBeTruthy();
     });
 
-    it('does not cap an unsubscribed store', async () => {
+    it('does not cap an unsubscribed merchant', async () => {
       const res = await request.get('/api/iq/usage').set('Cookie', [cookieM]);
       expect(res.status).toBe(200);
       // The cap is gone, so the summary has no allowance to report at all.
@@ -303,12 +303,12 @@ describe('Nexus IQ: insights, chat and metering', () => {
       expect(res.body.data.tokensUsed).toBeGreaterThan(0);
     });
 
-    it('keeps answering however much the store has already spent', async () => {
+    it('keeps answering however much the merchant has already spent', async () => {
       // Far more than any tier ever allowed. Nexus IQ is metered, not rationed,
       // so this must change nothing about whether a question is answered.
       await prisma.aiUsageEvent.create({
         data: {
-          storeId: storeMId,
+          merchantId: merchantMId,
           kind: 'CHAT',
           provider: 'stub',
           model: 'stub-v1',

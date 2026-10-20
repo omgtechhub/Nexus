@@ -4,6 +4,7 @@ import { getAiProvider, InsightDraft } from './index.js';
 import { recordUsage } from './usage.service.js';
 import { logger } from '../../utils/logger.js';
 import { buildMarginContext } from './margins.service.js';
+import { defaultCurrencyLabel } from '../../config/currency.js';
 
 const WINDOW_DAYS = 30;
 
@@ -15,21 +16,21 @@ const WINDOW_DAYS = 30;
  * insight so a merchant can check any claim rather than take it on trust. The
  * provider is handed these drafts afterwards and may only phrase them.
  */
-export async function computeInsightDrafts(storeId: string): Promise<InsightDraft[]> {
+export async function computeInsightDrafts(merchantId: string): Promise<InsightDraft[]> {
   const now = new Date();
   const windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const previousStart = new Date(now.getTime() - 2 * WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [productCount, inventory, unfulfilled, currentOrders, previousOrders, settings] =
     await Promise.all([
-      prisma.product.count({ where: { storeId } }),
+      prisma.product.count({ where: { merchantId } }),
       prisma.inventoryItem.findMany({
-        where: { storeId },
+        where: { merchantId },
         include: { product: { select: { title: true } } },
       }),
       prisma.order.findMany({
         where: {
-          storeId,
+          merchantId,
           fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
           paymentStatus: { in: [PaymentStatus.PAID, PaymentStatus.SUCCESS] },
           status: { notIn: [OrderStatus.CANCELLED, OrderStatus.REFUNDED] },
@@ -39,7 +40,7 @@ export async function computeInsightDrafts(storeId: string): Promise<InsightDraf
       }),
       prisma.order.findMany({
         where: {
-          storeId,
+          merchantId,
           createdAt: { gte: windowStart },
           status: { notIn: [OrderStatus.CANCELLED, OrderStatus.REFUNDED] },
         },
@@ -47,17 +48,17 @@ export async function computeInsightDrafts(storeId: string): Promise<InsightDraf
       }),
       prisma.order.findMany({
         where: {
-          storeId,
+          merchantId,
           createdAt: { gte: previousStart, lt: windowStart },
           status: { notIn: [OrderStatus.CANCELLED, OrderStatus.REFUNDED] },
         },
         select: { total: true },
       }),
-      prisma.storeSettings.findUnique({ where: { storeId }, select: { currency: true } }),
+      prisma.merchantSettings.findUnique({ where: { merchantId }, select: { currency: true } }),
     ]);
 
   const drafts: InsightDraft[] = [];
-  const currency = (settings?.currency || 'USD').split(' ')[0];
+  const currency = (settings?.currency || defaultCurrencyLabel()).split(' ')[0];
 
   if (productCount === 0) {
     // Nothing else is worth saying about a store with no catalogue.
@@ -153,9 +154,9 @@ export async function computeInsightDrafts(storeId: string): Promise<InsightDraf
  * Insights are a snapshot of the store as it is now, so a stale one is worse
  * than none: the whole undismissed set is replaced rather than appended to.
  */
-export async function regenerateInsights(storeId: string): Promise<number> {
+export async function regenerateInsights(merchantId: string): Promise<number> {
   const provider = getAiProvider();
-  const drafts = await computeInsightDrafts(storeId);
+  const drafts = await computeInsightDrafts(merchantId);
 
   let tokensIn = 0;
   let tokensOut = 0;
@@ -166,7 +167,7 @@ export async function regenerateInsights(storeId: string): Promise<number> {
     tokensIn += result.tokensIn;
     tokensOut += result.tokensOut;
     written.push({
-      storeId,
+      merchantId,
       kind: draft.kind as AiInsightKind,
       severity: draft.severity,
       title: result.title,
@@ -178,13 +179,13 @@ export async function regenerateInsights(storeId: string): Promise<number> {
   }
 
   await prisma.$transaction([
-    prisma.aiInsight.deleteMany({ where: { storeId, status: AiInsightStatus.READY } }),
+    prisma.aiInsight.deleteMany({ where: { merchantId, status: AiInsightStatus.READY } }),
     ...(written.length > 0 ? [prisma.aiInsight.createMany({ data: written })] : []),
   ]);
 
   if (tokensIn + tokensOut > 0) {
     await recordUsage({
-      storeId,
+      merchantId,
       kind: AiUsageKind.INSIGHTS,
       provider: provider.name,
       model: provider.model,
@@ -193,7 +194,7 @@ export async function regenerateInsights(storeId: string): Promise<number> {
     });
   }
 
-  logger.info({ msg: `Regenerated ${written.length} Nexus IQ insights`, storeId });
+  logger.info({ msg: `Regenerated ${written.length} Nexus IQ insights`, merchantId });
   return written.length;
 }
 
@@ -202,17 +203,17 @@ export async function regenerateInsights(storeId: string): Promise<number> {
  * lines so a provider without a model can still look facts up, and a real model
  * gets the same grounding.
  */
-export async function buildStoreContext(storeId: string): Promise<string> {
-  const drafts = await computeInsightDrafts(storeId);
-  const [store, productCount, orderCount, customerCount] = await Promise.all([
-    prisma.store.findUnique({ where: { id: storeId }, select: { name: true } }),
-    prisma.product.count({ where: { storeId } }),
-    prisma.order.count({ where: { storeId } }),
-    prisma.customer.count({ where: { storeId } }),
+export async function buildMerchantContext(merchantId: string): Promise<string> {
+  const drafts = await computeInsightDrafts(merchantId);
+  const [merchant, productCount, orderCount, customerCount] = await Promise.all([
+    prisma.merchant.findUnique({ where: { id: merchantId }, select: { name: true } }),
+    prisma.product.count({ where: { merchantId } }),
+    prisma.order.count({ where: { merchantId } }),
+    prisma.customer.count({ where: { merchantId } }),
   ]);
 
   const lines: string[] = [
-    `- store name: ${store?.name ?? 'Unknown'}`,
+    `- merchant name: ${merchant?.name ?? 'Unknown'}`,
     `- total products: ${productCount}`,
     `- total orders: ${orderCount}`,
     `- total customers: ${customerCount}`,
@@ -220,7 +221,7 @@ export async function buildStoreContext(storeId: string): Promise<string> {
 
   // Margin and price position, which the insight drafts do not cover. A
   // merchant asking "am I making money" is asking about cost, not revenue.
-  lines.push(...(await buildMarginContext(storeId)));
+  lines.push(...(await buildMarginContext(merchantId)));
 
   for (const draft of drafts) {
     const e = draft.evidence as Record<string, any>;
@@ -247,12 +248,12 @@ export async function buildStoreContext(storeId: string): Promise<string> {
   }
 
   return (
-    `You are Nexus IQ, an assistant for the merchant who runs this store. ` +
+    `You are Nexus IQ, an assistant for the merchant who runs this merchant. ` +
     `Answer only from the figures below. If the answer is not there, say so.\n` +
     `When you quote a profit figure that does not cover all of the revenue, ` +
     `say what it leaves out. When you compare a price, say the comparison is ` +
-    `against other Nexus stores, not the wider market.\n\n` +
-    `Store data:\n${lines.join('\n')}`
+    `against other Nexus merchants, not the wider market.\n\n` +
+    `Merchant data:\n${lines.join('\n')}`
   );
 }
 

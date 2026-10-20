@@ -23,13 +23,13 @@ describe('Fulfilment: inventory, shipping zones and shipments', () => {
 
   beforeAll(async () => {
     const resA = await request.post('/api/auth/register').send({
-      name: 'Merchant A', email: merchantAEmail, password, storeName: `Fulfil Store A ${stamp}`,
+      name: 'Merchant A', email: merchantAEmail, password, displayName: `Fulfil Merchant A ${stamp}`,
     });
     expect(resA.status).toBe(201);
     cookieA = resA.headers['set-cookie'][0];
 
     const resB = await request.post('/api/auth/register').send({
-      name: 'Merchant B', email: merchantBEmail, password, storeName: `Fulfil Store B ${stamp}`,
+      name: 'Merchant B', email: merchantBEmail, password, displayName: `Fulfil Merchant B ${stamp}`,
     });
     expect(resB.status).toBe(201);
     cookieB = resB.headers['set-cookie'][0];
@@ -88,7 +88,7 @@ describe('Fulfilment: inventory, shipping zones and shipments', () => {
   });
 
   describe('shipments list', () => {
-    it('returns only the caller store shipments, with their order attached', async () => {
+    it('returns only the caller merchant shipments, with their order attached', async () => {
       const res = await request.get('/api/shipments').set('Cookie', [cookieA]);
       expect(res.status).toBe(200);
       const ids = res.body.data.map((s: any) => s.id);
@@ -120,7 +120,7 @@ describe('Fulfilment: inventory, shipping zones and shipments', () => {
   });
 
   describe('inventory', () => {
-    it('lists stock for the caller store', async () => {
+    it('lists stock for the caller merchant', async () => {
       const res = await request.get('/api/inventory').set('Cookie', [cookieA]);
       expect(res.status).toBe(200);
       const item = res.body.data.find((i: any) => i.productId === productA.id);
@@ -176,7 +176,7 @@ describe('Fulfilment: inventory, shipping zones and shipments', () => {
       zoneId = res.body.data.id;
     });
 
-    it('lists zones for the owning store only', async () => {
+    it('lists zones for the owning merchant only', async () => {
       const mine = await request.get('/api/shipping/zones').set('Cookie', [cookieA]);
       expect(mine.body.data.map((z: any) => z.id)).toContain(zoneId);
 
