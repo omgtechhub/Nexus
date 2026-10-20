@@ -435,7 +435,7 @@ export function Hero() {
           copy does not also say.
         */}
         <div
-          className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
+          className="hero-backdrop absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
           style={{ backgroundImage: `url(${getAssetUrl('/images/hero-wash.jpg')})` }}
           aria-hidden="true"
         />

@@ -377,6 +377,27 @@
   }
 
   /*
+   * The band, on a phone.
+   *
+   * The backdrop is a wide, bright picture, and `cover` on a near-square band
+   * crops to its lightest middle -- so the mobile hero came out paler than the
+   * desktop one and sat oddly against the dark content below it. Under 768px
+   * only, the image itself is darkened; desktop and tablet are untouched.
+   *
+   * An inset shadow rather than an overlay element. A `::after` on the section
+   * lands ABOVE the copy: the content sits inside a wrapper that is already
+   * `z-0`, which opens a stacking context its `z-10` child cannot escape, so
+   * the overlay dimmed the headline and the button along with the picture.
+   * Painting into the backdrop layer keeps the darkening strictly behind
+   * everything, and the colours stay the sampled ones -- only lightness moves.
+   */
+  @media (max-width: 767px) {
+    .hero-backdrop {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, var(--hero-deep) 58%, transparent);
+    }
+  }
+
+  /*
    * The darkening that sits over the hero's media.
    *
    * It fades back to transparent over the last fifth on purpose. An opaque

@@ -32,7 +32,7 @@ export const DOMAIN = 'nexuscommerce.io';
  * the platform's own mail is sent from, and nothing is published that cannot
  * receive.
  */
-export const MAILBOX = 'omigiegraphics@gmail.com';
+export const MAILBOX = 'omgtechhub@gmail.com';
 
 export const CONTACT = {
   /** Data subject requests, and anything about the Privacy or Cookie policy. */
