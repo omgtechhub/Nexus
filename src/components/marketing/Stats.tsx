@@ -1,6 +1,6 @@
 import CountUp from 'react-countup';
 import { useInView } from 'react-intersection-observer';
-import { TrendingUp, ShoppingCart, Globe2, Star } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Clock, Star } from 'lucide-react';
 
 /**
  * The scale section, restored at David's instruction on 2026-10-20.
@@ -15,10 +15,11 @@ import { TrendingUp, ShoppingCart, Globe2, Star } from 'lucide-react';
  *    The Verge, Fast Company and Entrepreneur. Naming real publications as
  *    having covered you is a different kind of claim from a round number.
  *
- *  - Nothing else on the page was changed to agree with the uptime line. The
- *    Terms still state there is no uptime guarantee and no service credits,
- *    so the two pages disagree. If the guarantee is meant to be real, section
- *    7 of the Terms is where it has to be written.
+ * The uptime card is gone. It read "99.99% uptime guaranteed" while the Terms
+ * stated — and still state — that there is no uptime guarantee and no service
+ * credits, so the app contradicted itself on two pages. It is now the 14-day
+ * free trial, which the signup flow and the pricing page both honour, and
+ * which every plan genuinely carries.
  */
 const stats = [
   {
@@ -41,13 +42,12 @@ const stats = [
     color: 'blue',
   },
   {
-    icon: <Globe2 size={28} />,
+    icon: <Clock size={28} />,
     prefix: '',
-    value: 99.99,
-    decimals: 2,
-    suffix: '%',
-    label: 'Uptime guaranteed',
-    description: 'Enterprise-grade reliability',
+    value: 14,
+    suffix: '-day',
+    label: 'Free trial',
+    description: 'On every plan, no card required',
     color: 'purple',
   },
   {
